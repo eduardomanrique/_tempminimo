@@ -1,0 +1,25 @@
+{
+  "name": "minimojs",
+  "version": "1.0.0",
+  "description": "minimo js",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha",
+    "start": "node index.js -d teste -l y -m y"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "chai": "^4.1.2",
+    "debug": "^3.0.1",
+    "properties-reader": "0.0.15",
+    "underscore": "^1.8.3",
+    "yargs": "^8.0.2"
+  },
+  "devDependencies": {
+    "babel-preset-es2015": "^6.24.1",
+    "babel-preset-stage-2": "^6.24.1",
+    "mocha": "^3.5.0"
+  }
+}
