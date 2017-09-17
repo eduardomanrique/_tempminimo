@@ -1,4 +1,4 @@
-require('./test')
+require('./test');
 require('chai').should();
 const expect = require('chai').expect;
 const _ = require('underscore');
