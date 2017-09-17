@@ -13,10 +13,12 @@ describe('Test esprima', function() {
     resources.readResource('./forEsprimaValidation.js')
       .then(resource => {
         const parsed = esprima.parse(resource.data);
-        const firstLevelVars = esprimaUtil.getFirstLevelVariables(parsed);
-        const firstLevelFns = esprimaUtil.getFirstLevelFunctions(parsed);
-        console.log(`vars: ${firstLevelVars}`);
-        console.log(`functions: ${firstLevelFns}`);
+        expect(_.difference(esprimaUtil.getFirstLevelVariables(parsed),
+          ['fs', 'system', 'esprima', 'options', 'fnames', 'forceFile', 'count', 'publicVar']))
+          .to.have.lengthOf(0);
+        expect(_.difference(esprimaUtil.getFirstLevelFunctions(parsed),
+          ['showUsage', 'publicFn', 'run']))
+          .to.have.lengthOf(0);
       })
   );
 });

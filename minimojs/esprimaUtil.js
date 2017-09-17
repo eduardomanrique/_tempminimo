@@ -223,32 +223,34 @@ module.exports = {
     let scr = [];
     parsed.body.forEach(item => {
       if (item.type == "FunctionDeclaration") {
-        if (item.id.name.indexOf('_') != 0) {
+        if (!item.id.name.startsWith('_')) {
           scr.push(item.id.name);
         }
       } else if (item.type == "VariableDeclaration") {
         item.declarations.forEach(d => {
           if (d.init && d.init.type == "FunctionExpression") {
-            if (item.id && item.id.name.indexOf('_') != 0) {
+            if (d.id && !d.id.name.startsWith('_')) {
               scr.push(d.id.name);
             }
           }
         })
       }
     });
-    return scr.join("|");
+    return scr;
   },
   getFirstLevelVariables: (parsed) => {
-    let x = [];
+    let src = [];
     parsed.body.forEach(item => {
       if (item.type == "VariableDeclaration") {
         item.declarations.forEach(d => {
           if (!d.init || d.init.type != "FunctionExpression") {
-            x.push(d.id.name);
+            if (d.id && !d.id.name.startsWith('_')) {
+              src.push(d.id.name);
+            }
           }
         });
       }
     });
-    return x.join(" ");
+    return src;
   }
 }
