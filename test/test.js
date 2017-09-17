@@ -27,7 +27,7 @@ describe('Get resources', function() {
   });
 
   it('xx', () =>
-    resources.getResources("./components")
+    resources.getResources("./res")
     .then(values =>
       _.mapObject(_.groupBy(values, resource => resource.path.substring(0, resource.path.lastIndexOf('.'))), (v, k) => {
         let result = {};

@@ -72,33 +72,19 @@ const _loadComponents = groupedResources => {
 const _createOldTypeComponent = (compJS, varPath) =>
   `${varPath} = new function(){
       var toBind = {};
-      this.get = (id) => Object.assign({id:id}, toBind);
-      const bindToHandle = (obj) => Object.assign(toBind, obj);
-      const expose = (name, fn) =>  ${varPath}[name] = fn;
+      this.get = function(id) {return Object.assign({id:id}, toBind)};
+      var bindToHandle = function(obj) {return Object.assign(toBind, obj)};
+      var expose = function(name, fn)  {${varPath}[name] = fn};
       var load;
       ${compJS};
-      try{
-        this.context = context;
-      }catch(e){};
+      try{ this.context = context; }catch(e){};
       this.getHtml = getHtml;
-      try{
-        this.getBindingMethods = getBindingMethods;
-      }catch(e){};
+      try{ this.getBindingMethods = getBindingMethods; }catch(e){};
       var generateId = X.generateId;
-      try{
-        this.childElementsInfo = childElementsInfo;
-      }catch(e){
-        this.childElementsInfo = () => new Object();
-      };
-      try{
-        X._addExecuteWhenReady(load);
-      }catch(e){};
-      try{
-        this.onReady = onReady;
-      }catch(e){};
-      try{
-        this.onVisible = onVisible;
-      }catch(e){};
+      try{ this.childElementsInfo = childElementsInfo; }catch(e){ this.childElementsInfo = function(){return {}} };
+      try{ X._addExecuteWhenReady(load); }catch(e){};
+      try{ this.onReady = onReady; }catch(e){};
+      try{ this.onVisible = onVisible; }catch(e){};
     };`;
 
 const _createHtmxComponent = (compJs, varPath, compName) =>
