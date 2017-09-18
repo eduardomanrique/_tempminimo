@@ -135,7 +135,7 @@ const ifStatement = (v, ident) => {
       ifst.push(processItem(v.alternate, ident + '  '));
     }
   }
-  return ifst.join();
+  return ifst.join('');
 }
 
 const tryStatement = (v, ident) => {
@@ -149,7 +149,7 @@ const tryStatement = (v, ident) => {
     tryst.push('finally');
     tryst.push(processItem(v.finalizer.body, ident + '  '));
   }
-  return tryst.join();
+  return tryst.join('');
 }
 
 const switchStatement = (v, ident) => {

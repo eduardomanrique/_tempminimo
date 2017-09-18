@@ -1,70 +1,76 @@
 const logger = require('./logging');
+const _ = require('underscore');
 const resources = require('./resources');
 const util = require('./util');
 const ctx = require('./context');
 const esprimaUtil = require('./esprimaUtil');
 
-const loadComponents => ()
-    resources.getResources("./components", r => (r.endsWith(".js") || r.endsWith(".htmx")) && !r.match(/[^/]+$/)[0].startsWith("."))
-      .then(values =>
-        _.mapObject(_.groupBy(values, resource => resource.path.substring(0, resource.path.lastIndexOf('.'))), (v, k) => {
-          let result = {};
-          v.forEach(item => {
-            let ext = item.path.substring(item.path.lastIndexOf('.')+1);
-            if(ext == 'htmx' || ext == 'js'){
-              result[ext] = item.data;
-            }
-          });
-          return result;
-        })
-      .then(_loadComponents)
+const loadComponents = () =>
+  resources.getResources("./components", r => (r.endsWith(".js") || r.endsWith(".htmx")) && !r.match(/[^/]+$/)[0].startsWith("."))
+    .then(values =>
+      _.mapObject(_.groupBy(values, resource => resource.path.substring(0, resource.path.lastIndexOf('.'))), (v, k) => {
+        let result = {};
+        v.forEach(item => {
+          let ext = item.path.substring(item.path.lastIndexOf('.')+1);
+          if(ext == 'htmx' || ext == 'js'){
+            result[ext] = item.data;
+          }
+        });
+        return result;
+      }))
+    .then(_loadComponents)
 
 
 module.exports = {
   loadComponents: loadComponents
 }
 
-const _createComponentVO = (resName, path, create, htmx) =>
-  {
+const _createComponentVO = (resName, path, create, htmx) => {
+  return {
     resourceName: resName,
     varPath: path,
     htmxStyle: htmx
   }
+}
 
-const _loadComponents = groupedResources => {
+const _loadComponents = (groupedResources) => {
   const js = ["var components = {};"];
   const info = [];
   const htmxSources = {}
 
   //component folder
-  Object.entries(groupedResources).forEach(entry => {
-    const path = entry.key;
+  _.pairs(groupedResources).forEach(pair => {
+    const [key, value] = pair;
+    const path = key.substring("./components/".length);
     const parts = path.split("/");
     const resourceName = _.last(parts);
-
     const compParts = parts.map(part => `['${part}']`)
+    let varPath = 'components';
+    js.push(_.initial(compParts).map(p => {
+      varPath += p;
+      return `${varPath}={};`;
+    }).join(''));
 
-    js.push(compParts.map(p => `${p}={};`).join());
+    const compName = parts.join('.');
+    varPath += _.last(compParts);
 
-    const compName = parts.filter((part, i) => i > 1).joins('.');
-    const varPath = `components${compParts.join()}['${resourceName}']`;
-
-    const hasHtmx = entry.value.htmx;
+    const hasHtmx = value.htmx != null;
     if (hasHtmx) {
-      htmxSources[varPath] = entry.value.htmx;
-      js.push(_createHtmxComponent(entry.value.js, varPath, compName));
+      htmxSources[varPath] = value.htmx;
+      js.push(_createHtmxComponent(value.js, varPath, compName));
     } else {
-      js.push(_createOldTypeComponent(entry.value.js, varPath));
+      js.push(_createOldTypeComponent(value.js, varPath));
     }
     if (!compName.startsWith("_")) {
-      js = js.push(`components['${compName}']=${varPath};`);
+      js.push(`components['${compName}']=${varPath};`);
       info.push(_createComponentVO(compName, varPath, hasHtmx));
     }
   });
-  let nameAndPath = info.map(c => `["${c.resourceName}","${c.varPath}"],`).join();
+  let nameAndPath = info.map(c => `["${c.resourceName}","${c.varPath}"],`).join('');
   return {
-    scripts: `var _comps = [${nameAndPath}];${js.join().replace(/\{webctx\}/g, ctx.contextPath)}`,
-    componentInfo: info,
+    scripts: `var _comps = [${nameAndPath}];
+      ${js.join('').replace(/\{webctx\}/g, ctx.contextPath)}`,
+    info: info,
     htmxSources: htmxSources
   };
 }
