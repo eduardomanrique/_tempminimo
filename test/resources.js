@@ -27,11 +27,11 @@ describe('Get resources', function() {
       });
   });
 
-  it('List and get groupped', () =>
+  it('List and get Groupped', () =>
     Promise.all(resources.getResourcePaths("./res").map(resource => resources.readResource(resource)))
     .then(values => _.groupBy(values, resource => resource.path.substring(0, resource.path.lastIndexOf('.'))))
     .then(values => {
-      console.log(`Groupped: ${JSON.stringify(values)}`);
+      //console.log(`Groupped: ${JSON.stringify(values)}`);
       expect(values['./res/dir1/fdir1']).not.to.be.null;
       expect(values['./res/file']).not.to.be.null;
       expect(values['./res/file2']).not.to.be.null;

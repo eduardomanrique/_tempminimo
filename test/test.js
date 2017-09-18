@@ -18,7 +18,7 @@ describe('Get resources', function() {
     let y;
     new Promise((resolve, reject) => resolve({x: 1, y: 2})).then(val => {
       ({x, y} = val);
-      console.log(`x: ${x}, y: ${y}`);
+      //console.log(`x: ${x}, y: ${y}`);
     });
 
   });
@@ -37,13 +37,13 @@ describe('Get resources', function() {
             result[ext] = item.data;
           }
         });
-        console.log(`::::${JSON.stringify(result)}`);
+        //console.log(`::::${JSON.stringify(result)}`);
         return result;
       })
     )
     .then(values => {
-      console.log(`${JSON.stringify(values)}`);
-      console.log(typeof(values))
+      // console.log(`${JSON.stringify(values)}`);
+	  //console.log(typeof(values))
     })
   );
 });

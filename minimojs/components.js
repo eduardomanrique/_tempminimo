@@ -3,6 +3,7 @@ const _ = require('underscore');
 const resources = require('./resources');
 const util = require('./util');
 const ctx = require('./context');
+const esprima = require('esprima');
 const esprimaUtil = require('./esprimaUtil');
 
 const loadComponents = () =>
@@ -75,6 +76,12 @@ const _loadComponents = (groupedResources) => {
   };
 }
 
+const _exposeFunctions = (js) => {
+    const parsed = esprima.parse(js);
+	
+    js += esprimaUtil.getFirstLevelFunctions(parsed).map(e => `this.${e} = ${e};`).join('\n');
+}
+
 const _createOldTypeComponent = (compJS, varPath) =>
   `${varPath} = new function(){
       var toBind = {};
@@ -106,8 +113,8 @@ const _createHtmxComponent = (compJs, varPath, compName) =>
            throw new Error('Error executing script component ' + this._compName + '. Script: ' + f + '. Cause: ' + e.message);
          }
        };
-       ${js};
-       ${esprimaUtil.exposeFunctions(compJs, "", "this")};
+       ${compJs};
+       ${_exposeFunctions(compJs)};
        var generateId = X.generateId;
      }
    };`

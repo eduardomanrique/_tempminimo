@@ -1,0 +1,18 @@
+<table style="border: 1px solid;" id="${this.id}">
+    <thead>
+    $for (column in this.column) {
+        <th>${column.title}</th>
+    }
+    </thead>
+    <tbody>
+    $for (item in this.list with index){
+        <tr>
+            $for (column in this.column) {
+                <td>${eval(column.content)}</td>
+            }
+            <td><button onclick="this.remove(index)">Remove</button></td>
+        </tr>
+    }
+    </tbody>
+</table>
+<br>
