@@ -5,9 +5,9 @@ const _prepareXScriptsValues = (value, escape) => {
     let pattern = /\$\{(?:(?!\$\{|}).)*}/;
     let last = value;
     while ((matcher = pattern.exec(last)) != null) {
-      let js = matcher[1].trim();
+      let js = matcher[1];
       let jsok = js.substring(2, js.length() - 1).replace(/"/g, "&quot;");
-      last = `${value.substring(0, matcher.index)}<xsc scr="${jsok}"></xsc>${value.substring(matcher.index+js.length)}`;
+      last = `${value.substring(0, matcher.index)}<xscr scr="${jsok}"></xscr>${value.substring(matcher.index+js.length)}`;
     }
   }
   return last;
@@ -22,6 +22,8 @@ const _getAllTextNodes = (element) =>
       list.push(e);
     }
   }));
+  
+const _generateId = () => "id_" + Math.random();
 
 const _isEmptyText = (node) => node instanceof Text && !(node instanceof Comment) && node.getText().trim() == '';
 
@@ -105,6 +107,7 @@ class Node {
   }
 }
 
+const PATTERN_SCRIPT = /\$\{(.*?)}/;
 const NO_END_TAG = "_base_link_meta_hr_br_wbr_area_img_track_embed_param_source_col_input_keygen_";
 class Element extends Node {
   constructor(name, root) {
@@ -217,275 +220,190 @@ class Element extends Node {
     this.isClosed = true;
   }
   toString() {
-    return `<${name} ${this.getAttributes().map(a => a.toString()).join(' ')}
+    return `<${this.name} ${this.getAttributes().map(a => a.toString()).join(' ')}
       ${_.pairs(hiddenAttributes).map(p => '_hidden_' + p[0] + "='" + p[1].replace(/'/g, "\\'") + "' ")}>
-    ${!this.notClosed && NO_END_TAG.indexOf("_" + name + "_") < 0 ? this.printHTML() + </${name}> : ''}`;
+    ${!this.notClosed && NO_END_TAG.indexOf("_" + this.name + "_") < 0 ? this.printHTML() + </${this.name}> : ''}`;
   }
+  toJson() {
+    if (_eqIgnoreCase(this.name, "xscr")) {
+	  const sb = [];
+      const att = this.getAttribute("scr");
+      sb.push(`{x: ${att.getDeliminitator()}${att.getValue()}${att.getDeliminitator()}`);
 
-Pattern patternScript = Pattern.compile("\\$\\{(.*?)}");
-
-@Override
-public String toJson() {
-    if (name.equalsIgnoreCase("xscript")) {
-        StringBuilder sb = new StringBuilder();
-        XAttribute att = this.getXAttribute("data-xscript");
-        sb.append("{x: ").append(att.getDeliminitator()).append(att.getValue()).append(att.getDeliminitator());
-
-        if (hasHiddenAttributes()) {
-            String hidden = printHiddenAttributesInJsonFormat();
-            sb.append(",h:{");
-            sb.append(hidden);
-            sb.append("}");
-        }
-        sb.append("}");
-        return sb.toString();
+      if (this.hasHiddenAttributes()) {
+      	sb.push(`,h:{${thisprintHiddenAttributesInJsonFormat()}}`);
+      }
+      sb.push("}");
+      return sb.join('');
     } else {
-        StringBuffer sb = new StringBuffer("{n:'");
-        sb.append(name).append("',");
-        StringBuilder sbAttr = new StringBuilder();
-        for (XAttribute a : getAttributes()) {
-            sbAttr.append("'").append(a.getName()).append("':[");
-            if (a.getValue() != null) {
-                Matcher m = patternScript.matcher(a.getValue());
-                int index = 0;
-                while (m.find()) {
-                    if (index != m.start()) {
-                        sbAttr.append("{v:").append(a.getDeliminitator());
-                        sbAttr.append(a.getValue().substring(index, m.start()).replace("\n", "\\n"));
-                        sbAttr.append(a.getDeliminitator()).append("},");
-                    }
-                    sbAttr.append("{s:").append(a.getDeliminitator());
-                    sbAttr.append(m.group(1).replace("\n", "\\n").replace("&quot;", "\\\""));
-                    sbAttr.append(a.getDeliminitator()).append("},");
-                    index = m.end();
-                }
-                if (index < a.getValue().length()) {
-                    sbAttr.append("{v:").append(a.getDeliminitator());
-                    sbAttr.append(a.getValue().substring(index, a.getValue().length()).replace("\n", "\\n"));
-                    sbAttr.append(a.getDeliminitator()).append("},");
-                }
+      const sbAttr = _.flatten(this.getAttributes().map(a => {
+      	const sbuilder = [`'${a.getName()}':[`];
+          if (a.getValue()) {
+            let index = 0;
+			let matcher = PATTERN_SCRIPT.exec(a.getValue());
+            matcher.forEach(m => {
+              if (index != m.index) {
+                sbuilder.push(`{v:${a.getDeliminitator()}${a.getValue().substring(index, m.index).replace("\n", "\\n")}${a.getDeliminitator()}},`);
+              }
+              sbAttr.push(`{s:${a.getDeliminitator()}${m[1].replace("\n", "\\n").replace("&quot;", "\\\"")}${a.getDeliminitator()}},`);
+              index = m.index + m[1].length;
+            }); 
+            if (index < a.getValue().length) {
+              sbAttr.push(`{v:${a.getDeliminitator()}${a.getValue().substring(index, a.getValue().length).replace("\n", "\\n")}${a.getDeliminitator()}},`);
             }
-            sbAttr.append("],");
-        }
-        if (sbAttr.length() > 0) {
-            sb.append("a:{").append(sbAttr).append("},");
-        }
-        StringBuilder sbChildren = new StringBuilder();
-        for (XNode n : this.getChildren()) {
-            String htmlStruct;
-            if (!isEmptyText(n) && !(htmlStruct = n.toJson().trim()).equals("")) {
-                sbChildren.append(htmlStruct).append(",");
-            }
-        }
-        if (sbChildren.length() > 0) {
-            sb.append("c:[");
-            sb.append(sbChildren);
-            sb.append("],");
-        }
-        String hidden = printHiddenAttributesInJsonFormat();
-        if (!hidden.equals("")) {
-            sb.append("h:{");
-            sb.append(hidden);
-            sb.append("}");
-        }
-        sb.append("}");
-        return sb.toString();
+          }
+          sbAttr.push("],");
+		  return sbAttr;
+        })).join('');
+	  const sb = [`{n:'${this.name}',`];
+      if (sbAttr.length > 0) {
+        sb.push(`a:{${sbAttr}},`);
+      }
+      const sbChildren = this.getChildren().filter(n => !_isEmptyText(n)).map(n => n.toJson().trim()).filter(t => t != '').join(',');
+	  	
+      if (sbChildren.length > 0) {
+        sb.push(`c:[${sbChildren}],`);
+      }
+      const hidden = printHiddenAttributesInJsonFormat();
+      if (hidden != "") {
+        sb.push(`h:{${hidden}}`);
+      }
+      sb.push("}");
+      return sb.join('');
     }
-}
-
-public String innerHTML() {
-    StringBuffer sb = new StringBuffer();
-    printHTML(sb);
-    return sb.toString();
-}
-
-private void printHTML(StringBuffer sb) {
-    for (XNode n : this.getChildren()) {
-        if (!isEmptyText(n)) {
-            sb.append(n.toString());
-        }
+  }
+  innerHTML() {
+    this.getChildren().filter(n => _!isEmptyText(n)).map(n => n.toString()).join('');
+  }
+  setNotClosed() {
+    if (this.getParent()) {
+      this.notClosed = true;
+      this.getChildren().forEach(n => this.getParent().addChild(n));
+      this.getChildren().clear();
     }
-}
-
-public void setNotClosed() {
-    if (this.getParent() != null) {
-        this.notClosed = true;
-        for (XNode n : this.getChildren()) {
-            this.getParent().addChild(n);
-        }
-        this.getChildren().clear();
-    }
-}
-
-public boolean isClosed() {
-    return isClosed;
-}
-
-public void remove() {
+  }
+  isClosed() {
+    return this.isClosed;
+  }
+  remove() {
     super.remove();
-}
-
-public void replaceWith(XNode node) {
+  }
+  replaceWith(node) {
     this.getParent().insertChildAfter(node, this);
     this.remove();
-}
-
-public void removeAllChildren() {
-    this.children.clear();
-}
-
-public void addClass(String c) {
-    String classes = getAttribute("class");
-    if (classes == null || classes.trim().equals("")) {
+  }
+  removeAllChildren() {
+    this.children = [];
+  }
+  addClass(c) {
+    let classes = this.getAttribute("class");
+    if (!classes || classes.trim() == "") {
         this.setAttribute("class", c);
     } else {
         this.setAttribute("class", classes + " " + c);
     }
-}
-
-public void removeAttributes(String... attributeNames) {
-    for (String name : attributeNames) {
-        this.attributes.remove(name);
+  }
+  removeAttributes(...attributeNames) {
+    attributeNames.forEach(name => this.attributes.remove(name));
+  }
+  setHiddenAttributeOnChildren(attr, val) {
+    this.getChildren().forEach(node => {
+      node.setHiddenAttribute(attr, val);
+      if (node instanceof Element && !node.getName() == "_x_text_with_attributes") {
+        node.setHiddenAttributeOnChildren(attr, val);
+      }
+    });
+  }
+  getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp) {
+    const xcompId = this.getHiddenAttribute("xcompId");
+    if (xcompId) {
+      jsonComp[xcompId] = this.getHiddenAttribute("xcompName");
     }
-}
-
-public void setHiddenAttributeOnChildren(String attr, String val) {
-    for (XNode node : getChildren()) {
-        node.setHiddenAttribute(attr, val);
-        if (node instanceof XElement && !((XElement) node).getName().equals("_x_text_with_attributes")) {
-            ((XElement) node).setHiddenAttributeOnChildren(attr, val);
-        }
-    }
-}
-
-@SuppressWarnings("unchecked")
-@Override
-public String getHTML(Map<String, Object> jsonDynAtt, Map<String, Map<String, Object>> jsonHiddenAtt,
-                      Map<String, String> jsonComp) {
-    String xcompId = getHiddenAttribute("xcompId");
-    if (xcompId != null) {
-        // component
-        String xcompName = getHiddenAttribute("xcompName");
-        jsonComp.put(xcompId, xcompName);
-    }
-    StringBuffer sb = new StringBuffer("<");
-    String dynId = this.getAttribute("data-xdynid");
-    if (name.equalsIgnoreCase("xscript")) {
-        XAttribute att = this.getXAttribute("data-xscript");
-        sb.append("xscript data-xscript=")
-                .append(att.getDeliminitator()).append(att.getValue()).append(att.getDeliminitator());
-        if (hasHiddenAttributes()) {
-            if (dynId == null) {
-                dynId = XComponents.generateId();
-            }
-            sb.append(" data-xdynid='").append(dynId).append("' ");
-            Map<String, Object> h = new HashMap<String, Object>();
-            jsonHiddenAtt.put(dynId, h);
-            for (Map.Entry<String, String> e : hiddenAttributes.entrySet()) {
-                h.put(e.getKey(), e.getValue());
-            }
-        }
-
-        sb.append("></xscript>");
-        return sb.toString();
+    const sb = ["<"];
+    let dynId = this.getAttribute("data-xdynid");
+    if (_._eqIgnoreCase(this.name, "xscript")) {
+      const att = this.getAttribute("scr");
+      sb.push(`xscript data-xscript=${att.getDeliminitator()}${att.getValue()}${att.getDeliminitator()}`);
+      if (this.hasHiddenAttributes()) {
+        dynId = dynId || _generateId();
+        sb.push(` data-xdynid='${dynId}' `);
+        jsonHiddenAtt[dynId] = _.clone(this.hiddenAttributes);
+      }
+      sb.push("></xscript>");
+      return sb.join('');
     } else {
-        sb.append(name);
-        for (XAttribute a : getAttributes()) {
-            boolean isDynAtt = false;
-            if (a.getValue() != null) {
-                Matcher m = patternScript.matcher(a.getValue());
-                int index = 0;
-                List<Map<String, Object>> attValues = null;
-                while (m.find()) {
-                    isDynAtt = true;
-                    if (dynId == null) {
-                        dynId = XComponents.generateId();
-                        sb.append(" data-xdynid='").append(dynId).append("' ");
-                    }
-                    // get dynamic atts for element
-                    Map<String, List<Map<String, Object>>> dynAtts = (Map<String, List<Map<String, Object>>>) jsonDynAtt
-                            .get(dynId);
-                    if (dynAtts == null) {
-                        dynAtts = new HashMap<String, List<Map<String, Object>>>();
-                        jsonDynAtt.put(dynId, dynAtts);
-                    }
-                    // get values of the att
-                    attValues = dynAtts.get(a.getName());
-                    if (attValues == null) {
-                        attValues = new ArrayList<Map<String, Object>>();
-                        dynAtts.put(a.getName(), attValues);
-                    }
-                    if (index != m.start()) {
-                        Map<String, Object> valMap = new HashMap<String, Object>();
-                        attValues.add(valMap);
-                        valMap.put("v", a.getDeliminitator() + a.getValue().substring(index, m.start()).replace("\n", "\\n") + a.getDeliminitator());
-                    }
-                    Map<String, Object> valMap = new HashMap<String, Object>();
-                    attValues.add(valMap);
-                    final String attribute = a.getDeliminitator() + m.group(1).replace("\n", "\\n") + a.getDeliminitator();
-                    valMap.put("s", new XJsonPrinter() {
-
-                        @Override
-                        public String toJson() {
-                            return attribute;
-                        }
-                    });
-                    index = m.end();
-                }
-                if (isDynAtt && index < a.getValue().length()) {
-                    Map<String, Object> valMap = new HashMap<String, Object>();
-                    attValues.add(valMap);
-                    valMap.put("v", a.getDeliminitator() + a.getValue().substring(index, a.getValue().length()).replace("\n", "\\n") + a.getDeliminitator());
-                }
-            }
-            if (!isDynAtt) {
-                sb.append(" ").append(a.toString());
-            }
-        }
-    }
-
-    if (!hiddenAttributes.isEmpty()) {
-        Map<String, Object> h = new HashMap<String, Object>();
-        dynId = getAttribute("data-xdynid");
-        if (dynId == null) {
+      sb.append(this.name);
+      this.getAttributes().forEach(a => {
+      let isDynAtt = false;
+      if (a.getValue()) {
+        let matcher = PATTERN_SCRIPT.matcher(a.getValue());
+        int index = 0;
+        let attValues;
+        matcher.forEach(m => {
+          isDynAtt = true;
+          if (dynId == null) {
             dynId = XComponents.generateId();
-            sb.append(" data-xdynid='").append(dynId).append("' ");
+            sb.push(` data-xdynid='${dynId}' `);
+          }
+          // get dynamic atts for element
+          let dynAtts = jsonDynAtt[dynId];
+          if (!dynAtts) {
+            dynAtts = {};
+            jsonDynAtt[dynId] = dynAtts;
+          }
+          // get values of the att
+          attValues = dynAtts[a.getName()];
+          if (!attValues) {
+            attValues = [];
+            dynAtts[a.getName()] = attValues;
+          }
+          if (index != m.index) {
+            attValues.push({v:, a.getDeliminitator() + a.getValue().substring(index, m.index).replace("\n", "\\n") + a.getDeliminitator()});
+          }
+		  index = m.index + m[1].length;
+          attValues.push({s: a.getDeliminitator() + m[1].replace("\n", "\\n") + a.getDeliminitator()});
+          if (isDynAtt && index < a.getValue().length) {
+             attValues.push({v: a.getDeliminitator() + a.getValue().substring(index, a.getValue().length).replace("\n", "\\n") + a.getDeliminitator()});
+          }
+	    });
+        if (!isDynAtt) {
+          sb.push(`${a.toString()}`);
         }
-        jsonHiddenAtt.put(dynId, h);
-
-        for (Map.Entry<String, String> e : hiddenAttributes.entrySet()) {
-            h.put(e.getKey(), e.getValue());
-        }
+      }
     }
-    if (!this.notClosed && NO_END_TAG.indexOf("_" + name + "_") < 0) {
-        StringBuilder sbChild = new StringBuilder();
-        StringBuilder sbHiddenIterators = new StringBuilder();
-        int i = 0;
-        for (XNode n : this.getChildren()) {
-            if (!isEmptyText(n)) {
-                boolean hiddenIterator = n instanceof XElement
-                        && ((XElement) n).getName().equalsIgnoreCase("xiterator");
-                if (!hiddenIterator) {
-                    sbChild.append(n.getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp));
-                } else {
-                    XElement e = (XElement) n;
-                    // hidden iterator
-                    sbHiddenIterators.append(e.getHiddenAttribute("xiterId")).append(",").append(i).append("|");
-                }
-                i++;
-            }
+    if (this.hiddenAttributes.length == 0) {
+      dynId = this.getAttribute("data-xdynid");
+      if (!dynId) {
+      	dynId = _generateId();
+        sb.push(` data-xdynid='${dynId}' `);
+      }
+      jsonHiddenAtt[dynId] = _.clone(this.hiddenAttributes);
+    }
+    if (!this.notClosed && NO_END_TAG.indexOf("_" + this.name + "_") < 0) {
+      const sbChild = [];
+      const sbHiddenIterators = [];
+      let i = 0;
+      this.getChildren().forEach(n => {
+        if (!isEmptyText(n)) {
+	      let hiddenIterator = n instanceof Element && n.getName().equalsIgnoreCase("xiterator");
+          if (!hiddenIterator) {
+            sbChild.push(n.getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp));
+          } else {
+            // hidden iterator
+			sbHiddenIterators.push(`${n.getHiddenAttribute("xiterId")},${i}|`);
+          }
+          i++;
         }
-        if (sbHiddenIterators.length() > 0) {
-            sb.append(" data-hxiter='").append(sbHiddenIterators).append("'");
-        }
-        sb.append(">");
-        sb.append(sbChild);
-        sb.append("</" + name + ">");
+      });
+      if (sbHiddenIterators.length > 0) {
+        sb.push(` data-hxiter='${sbHiddenIterators}'`);
+      }
+      sb.push(`>${sbChild}</${this.name}>`);
     } else {
-        sb.append(">");
+      sb.push(">");
     }
-    return sb.toString();
-}
+    return sb.join('');
+  }
 }
 
 /*
