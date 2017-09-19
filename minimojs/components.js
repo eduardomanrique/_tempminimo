@@ -78,8 +78,7 @@ const _loadComponents = (groupedResources) => {
 
 const _exposeFunctions = (js) => {
     const parsed = esprima.parse(js);
-	
-    js += esprimaUtil.getFirstLevelFunctions(parsed).map(e => `this.${e} = ${e};`).join('\n');
+    return esprimaUtil.getFirstLevelFunctions(parsed).map(e => `this.${e} = ${e};`).join('\n');
 }
 
 const _createOldTypeComponent = (compJS, varPath) =>
@@ -102,17 +101,11 @@ const _createOldTypeComponent = (compJS, varPath) =>
 
 const _createHtmxComponent = (compJs, varPath, compName) =>
   `${varPath} = new function(){
-     this.htmxContext = function(attrs){
+     this.htmxContext = function(_attrs, _evalFn){
        var selfcomp = this;
-       this._attrs = attrs;
+       this._attrs = _attrs;
        this._compName = '${compName}';
-       this._xcompEval = function(f){
-         try{
-           return eval(f);
-         }catch(e){
-           throw new Error('Error executing script component ' + this._compName + '. Script: ' + f + '. Cause: ' + e.message);
-         }
-       };
+       this._xcompEval = _evalFn;
        ${compJs};
        ${_exposeFunctions(compJs)};
        var generateId = X.generateId;
