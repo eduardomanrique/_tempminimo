@@ -16,6 +16,7 @@
     "debug": "^3.0.1",
     "esprima": "^4.0.0",
     "properties-reader": "0.0.15",
+    "rewire": "^2.5.2",
     "underscore": "^1.8.3",
     "yargs": "^8.0.2"
   },

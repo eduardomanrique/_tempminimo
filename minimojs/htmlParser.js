@@ -1,13 +1,13 @@
 const _ = require('underscore');
 const esprima = require('esprima');
 
-const _prepareXScriptsValues = (value, escape) => {
+const _prepareXScriptsValues = (value) => {
+  let last = value;
   if (value != null) {
     let pattern = /\$\{(?:(?!\$\{|}).)*}/g;
-    let last = value;
     while ((matcher = pattern.exec(last)) != null) {
-      let js = matcher[1];
-      let jsok = js.substring(2, js.length() - 1).replace(/"/g, "&quot;");
+      let js = matcher[0];
+      let jsok = js.substring(2, js.length - 1).replace(/"/g, "&quot;");
       last = `${value.substring(0, matcher.index)}<xscr scr="${jsok}"></xscr>${value.substring(matcher.index+js.length)}`;
     }
   }
@@ -28,14 +28,14 @@ const _generateId = () => "id_" + Math.random();
 
 const _isEmptyText = (node) => node instanceof Text && !(node instanceof Comment) && node.getText().trim() == '';
 
-const _eqIgnoreCase = (s1, s2) => s1.toUpperCase() == s2.toUppercase();
+const _eqIgnoreCase = (s1, s2) => s1.toUpperCase() == s2.toUpperCase();
 
 const _validateJS = (js) => {
   try{
     esprima.parse(js.replace('"', '\\"'));
 	return true;
   }catch(e){
-	  return false;
+	return false;
   }
 }
 
@@ -114,6 +114,97 @@ class Node {
   }
   setTempAttribute(name, value) {
     this.tempAttributes[name] = value;
+  }
+}
+
+class Text extends Node {
+  constructor(){
+    this.text = null;
+  }
+  getText() {
+    return !text || text.trim() == "" ? this.buffer.join('') : text;
+  }
+  _getNonNullText(fn){
+	let text = getText();
+  	if (!text || text.trim() == '') {
+	  return '';
+	}
+	return (fn || ((f)=>f))(text);	
+  }
+  setText(text) {
+    this.text = text;
+  }
+  normalize(doc) {
+    let text = _getNonNullText();
+    if (text == "") {
+        return;
+    }
+	let pattern = /\$\{(.*?)}/g;
+    let index = 0;
+    let t = new Text();
+    this.addAfter(t);
+    this.remove();
+    while ((m = patter.exec(text)) != null) {
+      if (index != m.index) {
+        let newText = text.substring(index, m.index);
+        if (newText.length > 0) {
+          let tNew = new Text();
+          tNew.setText(newText);
+          t.addAfter(tNew);
+          t = tNew;
+        }
+      }
+      let x = new Element("xscript", doc);
+      x.setAttribute("data-xscript", m[1]);
+      _.pairs(this.hiddenAttributes).forEach(pair => {
+          x.setHiddenAttribute(pair[0], pair[1]);
+      });
+      t.addAfter(x);
+      t = x;
+      index = m.index + m[0].length;
+    }
+    if (index < text.length) {
+      let newText = text.substring(index, text.length);
+      if (newText.length > 0) {
+        let tNew = new Text();
+        tNew.setText(newText);
+        t.addAfter(tNew);
+        t = tNew;
+      }
+    }
+  }
+  toString() {
+    let textValue = _prepareValueInXScript(getText(), _eqIgnoreCase(this.getParent().getName(), "script"));
+    if (!_isEmpty(this.hiddenAttributes)) {
+      // separete xscripts
+      let doc = null;
+      try {
+        doc = new HTMLParser().parse(`<root>${textValue}</root>`);
+      } catch (ee) {
+        throw new Error(`UNKNOWN ERROR IN XTEXT TO STRING: ${e.message}`);
+      }
+      textValueg = doc.getChildren().get(0).getChildren().map(child => {
+        if (child instanceof XText) {
+          return child.getText();
+        } else {
+          if (!child.getName().toLowerCase() == "xscript") {
+            throw new Error(
+	      		  `THERE SHOUDN'T BE A TAG DIFFERENT THAN XSCRIPT INSIDE A XTEXT. TAG: ${child.getName()}`);
+          }
+          _.pairs(hiddenAttributes).forEach(e => child.setHiddenAttribute(e[0], e[1]));
+          return child.toString();
+        }
+      }).join('');
+    }
+    return textValue;
+  }
+  toJson() {
+    return this._getNonNullText(text => 
+		`{t:"${StringEscapeUtils.unescapeHtml4(text.replace("\"", "\\\"").replace("\n", ""))}"}`);
+  }
+  close() {}
+  getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp) {
+    return this._getNonNullText();
   }
 }
 
@@ -206,7 +297,7 @@ class Element extends Node {
   }
   setAttribute(name, val) {
     if (name.startsWith("_hidden_")) {
-      this.setHiddenAttribute(name.substring("_hidden_".length()), val);
+      this.setHiddenAttribute(name.substring("_hidden_".length), val);
     } else {
       let a = new Attribute(name, val);
       this.attributes[a.getName()] = a;
@@ -886,10 +977,10 @@ class HTMLParser{
   }
   nextIs(s, index) {
     const sb = [];
-    this.lastAdvance = s.length();
+    this.lastAdvance = s.length;
     let usedIndex = index || this.currentIndex;
     let j = usedIndex;
-    for (; j < s.length() + usedIndex && j < ca.length; j++) {
+    for (; j < s.length + usedIndex && j < ca.length; j++) {
         sb.push(ca[j]);
     }
     return sb.join('') == s;
