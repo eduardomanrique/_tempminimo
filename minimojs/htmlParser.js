@@ -1,4 +1,5 @@
 const _ = require('underscore');
+const esprima = require('esprima');
 
 const _prepareXScriptsValues = (value, escape) => {
   if (value != null) {
@@ -22,12 +23,29 @@ const _getAllTextNodes = (element) =>
       list.push(e);
     }
   }));
-  
+
 const _generateId = () => "id_" + Math.random();
 
 const _isEmptyText = (node) => node instanceof Text && !(node instanceof Comment) && node.getText().trim() == '';
 
 const _eqIgnoreCase = (s1, s2) => s1.toUpperCase() == s2.toUppercase();
+
+const _validateJS = (js) => {
+  var valid=true;
+  try{
+    esprima.parse(js.replace("\"", "\\\""));
+  }catch(e){valid=false}";
+      synchronized (engine) {
+          try {
+              engine.eval(validation);
+          } catch (ScriptException e) {
+              return false;
+          }
+          Object result = engine.get("valid");
+          return (Boolean) result;
+      }
+  }
+}
 
 class Node {
   constructor(){
@@ -247,7 +265,7 @@ class Element extends Node {
               }
               sbAttr.push(`{s:${a.getDeliminitator()}${m[1].replace("\n", "\\n").replace("&quot;", "\\\"")}${a.getDeliminitator()}},`);
               index = m.index + m[1].length;
-            }); 
+            });
             if (index < a.getValue().length) {
               sbAttr.push(`{v:${a.getDeliminitator()}${a.getValue().substring(index, a.getValue().length).replace("\n", "\\n")}${a.getDeliminitator()}},`);
             }
@@ -260,7 +278,7 @@ class Element extends Node {
         sb.push(`a:{${sbAttr}},`);
       }
       const sbChildren = this.getChildren().filter(n => !_isEmptyText(n)).map(n => n.toJson().trim()).filter(t => t != '').join(',');
-	  	
+
       if (sbChildren.length > 0) {
         sb.push(`c:[${sbChildren}],`);
       }
@@ -406,193 +424,145 @@ class Element extends Node {
   }
 }
 
-/*
-
-class XHTMLDocument {
+class HTMLDocument extends Element{
   constructor(){
+    super("DOCUMENT", this);
     this.requiredResourcesList = [];
     this.htmlElement = null;
   }
-  protected List<XElement> requiredResourcesList = new ArrayList<XElement>();
-      private XElement htmlElement;
-
-      public XHTMLDocument() {
-          super("DOCUMENT", null);
-          this.root = this;
-      }
-
-      @Override
-      public String toString() {
-          if (!requiredResourcesList.isEmpty()) {
-              XElement bodyEl = null;
-              XElement headEl = null;
-              List<XElement> children = this.getElements();
-              for (XElement e : children) {
-                  if (e.getName().equalsIgnoreCase("html")) {
-                      List<XElement> childrenHtml = e.getElements();
-                      boolean foundHead = false;
-                      for (XElement ce : childrenHtml) {
-                          if (ce.getName().equalsIgnoreCase("body")) {
-                              bodyEl = ce;
-                          } else if (ce.getName().equalsIgnoreCase("head")) {
-                              headEl = ce;
-                              foundHead = true;
-                          }
-
-                      }
-                      if (!foundHead) {
-                          headEl = new XElement("head", this);
-                          e.insertChild(headEl, 0);
-                      }
-                  }
-              }
-              if (bodyEl != null || headEl != null) {
-                  for (XElement e : requiredResourcesList) {
-                      String source = e.getAttribute("src").trim();
-                      if (source.toLowerCase().endsWith(".js")) {
-                          XElement scriptEl;
-                          if (bodyEl != null) {
-                              scriptEl = bodyEl.addElement("script");
-                          } else {
-                              scriptEl = headEl.addElement("script");
-                          }
-                          scriptEl.setAttribute("src", "{webctx}/res/" + source);
-                          scriptEl.setAttribute("type", "text/javascript");
-                      } else if (source.toLowerCase().endsWith("css") && headEl != null) {
-                          XElement linkEl = headEl.addElement("link");
-                          linkEl.setAttribute("href", "{webctx}/res/" + source);
-                          if (e.getAttribute("rel") != null) {
-                              linkEl.setAttribute("rel", e.getAttribute("rel"));
-                          }
-                          if (e.getAttribute("media") != null) {
-                              linkEl.setAttribute("media", e.getAttribute("media"));
-                          }
-                      }
-                  }
-              }
+  _prepareHTML(){
+    if (this.requiredResourcesList.length > 0) {
+      this.getElements().filter(e => _eqIgnoreCase(e.getName(), "html")).forEach(htmlElement => {
+        htmlElement.getElements().forEach(ce => {
+          if (!this._bodyElement && ce.getName().equalsIgnoreCase("body")) {
+            this._bodyElement = ce;
+          } else if (!this._headElement && ce.getName().equalsIgnoreCase("head")) {
+            this._headElement = ce;
           }
-          StringBuffer sb = new StringBuffer();
-          for (XNode n : this.getChildren()) {
-              sb.append(n.toString());
+        });
+        if (!this._headElement) {
+          this._headElement = new Element("head", this);
+          htmlElement.insertChild(this._headElement, 0);
+        }
+      });
+      if (this._bodyElement || this._headElement) {
+        this.requiredResourcesList.forEach(e => {
+          const source = e.getAttribute("src").trim();
+          if (source.toLowerCase().endsWith(".js")) {
+            let scriptEl;
+            if (this._bodyElement) {
+              scriptEl = this._bodyElement.addElement("script");
+            } else {
+              scriptEl = this._headElement.addElement("script");
+            }
+            scriptEl.setAttribute("src", `{webctx}/res/${source}`);
+            scriptEl.setAttribute("type", "text/javascript");
+          } else if (source.toLowerCase().endsWith("css") && this._headElement) {
+            const linkEl                     = this._headElement.addElement("link");
+            linkEl.setAttribute("href", `{webctx}/res/${source}`);
+            if (e.getAttribute("rel")) {
+              linkEl.setAttribute("rel", e.getAttribute("rel"));
+            }
+            if (e.getAttribute("media")) {
+              linkEl.setAttribute("media", e.getAttribute("media"));
+            }
           }
-          return sb.toString().trim();
+        });
       }
-
-      @Override
-      public void addChild(XNode node) {
-          if (node instanceof XElement && ((XElement) node).getName().equalsIgnoreCase("html")) {
-              this.htmlElement = (XElement) node;
-          }
-          super.addChild(node);
-      }
-
-      public List<XElement> getRequiredResourcesList() {
-          return requiredResourcesList;
-      }
-
-      public String getHtmlStructure() {
-          StringBuffer sb = new StringBuffer();
-          for (XNode n : this.getChildren()) {
-              sb.append(n.toString());
-          }
-          return sb.toString().trim();
-      }
-
-      public void replaceAllTexts(TextReplacer tr) {
-          for (XText e : this.getAllTextNodes()) {
-              e.setText(tr.replace(e.getText()));
-          }
-      }
-
-      public void renameAllAttributesWithName(String name, String newName) {
-          for (XElement e : this.getAllElements()) {
-              e.renameAttribute(name, newName);
-          }
-      }
-
-      public static interface TextReplacer {
-          String replace(String text);
-      }
-
-      public XElement getHtmlElement() {
-          return htmlElement;
-      }
-
-      public String getHTML(Map<String, Object> jsonDynAtt, Map<String, Map<String, Object>> jsonHiddenAtt, Map<String, String> jsonComp) {
-          StringBuffer sb = new StringBuffer();
-          for (XNode n : this.getChildren()) {
-              sb.append(n.getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp));
-          }
-          return sb.toString().trim();
-      }
-
-      @Override
-      public Object clone() {
-          try {
-              return super.clone();
-          } catch (CloneNotSupportedException e) {
-              throw new RuntimeException("XhtmlDocument should be able to clone", e);
-          }
-      }
+    }
+  }
+  toString() {
+    this._prepareHTML();
+    return this.getChildren().map(n => n.toString()).join('').trim();
+  }
+  addChild(node) {
+    if (node instanceof Element && _eqIgnoreCase(node.getName(), "html")) {
+      this.htmlElement = node;
+    }
+    super.addChild(node);
+  }
+  getRequiredResourcesList() {
+    return this.requiredResourcesList;
+  }
+  getHtmlStructure() {
+    return this.getChildren().map(n => n.toString()).join('').trim();
+  }
+  replaceAllTexts(replacer) {
+    this.getAllTextNodes().forEach(e => e.setText(replacer.replace(e.getText())));
+  }
+  renameAllAttributesWithName(name, newName) {
+    this.getAllElements().forEach(e => e.renameAttribute(this.name, newName));
+  }
+  getHtmlElement() {
+    return htmlElement;
+  }
+  getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp) {
+    this.getChildren().map(n => n.getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp)).join('').trim();
+  }
 }
 
-const parse = (html) => {
-  ca = (html + "\n").toCharArray();
-  XHTMLDocument doc = new XHTMLDocument();
-  currentParent = doc;
-  boolean inScript = false;
-  StringBuffer currentScript = null;
-  while (hasMore()) {
-      String templateIfScript;
-      String[] templateForScript;
-      if (!inScript && nextIs("$if") && (templateIfScript = isIfTemplateScript()) != null) {
+class HTMLParser{
+parse(html){
+  this.ca = (html + "\n").toCharArray();
+  this.doc = new XHTMLDocument();
+  this.currentParent = doc;
+  this.inScript = false;
+  this.currentScript = null;
+  this.current = null;
+  this.templateScriptLlist = [];
+  while (this.hasMore()) {
+      let templateIfScript;
+      let templateForScript;
+      if (!inScript && this.nextIs("$if") && (templateIfScript = this.isIfTemplateScript()) != null) {
           //if template script eg: $if(exp){
-          XElement hiddenIteratorElement = new XElement("xiterator", doc);
-          hiddenIteratorElement.setAttribute("count", "(" + templateIfScript + ")?1:0");
+          const hiddenIteratorElement = new Element("xiterator", doc);
+          hiddenIteratorElement.setAttribute("count", `(${templateIfScript})?1:0`);
           currentParent.addChild(hiddenIteratorElement);
           currentParent = hiddenIteratorElement;
-          current = null;
-          templateScriptLlist.add(hiddenIteratorElement);
-          advanceLine();
-      } else if (!inScript && nextIs("$for") && (templateForScript = isForTemplateScript()) != null) {
+          this.current = null;
+          templateScriptLlist.push(hiddenIteratorElement);
+          this.advanceLine();
+      } else if (!inScript && this.nextIs("$for") && (templateForScript = this.isForTemplateScript()) != null) {
           //if template script eg: $if(exp){
-          XElement hiddenIteratorElement = new XElement("xiterator", doc);
+          const hiddenIteratorElement = new Element("xiterator", doc);
           hiddenIteratorElement.setAttribute("list", templateForScript[1]);
           hiddenIteratorElement.setAttribute("var", templateForScript[0]);
-          if (templateForScript[2] != null) {
+          if (templateForScript[2]) {
               hiddenIteratorElement.setAttribute("indexvar", templateForScript[2]);
           }
-          currentParent.addChild(hiddenIteratorElement);
-          currentParent = hiddenIteratorElement;
-          current = null;
-          templateScriptLlist.add(hiddenIteratorElement);
-          advanceLine();
-      } else if (!templateScriptLlist.isEmpty() && isEndOfTemplateScript()) {
+          this.currentParent.addChild(hiddenIteratorElement);
+          this.currentParent = hiddenIteratorElement;
+          this.current = null;
+          this.templateScriptLlist.push(hiddenIteratorElement);
+          this.advanceLine();
+      } else if (this.templateScriptLlist.length > 0 && this.isEndOfTemplateScript()) {
           //end of template script eg: }
-          XElement hiddenIteratorElement = templateScriptLlist.remove(templateScriptLlist.size() - 1);
-          advanceLine();
-          closeTag("xiterator");
-      } else if (!inScript && isCurrentTextOnlyTag()) {
-          readTilCloseTag();
-      } else if (!inScript && nextIs("<!--")) {
-          advance();
-          inComment();
-      } else if (!inScript && nextIs("<![")) {
-          advance();
-          inComment();
-      } else if (!inScript && nextIs("</")) {
-          advance();
-          close();
+          let ind = templateScriptLlist.size() - 1;
+          hiddenIteratorElement = this.templateScriptLlist[ind];
+          this.templateScriptLlist.splice(ind, 1);
+          this.advanceLine();
+          this.closeTag("xiterator");
+      } else if (!inScript && this.isCurrentTextOnlyTag()) {
+          this.readTilCloseTag();
+      } else if (!inScript && this.nextIs("<!--")) {
+          this.advance();
+          this.inComment();
+      } else if (!inScript && this.nextIs("<![")) {
+          this.advance();
+          this.inComment();
+      } else if (!inScript && this.nextIs("</")) {
+          this.advance();
+          this.close();
       } else if (!inScript && !nextIs("< ") && nextIs("<")) {
-          advance();
-          inTag(doc);
+          this.advance();
+          this.inTag(doc);
       } else {
-          if (!inScript && nextIs("${")) {
+          if (!inScript && this.nextIs("${")) {
               inScript = true;
-              currentScript = new StringBuffer();
-          } else if (inScript && nextIs("}") && XJS.validate(currentScript.toString().substring(2))) {
+              this.currentScript = [];
+          } else if (inScript && this.nextIs("}") && XJS.validate(currentScript.toString().substring(2))) {
               inScript = false;
-              currentScript = null;
+              this.currentScript = null;
           }
           char currentChar = read();
           if (inScript) {
