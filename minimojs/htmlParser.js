@@ -3,7 +3,7 @@ const esprima = require('esprima');
 
 const _prepareXScriptsValues = (value, escape) => {
   if (value != null) {
-    let pattern = /\$\{(?:(?!\$\{|}).)*}/;
+    let pattern = /\$\{(?:(?!\$\{|}).)*}/g;
     let last = value;
     while ((matcher = pattern.exec(last)) != null) {
       let js = matcher[1];
@@ -31,19 +31,11 @@ const _isEmptyText = (node) => node instanceof Text && !(node instanceof Comment
 const _eqIgnoreCase = (s1, s2) => s1.toUpperCase() == s2.toUppercase();
 
 const _validateJS = (js) => {
-  var valid=true;
   try{
-    esprima.parse(js.replace("\"", "\\\""));
-  }catch(e){valid=false}";
-      synchronized (engine) {
-          try {
-              engine.eval(validation);
-          } catch (ScriptException e) {
-              return false;
-          }
-          Object result = engine.get("valid");
-          return (Boolean) result;
-      }
+    esprima.parse(js.replace('"', '\\"'));
+	return true;
+  }catch(e){
+	  return false;
   }
 }
 
@@ -125,7 +117,6 @@ class Node {
   }
 }
 
-const PATTERN_SCRIPT = /\$\{(.*?)}/;
 const NO_END_TAG = "_base_link_meta_hr_br_wbr_area_img_track_embed_param_source_col_input_keygen_";
 class Element extends Node {
   constructor(name, root) {
@@ -139,6 +130,7 @@ class Element extends Node {
     this.isComponent = false;
     this.componentName = null;
     this.root = root;
+	this.lastAdvance = 0;
   }
   getElementsByName(name) {
     return _.flatten(this.getElements()
@@ -160,7 +152,7 @@ class Element extends Node {
       let list = [e];
       list.push(e.getAllElement());
       return list;
-    });
+    }));
   }
   getAllTextNodes() {
     return _getAllTextNodes(this);
@@ -230,17 +222,16 @@ class Element extends Node {
     return this.name;
   }
   renameAttribute(name, newName) {
-    Attribute value = this.attributes[name];
+    this.attributes[newName] = this.attributes[name];
     delete this.attributes[name];
-    this.attributes[newName] = value;
   }
   close() {
     this.isClosed = true;
   }
   toString() {
-    return `<${this.name} ${this.getAttributes().map(a => a.toString()).join(' ')}
-      ${_.pairs(hiddenAttributes).map(p => '_hidden_' + p[0] + "='" + p[1].replace(/'/g, "\\'") + "' ")}>
-    ${!this.notClosed && NO_END_TAG.indexOf("_" + this.name + "_") < 0 ? this.printHTML() + </${this.name}> : ''}`;
+    return `<${this.name} ${this.getAttributes().map(a => a.toString()).join(' ')} ` +
+      _.pairs(hiddenAttributes).map(p => `_hidden_${p[0]}='${p[1].replace(/'/g, "\\'")}' `).join(' ') + '>' +
+      (!this.notClosed && NO_END_TAG.indexOf(`_${this.name}_`) < 0 ? `${this.printHTML()}</${this.name}>` : '');
   }
   toJson() {
     if (_eqIgnoreCase(this.name, "xscr")) {
@@ -258,14 +249,14 @@ class Element extends Node {
       	const sbuilder = [`'${a.getName()}':[`];
           if (a.getValue()) {
             let index = 0;
-			let matcher = PATTERN_SCRIPT.exec(a.getValue());
-            matcher.forEach(m => {
+			let pattern = /\$\{(.*?)}/g;
+			while((m = pattern.exec(a.getValue())) != null){
               if (index != m.index) {
                 sbuilder.push(`{v:${a.getDeliminitator()}${a.getValue().substring(index, m.index).replace("\n", "\\n")}${a.getDeliminitator()}},`);
               }
               sbAttr.push(`{s:${a.getDeliminitator()}${m[1].replace("\n", "\\n").replace("&quot;", "\\\"")}${a.getDeliminitator()}},`);
               index = m.index + m[1].length;
-            });
+            }
             if (index < a.getValue().length) {
               sbAttr.push(`{v:${a.getDeliminitator()}${a.getValue().substring(index, a.getValue().length).replace("\n", "\\n")}${a.getDeliminitator()}},`);
             }
@@ -291,7 +282,7 @@ class Element extends Node {
     }
   }
   innerHTML() {
-    this.getChildren().filter(n => _!isEmptyText(n)).map(n => n.toString()).join('');
+    this.getChildren().filter(n => !_isEmptyText(n)).map(n => n.toString()).join('');
   }
   setNotClosed() {
     if (this.getParent()) {
@@ -352,79 +343,81 @@ class Element extends Node {
     } else {
       sb.append(this.name);
       this.getAttributes().forEach(a => {
-      let isDynAtt = false;
-      if (a.getValue()) {
-        let matcher = PATTERN_SCRIPT.matcher(a.getValue());
-        int index = 0;
-        let attValues;
-        matcher.forEach(m => {
-          isDynAtt = true;
-          if (dynId == null) {
-            dynId = XComponents.generateId();
-            sb.push(` data-xdynid='${dynId}' `);
+        let isDynAtt = false;
+        if (a.getValue()) {
+          let matcher = PATTERN_SCRIPT.matcher(a.getValue());
+          let index = 0;
+          let attValues;
+          matcher.forEach(m => {
+            isDynAtt = true;
+            if (dynId == null) {
+              dynId = XComponents.generateId();
+              sb.push(` data-xdynid='${dynId}' `);
+            }
+            // get dynamic atts for element
+            let dynAtts = jsonDynAtt[dynId];
+            if (!dynAtts) {
+              dynAtts = {};
+              jsonDynAtt[dynId] = dynAtts;
+            }
+            // get values of the att
+            attValues = dynAtts[a.getName()];
+            if (!attValues) {
+              attValues = [];
+              dynAtts[a.getName()] = attValues;
+            }
+            if (index != m.index) {
+              attValues.push({v: a.getDeliminitator() + a.getValue().substring(index, m.index).replace("\n", "\\n") + a.getDeliminitator()});
+            }
+  		  index = m.index + m[1].length;
+            attValues.push({s: a.getDeliminitator() + m[1].replace("\n", "\\n") + a.getDeliminitator()});
+            if (isDynAtt && index < a.getValue().length) {
+               attValues.push({v: a.getDeliminitator() + a.getValue().substring(index, a.getValue().length).replace("\n", "\\n") + a.getDeliminitator()});
+            }
+  	    });
+          if (!isDynAtt) {
+            sb.push(`${a.toString()}`);
           }
-          // get dynamic atts for element
-          let dynAtts = jsonDynAtt[dynId];
-          if (!dynAtts) {
-            dynAtts = {};
-            jsonDynAtt[dynId] = dynAtts;
-          }
-          // get values of the att
-          attValues = dynAtts[a.getName()];
-          if (!attValues) {
-            attValues = [];
-            dynAtts[a.getName()] = attValues;
-          }
-          if (index != m.index) {
-            attValues.push({v:, a.getDeliminitator() + a.getValue().substring(index, m.index).replace("\n", "\\n") + a.getDeliminitator()});
-          }
-		  index = m.index + m[1].length;
-          attValues.push({s: a.getDeliminitator() + m[1].replace("\n", "\\n") + a.getDeliminitator()});
-          if (isDynAtt && index < a.getValue().length) {
-             attValues.push({v: a.getDeliminitator() + a.getValue().substring(index, a.getValue().length).replace("\n", "\\n") + a.getDeliminitator()});
-          }
-	    });
-        if (!isDynAtt) {
-          sb.push(`${a.toString()}`);
-        }
-      }
-    }
-    if (this.hiddenAttributes.length == 0) {
-      dynId = this.getAttribute("data-xdynid");
-      if (!dynId) {
-      	dynId = _generateId();
-        sb.push(` data-xdynid='${dynId}' `);
-      }
-      jsonHiddenAtt[dynId] = _.clone(this.hiddenAttributes);
-    }
-    if (!this.notClosed && NO_END_TAG.indexOf("_" + this.name + "_") < 0) {
-      const sbChild = [];
-      const sbHiddenIterators = [];
-      let i = 0;
-      this.getChildren().forEach(n => {
-        if (!isEmptyText(n)) {
-	      let hiddenIterator = n instanceof Element && n.getName().equalsIgnoreCase("xiterator");
-          if (!hiddenIterator) {
-            sbChild.push(n.getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp));
-          } else {
-            // hidden iterator
-			sbHiddenIterators.push(`${n.getHiddenAttribute("xiterId")},${i}|`);
-          }
-          i++;
         }
       });
-      if (sbHiddenIterators.length > 0) {
-        sb.push(` data-hxiter='${sbHiddenIterators}'`);
+      if (this.hiddenAttributes.length == 0) {
+        dynId = this.getAttribute("data-xdynid");
+        if (!dynId) {
+        	dynId = _generateId();
+          sb.push(` data-xdynid='${dynId}' `);
+        }
+        jsonHiddenAtt[dynId] = _.clone(this.hiddenAttributes);
       }
-      sb.push(`>${sbChild}</${this.name}>`);
-    } else {
-      sb.push(">");
+      if (!this.notClosed && NO_END_TAG.indexOf("_" + this.name + "_") < 0) {
+        const sbChild = [];
+        const sbHiddenIterators = [];
+        let i = 0;
+        this.getChildren().forEach(n => {
+          if (!isEmptyText(n)) {
+	        let hiddenIterator = n instanceof Element && n.getName().equalsIgnoreCase("xiterator");
+            if (!hiddenIterator) {
+              sbChild.push(n.getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp));
+            } else {
+              // hidden iterator
+	  		sbHiddenIterators.push(`${n.getHiddenAttribute("xiterId")},${i}|`);
+            }
+            i++;
+          }
+        });
+        if (sbHiddenIterators.length > 0) {
+          sb.push(` data-hxiter='${sbHiddenIterators}'`);
+        }
+        sb.push(`>${sbChild}</${this.name}>`);
+      } else {
+        sb.push(">");
+      }
+      return sb.join('');
     }
-    return sb.join('');
   }
 }
 
-class HTMLDocument extends Element{
+
+class HTMLDoc extends Element{
   constructor(){
     super("DOCUMENT", this);
     this.requiredResourcesList = [];
@@ -502,508 +495,445 @@ class HTMLDocument extends Element{
 }
 
 class HTMLParser{
-parse(html){
-  this.ca = (html + "\n").toCharArray();
-  this.doc = new XHTMLDocument();
-  this.currentParent = doc;
-  this.inScript = false;
-  this.currentScript = null;
-  this.current = null;
-  this.templateScriptLlist = [];
-  while (this.hasMore()) {
+  constructor(){
+    this.textNodes = [];
+    this.doc = new HTMLDoc();
+    this.currentParent = doc;
+    this.inScript = false;
+    this.currentScript = null;
+    this.current = null;
+    this.templateScriptLlist = [];
+    this.currentIndex = 0;
+	this.isCheckingHtmlElement = false;
+	this.foundHtml = false;
+	this.currentRequires = false;
+	this.boundObjects = [];
+	this.boundModals = {};
+	this.currentLine = null;
+  }
+  parse(html){
+	this.ca = (html + "\n").toCharArray();
+    while (this.hasMore()) {
       let templateIfScript;
       let templateForScript;
       if (!inScript && this.nextIs("$if") && (templateIfScript = this.isIfTemplateScript()) != null) {
-          //if template script eg: $if(exp){
-          const hiddenIteratorElement = new Element("xiterator", doc);
-          hiddenIteratorElement.setAttribute("count", `(${templateIfScript})?1:0`);
-          currentParent.addChild(hiddenIteratorElement);
-          currentParent = hiddenIteratorElement;
-          this.current = null;
-          templateScriptLlist.push(hiddenIteratorElement);
-          this.advanceLine();
+        //if template script eg: $if(exp){
+        const hiddenIteratorElement = new Element("xiterator", doc);
+        hiddenIteratorElement.setAttribute("count", `(${templateIfScript})?1:0`);
+        currentParent.addChild(hiddenIteratorElement);
+        currentParent = hiddenIteratorElement;
+        this.current = null;
+        templateScriptLlist.push(hiddenIteratorElement);
+        this.advanceLine();
       } else if (!inScript && this.nextIs("$for") && (templateForScript = this.isForTemplateScript()) != null) {
-          //if template script eg: $if(exp){
-          const hiddenIteratorElement = new Element("xiterator", doc);
-          hiddenIteratorElement.setAttribute("list", templateForScript[1]);
-          hiddenIteratorElement.setAttribute("var", templateForScript[0]);
-          if (templateForScript[2]) {
-              hiddenIteratorElement.setAttribute("indexvar", templateForScript[2]);
-          }
-          this.currentParent.addChild(hiddenIteratorElement);
-          this.currentParent = hiddenIteratorElement;
-          this.current = null;
-          this.templateScriptLlist.push(hiddenIteratorElement);
-          this.advanceLine();
+        //if template script eg: $if(exp){
+        const hiddenIteratorElement = new Element("xiterator", doc);
+        hiddenIteratorElement.setAttribute("list", templateForScript[1]);
+        hiddenIteratorElement.setAttribute("var", templateForScript[0]);
+        if (templateForScript[2]) {
+            hiddenIteratorElement.setAttribute("indexvar", templateForScript[2]);
+        }
+        this.currentParent.addChild(hiddenIteratorElement);
+        this.currentParent = hiddenIteratorElement;
+        this.current = null;
+        this.templateScriptLlist.push(hiddenIteratorElement);
+        this.advanceLine();
       } else if (this.templateScriptLlist.length > 0 && this.isEndOfTemplateScript()) {
-          //end of template script eg: }
-          let ind = templateScriptLlist.size() - 1;
-          hiddenIteratorElement = this.templateScriptLlist[ind];
-          this.templateScriptLlist.splice(ind, 1);
-          this.advanceLine();
-          this.closeTag("xiterator");
+        //end of template script eg: }
+        let ind = templateScriptLlist.size() - 1;
+        hiddenIteratorElement = this.templateScriptLlist[ind];
+        this.templateScriptLlist.splice(ind, 1);
+        this.advanceLine();
+        this.closeTag("xiterator");
       } else if (!inScript && this.isCurrentTextOnlyTag()) {
-          this.readTilCloseTag();
+        this.readTilCloseTag();
       } else if (!inScript && this.nextIs("<!--")) {
-          this.advance();
-          this.inComment();
+        this.advance();
+        this.inComment();
       } else if (!inScript && this.nextIs("<![")) {
-          this.advance();
-          this.inComment();
+        this.advance();
+        this.inComment();
       } else if (!inScript && this.nextIs("</")) {
-          this.advance();
-          this.close();
+        this.advance();
+        this.close();
       } else if (!inScript && !nextIs("< ") && nextIs("<")) {
-          this.advance();
-          this.inTag(doc);
+        this.advance();
+        this.inTag(doc);
       } else {
-          if (!inScript && this.nextIs("${")) {
-              inScript = true;
-              this.currentScript = [];
-          } else if (inScript && this.nextIs("}") && XJS.validate(currentScript.toString().substring(2))) {
-              inScript = false;
-              this.currentScript = null;
-          }
-          char currentChar = read();
-          if (inScript) {
-              currentScript.append(currentChar);
-          }
+        if (!inScript && this.nextIs("${")) {
+          inScript = true;
+          this.currentScript = [];
+        } else if (inScript && this.nextIs("}") && XJS.validate(currentScript.toString().substring(2))) {
+          inScript = false;
+          this.currentScript = null;
+        }
+        const currentChar = read();
+        if (inScript) {
+          this.currentScript.append(currentChar);
+        }
       }
-      if (foundHtml && isCheckingHtmlElement) {
-          return null;
+      if (this.foundHtml && this.isCheckingHtmlElement) {
+        return null;
       }
-  }
-  while (!currentParent.isClosed() && currentParent != doc) {
-      currentParent.setNotClosed();
-      currentParent = currentParent.getParent();
-  }
-  for (XText text : textNodes) {
+    }
+    while (!this.currentParent.isClosed() && this.currentParent != doc) {
+      this.currentParent.setNotClosed();
+      this.currentParent = this.currentParent.getParent();
+    }
+    this.textNodes.forEach(text => {
       text.normalize(doc);
+    });
+    return doc;
   }
-  return doc;
-}
-
-    private void advanceLine() {
-        readTill("\n").toLowerCase();
-    }
-
-    static Pattern patternIf1 = Pattern.compile("^\\$if\\s{0,}\\((.*?)\\)\\s{0,}\\{$");
-    static Pattern patternIf2 = Pattern.compile("^\\$if\\s{1,}(.*?)[^\\)]\\s{0,}\\{$");
-
-    private String isIfTemplateScript() {
-        String line = getFullCurrentLine().trim();
-        Matcher matcher = patternIf1.matcher(line);
-        if (matcher.find()) {
-            String val = matcher.group(1);
-            return val;
-        } else {
-            matcher = patternIf2.matcher(line);
-            if (matcher.find()) {
-                String val = matcher.group(1);
-                return val;
-            }
-        }
-        return null;
-    }
-
-    static Pattern patternFor1 = Pattern.compile("^\\$for\\s{0,}\\((.*?)\\)\\s{0,}\\{$");
-    static Pattern patternFor2 = Pattern.compile("^\\$for\\s{1,}(.*?)[^\\)]\\s{0,}\\{$");
-    static Pattern patternForVariables = Pattern.compile("(\\S*?)\\s{1,}in\\s{1,}(\\S*)(\\s{1,}with\\s{1,}(\\S*))?");
-
-    private String[] isForTemplateScript() {
-        String line = getFullCurrentLine().trim();
-        Matcher matcher = patternFor1.matcher(line);
-        String variables = null;
-        if (matcher.find()) {
-            variables = matcher.group(1);
-        } else {
-            matcher = patternFor2.matcher(line);
-            if (matcher.find()) {
-                variables = matcher.group(1);
-            }
-        }
-        if (variables != null) {
-            matcher = patternForVariables.matcher(variables);
-            if (matcher.find()) {
-                String[] val = {matcher.group(1), matcher.group(2), matcher.group(4)};
-                return val;
-            }
-        }
-        return null;
-    }
-
-    private boolean isEndOfTemplateScript() {
-        String line = getFullCurrentLine().trim();
-        return line.equals("}");
-    }
-
-    private void readTilCloseTag() throws XHTMLParsingException {
-        String tagName = currentParent.getName();
-        StringBuffer sb = new StringBuffer();
-        int j = i;
-        while (true) {
-            if (ca[j] == '<' && ca[j + 1] == '/') {
-                int h = j + 2;
-                char c;
-                StringBuilder sbName = new StringBuilder();
-                while (ca.length > h && (c = ca[h++]) != '>') {
-                    sbName.append(c);
-                }
-                if (sbName.toString().trim().equals(tagName)) {
-                    i = j + 2;
-                    XText text = new XText();
-                    textNodes.add(text);
-                    text.setText(sb.toString());
-                    currentParent.addChild(text);
-                    close();
-                    return;
-                }
-            }
-            sb.append(ca[j++]);
+  advanceLine() {
+    return this.readTill("\n").toLowerCase();
+  }
+  isIfTemplateScript() {
+    let line = this.getFullCurrentLine().trim();
+    let matcher = /^\$if\s{0,}\((.*?)\)\s{0,}\{$/g.exec(line);
+    if (matcher) {
+        return matcher[1];
+    } else {
+        matcher = /^\$if\s{1,}(.*?)[^\)]\s{0,}\{$/g.exec(line);
+        if (matcher != null) {
+            return matcher[1];
         }
     }
-
-    private void inTag(XHTMLDocument doc) {
-        String name = readTill(" ", ">", "/>", "\n", "\t").toLowerCase();
-        if (isCheckingHtmlElement && name.equalsIgnoreCase("html")) {
-            foundHtml = true;
-            return;
+    return null;
+  }
+  isForTemplateScript() {
+    let line = this.getFullCurrentLine().trim();
+    let matcher = /^\$for\s{0,}\((.*?)\)\s{0,}\{$/.exec(line);
+    let variables = null;
+    if (matcher) {
+        variables = matcher[1];
+    } else {
+        matcher = /^\$for\s{1,}(.*?)[^\)]\s{0,}\{$/.exec(line);
+        if (matcher) {
+            variables = matcher[1];
         }
-        XElement element = new XElement(name, doc);
-        Map<String, XModalBind> modalBindMap = new HashMap<String, XModalBind>();
-        boolean isRequiresTag = false;
-        if (name.equalsIgnoreCase("requires")) {
-            doc.requiredResourcesList.add(element);
-            currentRequires = element;
-            isRequiresTag = true;
-        } else {
-            currentParent.addChild(element);
-            currentParent = element;
-            current = element;
+    }
+    if (variables != null) {
+        matcher = /(\S*?)\s{1,}in\s{1,}(\S*)(\s{1,}with\s{1,}(\S*))?/.exec(variables);
+        if (matcher) {
+            return [matcher[1], matcher[2], matcher[4]];
         }
-        StringBuffer attVal = new StringBuffer();
-        int dynAttr = 0;
-        while (true) {
-            if (discard(' ')) {
-                if (attVal.toString().trim().length() > 0) {
-                    element.setAttribute(attVal.toString().trim(), null);
-                }
-                attVal = new StringBuffer();
+    }
+    return null;
+  }
+  isEndOfTemplateScript() {
+    return this.getFullCurrentLine().trim() == "}";
+  }
+  readTilCloseTag() {
+    let tagName = this.currentParent.getName();
+    const sb = [];
+    let j = this.currentIndex;
+    while (true) {
+      if (ca[j] == '<' && ca[j + 1] == '/') {
+        let h = j + 2;
+        let c;
+        let valName = [];
+        while (ca.length > h && (c = ca[h++]) != '>') {
+          valName.push(c);
+        }
+        if (sbName.join('').trim() == tagName) {
+          this.currentIndex = j + 2;
+          const text = new Text();
+          this.textNodes.push(text);
+          text.setText(sb.join(''));
+          this.currentParent.addChild(text);
+          this.close();
+          return;
+        }
+      }
+      sb.push(ca[j++]);
+    }
+  }
+  inTag(doc) {
+    let name = readTill(" ", ">", "/>", "\n", "\t").toLowerCase();
+    if (this.isCheckingHtmlElement && name.equalsIgnoreCase("html")) {
+        this.foundHtml = true;
+        return;
+    }
+    let element = new Element(name, doc);
+    let modalBindMap = {};
+    let isRequiresTag = false;
+    if (_eqIgnoreCase(name, "requires")) {
+        this.doc.requiredResourcesList.push(element);
+        this.currentRequires = element;
+        isRequiresTag = true;
+    } else {
+        this.currentParent.addChild(element);
+        this.currentParent = element;
+        this.current = element;
+    }
+    let attVal = [];
+    let dynAttr = 0;
+    while (true) {
+        if (this.discard(' ')) {
+            if (attVal.join('').trim().length > 0) {
+                element.setAttribute(attVal.join('').trim(), null);
             }
-            if (nextIs("/>")) {
-                advance();
-                if (attVal.length() > 0) {
-                    element.setAttribute(attVal.toString(), null);
-                }
-                if (isRequiresTag) {
-                    currentRequires.close();
-                    currentRequires = null;
-                } else {
-                    closeElement();
-                }
-                break;
-            } else if (nextIs(">")) {
-                advance();
-                if (attVal.length() > 0) {
-                    element.setAttribute(attVal.toString(), null);
-                }
-                current = null;
-                break;
+            attVal = [];
+        }
+        if (this.nextIs("/>")) {
+            this.advance();
+            if (attVal.length > 0) {
+                element.setAttribute(attVal.join(''), null);
             }
-            if (nextIs("${")) {
-                advance();
-                StringBuffer script = new StringBuffer();
-                while (!nextIs("}") && XJS.validate(script.toString())) {
-                    read(script);
-                }
-                discard('}');
-                element.setAttribute("_outxdynattr_" + dynAttr++, script.toString());
+            if (this.isRequiresTag) {
+                this.currentRequires.close();
+                this.currentRequires = null;
             } else {
-
-                char s = read(attVal);
-                if (s == '=') {
-                    String attName = attVal.substring(0, attVal.length() - 1).trim();
-                    attVal = new StringBuffer();
-                    char c = ca[i];
-                    if (c == '\'' || c == '"' || c != ' ') {
-                        s = c;
-                        read(attVal);
-                        boolean aspas = c == '\'' || c == '"';
-                        while (true) {
-                            c = read(attVal);
-                            boolean endNoAspas = (!aspas && c == ' ')
-                                    || (!aspas && ((c == '/' && ca[i + 1] == '>') || c == '>'));
-                            if (endNoAspas || (aspas && c == s && previous(2) != '\\')) {
-                                String val;
-                                if (endNoAspas) {
-                                    i--;
-                                    val = attVal.substring(0, attVal.length() - 1);
-                                } else {
-                                    val = attVal.toString();
-                                }
-                                element.setAttribute(attName, val);
-                                if (attName.equals("data-xbind")) {
-                                    String bind = element.getAttribute(attName).trim();
-                                    String varName = bind.split("\\.")[0];
-                                    if (!varName.equals("window") && !varName.equals("xuser")) {
-                                        boundObjects.add(varName.split("\\[")[0]);
-                                    }
-                                } else if (attName.startsWith("data-xmodal") && !attName.equals("data-xmodal-toggle")) {
-                                    XModalBind modalBind = new XModalBind();
-                                    if (attName.startsWith("data-xmodal-")) {// has
-                                        // a
-                                        // bound
-                                        // var
-                                        modalBind.setVarName(attName.substring("data-xmodal-".length()));
-                                    } else {
-                                        modalBind.setVarName("xvmd_" + ((int) (Math.random() * 99999)));
-                                    }
-                                    modalBind.setPath(element.getAttribute(attName).trim());
-                                    modalBindMap.put(modalBind.getVarName(), modalBind);
-                                }
-                                attVal = new StringBuffer();
-                                break;
+                this.closeElement();
+            }
+            break;
+        } else if (this.nextIs(">")) {
+            this.advance();
+            if (attVal.length > 0) {
+                element.setAttribute(attVal.join(''), null);
+            }
+            this.current = null;
+            break;
+        }
+        if (this.nextIs("${")) {
+            this.advance();
+            let script = [];
+            while (!this.nextIs("}") && _validateJS(script.join(''))) {
+                this.read(script);
+            }
+            this.discard('}');
+            element.setAttribute("_outxdynattr_" + dynAttr++, script.join(''));
+        } else {
+            let s = this.read(attVal);
+            if (s == '=') {
+                let attName = attVal.substring(0, attVal.length - 1).trim();
+                attVal = [];
+                let c = ca[this.currentIndex];
+                if (c == '\'' || c == '"' || c != ' ') {
+                    s = c;
+                    this.read(attVal);
+                    let aspas = c == '\'' || c == '"';
+                    while (true) {
+                        c = this.read(attVal);
+                        let endNoAspas = (!aspas && c == ' ')
+                                || (!aspas && ((c == '/' && ca[this.currentIndex + 1] == '>') || c == '>'));
+                        if (endNoAspas || (aspas && c == s && this.previous(2) != '\\')) {
+                            let val;
+                            if (endNoAspas) {
+                                this.currentIndex--;
+                                val = attVal.join('').substring(0, attVal.length - 1);
+                            } else {
+                                val = attVal.join('');
                             }
+                            element.setAttribute(attName, val);
+                            if (attName == "data-xbind") {
+                                let bind = element.getAttribute(attName).trim();
+                                let varName = bind.split(".")[0];
+                                if (varName != "window" && varName != "xuser") {
+                                    boundObjects.push(varName.split("[")[0]);
+                                }
+                            } else if (attName.startsWith("data-xmodal") && attName != "data-xmodal-toggle") {
+                                let modalBind = new ModalBind();
+                                if (attName.startsWith("data-xmodal-")) {// has
+                                    // a
+                                    // bound
+                                    // var
+                                    modalBind.setVarName(attName.substring("data-xmodal-".length));
+                                } else {
+                                    modalBind.setVarName("xvmd_" + (Math.random() * 99999));
+                                }
+                                modalBind.setPath(element.getAttribute(attName).trim());
+                                modalBindMap[modalBind.getVarName()] = modalBind;
+                            }
+                            attVal = [];
+                            break;
                         }
-                    } else {
-                        element.setAttribute(attName, null);
                     }
+                } else {
+                    element.setAttribute(attName, null);
                 }
             }
         }
-        if (!modalBindMap.isEmpty()) {
-            String elementId = element.getAttribute("id");
-            if (elementId == null) {
-                elementId = "xmd_" + ((int) (Math.random() * 99999));
-                element.setAttribute("id", elementId);
-            }
-            String toggle = element.getAttribute("data-xmodal-toggle");
-            if (toggle != null) {
-                XModalBind bind = modalBindMap.get(toggle);
-                if (bind != null) {
-                    bind.setToggle(true);
-                }
-            }
-            for (Map.Entry<String, XModalBind> e : modalBindMap.entrySet()) {
-                if (modalBindMap.size() == 1) {
-                    e.getValue().setToggle(true);
-                }
-                e.getValue().setElementId(elementId);
-            }
-            boundModals.putAll(modalBindMap);
-        }
-        prepareElementsWithSource(element);
     }
-
-    private void prepareElementsWithSource(XElement element) {
-        if (element.getName().toUpperCase().equals("SCRIPT")) {
-            String src = element.getAttribute("src");
-            if (src != null && src.startsWith("/")) {
-                element.setAttribute("src", "{webctx}" + src);
+    if (_.keys(modalBindMap).length == 0) {
+        let elementId = element.getAttribute("id");
+        if (!elementId) {
+            elementId = "xmd_" + (Math.random() * 99999);
+            element.setAttribute("id", elementId);
+        }
+        let toggle = element.getAttribute("data-xmodal-toggle");
+        if (toggle) {
+            let bind = modalBindMap[toggle];
+            if (bind) {
+                bind.setToggle(true);
             }
         }
-        if (element.getName().toUpperCase().equals("A")) {
-            String href = element.getAttribute("href");
-            if (href != null && href.startsWith("/")) {
-                element.setAttribute("href", "{webctx}" + href);
+        _.values(modalBindMap).forEach(v => {
+            if (modalBindMap.size() == 1) {
+			  v.setToggle(true);
             }
+            v.setElementId(elementId);
+        });
+        _.extend(boundModals, modalBindMap);
+    }
+    this.prepareElementsWithSource(element);
+  }
+  prepareElementsWithSource(element) {
+    if (element.getName().toUpperCase().equals("SCRIPT")) {
+      let src = element.getAttribute("src");
+      if (src && src.startsWith("/")) {
+        element.setAttribute("src", `{webctx}${src}`);
+      }
+    }
+    if (element.getName().toUpperCase().equals("A")) {
+      let href = element.getAttribute("href");
+      if (href && href.startsWith("/")) {
+        element.setAttribute("href", `{webctx}${href}`)
+	  }
+    }
+  }
+  isCurrentTextOnlyTag() {
+    // put text only tag here
+    let textOnlyTags = " script ";
+    return this.currentParent != null && textOnlyTags.indexOf(this.currentParent.getName()) >= 0;
+  }
+  previous(t) {
+    return this.ca[this.currentIndex - t];
+  }
+  discard(c) {
+    let j = this.currentIndex;
+    let discarded = false;
+    while (ca[j] == c) {
+        j++;
+        discarded = true;
+    }
+    this.currentIndex = j;
+    return discarded;
+  }
+  close() {
+    let tagName = null;
+    try {
+      tagName = this.readTill(">").toLowerCase().trim();
+      this.closeTag(tagName);
+    } catch (e) {
+        throw new Error(`Error closing tag ${(tagName != null ? tagName : "")}: ${e.message}`);
+    }
+  }
+  closeTag(tagName) {
+    if (tagName.equalsIgnoreCase("requires")) {
+      this.currentRequires.close();
+      this.currentRequires = null;
+    } else {
+      let toClose = this.current instanceof Element ? this.current : this.currentParent;
+      while (tagName != toClose.getName()) {
+        if (!toClose.isClosed()) {
+          toClose.setNotClosed();
         }
-    }
-
-    private boolean isCurrentTextOnlyTag() {
-        // put text only tag here
-        String textOnlyTags = " script ";
-        return currentParent != null && textOnlyTags.contains(currentParent.getName());
-    }
-
-    private char previous(int t) {
-        return ca[i - t];
-    }
-
-    private boolean discard(char c) {
-        int j = i;
-        boolean discarded = false;
-        while (ca[j] == c) {
-            j++;
-            discarded = true;
-        }
-        i = j;
-        return discarded;
-    }
-
-    private void close() throws XHTMLParsingException {
-        String tagName = null;
-        try {
-            tagName = readTill(">").toLowerCase().trim();
-            closeTag(tagName);
-        } catch (Exception e) {
-            throw new XHTMLParsingException("Error closing tag " + (tagName != null ? tagName : ""));
-        }
-    }
-
-    private void closeTag(String tagName) {
-        if (tagName.equalsIgnoreCase("requires")) {
-            currentRequires.close();
-            currentRequires = null;
-        } else {
-            XElement toClose = current instanceof XElement ? (XElement) current : currentParent;
-            while (!tagName.equals(toClose.getName())) {
-                if (!toClose.isClosed()) {
-                    toClose.setNotClosed();
-                }
-                XNode prev = toClose;
-                while (true) {
-                    prev = prev.getPrevious();
-                    if (prev == null) {
-                        toClose = toClose.getParent();
-                        break;
-                    } else if (prev instanceof XElement && !((XElement) prev).isClosed()) {
-                        toClose = (XElement) prev;
-                        break;
-                    }
-                }
-            }
-            toClose.close();
-            currentParent = toClose.getParent();
-
-            current = null;
-        }
-        i++;
-    }
-
-    private void closeElement() {
-        currentParent = current.getParent();
-        current.close();
-        current = null;
-    }
-
-    private String readTill(String... s) {
-        StringBuffer sb = new StringBuffer();
-        int j = i;
-        main:
+        let prev = toClose;
         while (true) {
-            for (int z = 0; z < s.length; z++) {
-                if (nextIs(s[z], j)) {
-                    break main;
-                }
+          prev = prev.getPrevious();
+          if (!prev) {
+            toClose = toClose.getParent();
+            break;
+          } else if (prev instanceof Element && !prev.isClosed()) {
+            toClose = prev;
+            break;
+          }
+        }
+      }
+      toClose.close();
+      this.currentParent = toClose.getParent();
+      this.current = null;
+    }
+    this.currentIndex++;
+  }
+  closeElement() {
+  	this.currentParent = current.getParent();
+    this.current.close();
+    this.current = null;
+  }
+  readTill(...s) {
+    let sb = [];
+    let j = this.currentIndex;
+    main: while (true) {
+        for (let z = 0; z < s.length; z++) {
+            if (this.nextIs(s[z], j)) {
+                break main;
             }
-            sb.append(ca[j++]);
         }
-        lastAdvance = j - i;
-        advance();
-        return sb.toString();
+        sb.push(ca[j++]);
     }
-
-    private void inComment() {
-        current = new XComment();
-        currentParent.addChild(current);
-        while (true) {
-            if (nextIs("-->")) {
-                advance();
-                current.close();
-                current = null;
-                break;
-            }
-            read();
-        }
+    this.lastAdvance = j - this.currentIndex;
+    this.advance();
+    return sb.join('');
+  }
+  inComment() {
+	this.current = new Comment();
+	this.currentParent.addChild(this.current);
+	while (true) {
+	  if (this.nextIs("-->")) {
+	    this.advance();
+	    this.current.close();
+	    this.current = null;
+	    break;
+	  }
+	  this.read();
+	}
+  }
+  advance() {
+    i += this.lastAdvance;
+  }
+  nextIs(s, index) {
+    const sb = [];
+    this.lastAdvance = s.length();
+    let usedIndex = index || this.currentIndex;
+    let j = usedIndex;
+    for (; j < s.length() + usedIndex && j < ca.length; j++) {
+        sb.push(ca[j]);
     }
-
-    private void advance() {
-        i += lastAdvance;
+    return sb.join('') == s;
+  }
+  hasMore() {
+    return this.currentIndex < ca.length;
+  }
+  read(sb) {
+    let c = ca[this.currentIndex++];
+    if (c == '\n') {
+      //starting new line
+      this.currentLine = [];
     }
-
-    private boolean nextIs(String s) {
-        return nextIs(s, null);
+    if (!sb) {
+      if (this.current == null) {
+        this.current = new Text();
+        this.textNodes.push(this.current);
+        this.currentParent.addChild(this.current);
+      }
+      this.current.addChar(c);
+    } else {
+      sb.push(c);
     }
-
-    private boolean nextIs(String s, Integer index) {
-        StringBuffer sb = new StringBuffer();
-        lastAdvance = s.length();
-        int usedIndex = index == null ? i : index;
-        int j = usedIndex;
-        for (; j < s.length() + usedIndex && j < ca.length; j++) {
-            sb.append(ca[j]);
-        }
-        return sb.toString().equals(s);
+    this.currentLine.push(c);
+    return c;
+  }
+  getFullCurrentLine() {
+    let localIndex = this.currentIndex;
+    let line = [];
+    let c;
+    while (localIndex < ca.length - 1 && (c = ca[localIndex++]) != '\n') {
+        line.push(c);
     }
-
-    // private void rewind(int t) {
-    // i -= t;
-    // }
-
-    private boolean hasMore() {
-        return i < ca.length;
-    }
-
-    private char read() {
-        return read(null);
-    }
-
-    private char read(StringBuffer sb) {
-        char c = ca[i++];
-        if (c == '\n') {
-            //starting new line
-            currentLine = new StringBuilder();
-        }
-        if (sb == null) {
-            if (current == null) {
-                current = new XText();
-                textNodes.add((XText) current);
-                currentParent.addChild(current);
-            }
-            current.addChar(c);
-        } else {
-            sb.append(c);
-        }
-        currentLine.append(c);
-        return c;
-    }
-
-    private String getFullCurrentLine() {
-        int localIndex = i;
-        StringBuilder line = new StringBuilder(currentLine);
-        char c;
-        while (localIndex < ca.length - 1 && (c = ca[localIndex++]) != '\n') {
-            line.append(c);
-        }
-        return line.toString();
-    }
-
-    public static void main(String[] args) {
-        try {
-            XHTMLParser parser = new XHTMLParser();
-            XHTMLDocument doc = parser
-                    .parse(XFileUtil.instance.readFile("/Users/eduardo/work/eclipseworkspaces/xloja/Testes/teste.html"));
-
-            // System.out.println("html " + doc.getHtmlElement());
-            System.out.println(doc.toJson());
-
-            // parser = new XHTMLParser();
-            // doc = parser.parse("<!DOCTYPE html><html></html>");
-            // System.out.println("html " + doc.getHtmlElement());
-            // System.out.println(doc.toString());
-            //
-            // parser = new XHTMLParser();
-            // doc = parser.parse("<body>test</body>");
-            // System.out.println("html " + doc.getHtmlElement());
-            // System.out.println(doc.toString());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    public Set<String> getBoundObjects() {
-        return boundObjects;
-    }
-
-    public Map<String, XModalBind> getBoundModals() {
-        return boundModals;
-    }
-
-    public boolean hasHtmlElement(String content) throws XHTMLParsingException {
-        isCheckingHtmlElement = true;
-        parse(content);
-        return foundHtml;
-    }
+    return line.join('');
+  }
+  getBoundObjects() {
+    return this.boundObjects;
+  }
+  getBoundModals() {
+    return this.boundModals;
+  }
+  hasHtmlElement(content) {
+    this.isCheckingHtmlElement = true;
+    this.parse(content);
+    return this.foundHtml;
+  }
 }
-*/
