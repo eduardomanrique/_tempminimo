@@ -65,15 +65,15 @@ class Node {
     if (index == this.parent.children.length - 1) {
       this.parent.addChild(node);
     } else {
-      this.parent.insertChildren(node, index + 1);
+      this.parent.insertChild(node, index + 1);
     }
   }
   addBefore(node) {
     let index = this.parent.children.indexOf(this);
     if (index == 0) {
-      this.parent.insertChildren(node, 0);
+      this.parent.insertChild(node, 0);
     } else {
-      this.parent.insertChildren(node, index);
+      this.parent.insertChild(node, index);
     }
   }
   get parent() {
@@ -92,7 +92,8 @@ class Node {
     return this._buffer.join('');
   }
   remove() {
-    this.parent.children.remove(this);
+    let index = this.parent.children.indexOf(this);
+    this.parent.children.splice(index, 1);
     this._parent = null;
   }
   printHiddenAttributesInJsonFormat() {
@@ -214,12 +215,12 @@ class Text extends Node {
     this.addAfter(t);
     this.remove();
     let m;
-    while ((m = patter.exec(text)) != null) {
+    while ((m = pattern.exec(text)) != null) {
       if (index != m.index) {
         let newText = text.substring(index, m.index);
         if (newText.length > 0) {
           let tNew = new Text();
-          tNew.setText(newText);
+          tNew.text = newText;
           t.addAfter(tNew);
           t = tNew;
         }
@@ -237,7 +238,7 @@ class Text extends Node {
       let newText = text.substring(index, text.length);
       if (newText.length > 0) {
         let tNew = new Text();
-        tNew.setText(newText);
+        tNew.text = newText;
         t.addAfter(tNew);
         t = tNew;
       }
@@ -362,10 +363,10 @@ class Element extends Node {
     this._children.splice(index, 0, node);
   }
   insertChildAfter(node, after) {
-    this.insertChildren(node, this._children.indexOf(after) + 1);
+    this.insertChild(node, this._children.indexOf(after) + 1);
   }
   insertChildBefore(node, before) {
-    this.insertChildren(node, this._children.indexOf(before));
+    this.insertChild(node, this._children.indexOf(before));
   }
   get children() {
     return this._children;
@@ -394,7 +395,7 @@ class Element extends Node {
     }
   }
   getAttribute(name) {
-    return _.has(this._attributes, name) ? this._attributes[n].value : null;
+    return _.has(this._attributes, name) ? this._attributes[name].value : null;
   }
   getAttributeObject(n) {
     return this._attributes[n];
@@ -619,9 +620,9 @@ class HTMLDoc extends Element {
     if (this._requiredResourcesList.length > 0) {
       this.getElements().filter(e => _eqIgnoreCase(e.name, "html")).forEach(htmlElement => {
         htmlElement.getElements().forEach(ce => {
-          if (!this._bodyElement && ce.name.equalsIgnoreCase("body")) {
+          if (!this._bodyElement && _eqIgnoreCase(ce.name, "body")) {
             this._bodyElement = ce;
-          } else if (!this._headElement && ce.name.equalsIgnoreCase("head")) {
+          } else if (!this._headElement && _eqIgnoreCase(ce.name, "head")) {
             this._headElement = ce;
           }
         });
@@ -673,7 +674,7 @@ class HTMLDoc extends Element {
     return this.children.map(n => n.toString()).join('').trim();
   }
   replaceAllTexts(replacer) {
-    this.getAllTextNodes().forEach(e => e.setText(replacer.replace(e.text)));
+    this.getAllTextNodes().forEach(e => e.text = replacer.replace(e.text));
   }
   renameAllAttributesWithName(name, newName) {
     this.getAllElements().forEach(e => e.renameAttribute(this._name, newName));
@@ -690,7 +691,7 @@ class HTMLParser {
   constructor() {
     this._textNodes = [];
     this._doc = new HTMLDoc();
-    this._currentParent = doc;
+    this._currentParent = this._doc;
     this._inScript = false;
     this._currentScript = null;
     this._current = null;
@@ -701,7 +702,7 @@ class HTMLParser {
     this._currentRequires = false;
     this._boundObjects = [];
     this._boundModals = {};
-    this._currentLine = null;
+    this._currentLine = [];
   }
   parse(html) {
     this._charArray = (html + "\n");
@@ -709,7 +710,7 @@ class HTMLParser {
     while (this.hasMore()) {
       let templateIfScript;
       let templateForScript;
-      if (!inScript && this.nextIs("$if") && (templateIfScript = this.isIfTemplateScript()) != null) {
+      if (!this._inScript && this.nextIs("$if") && (templateIfScript = this.isIfTemplateScript()) != null) {
         //if template script eg: $if(exp){
         const hiddenIteratorElement = new Element("xiterator", doc);
         hiddenIteratorElement.setAttribute("count", `(${templateIfScript})?1:0`);
@@ -718,7 +719,7 @@ class HTMLParser {
         this._current = null;
         templateScriptLlist.push(hiddenIteratorElement);
         this.advanceLine();
-      } else if (!inScript && this.nextIs("$for") && (templateForScript = this.isForTemplateScript()) != null) {
+      } else if (!this._inScript && this.nextIs("$for") && (templateForScript = this.isForTemplateScript()) != null) {
         //if template script eg: $if(exp){
         const hiddenIteratorElement = new Element("xiterator", doc);
         hiddenIteratorElement.setAttribute("list", templateForScript[1]);
@@ -738,30 +739,30 @@ class HTMLParser {
         this._templateScriptLlist.splice(ind, 1);
         this.advanceLine();
         this.closeTag("xiterator");
-      } else if (!inScript && this.isCurrentTextOnlyTag()) {
+      } else if (!this._inScript && this.isCurrentTextOnlyTag()) {
         this.readTilCloseTag();
-      } else if (!inScript && this.nextIs("<!--")) {
+      } else if (!this._inScript && this.nextIs("<!--")) {
         this.advance();
         this.inComment();
-      } else if (!inScript && this.nextIs("<![")) {
+      } else if (!this._inScript && this.nextIs("<![")) {
         this.advance();
         this.inComment();
-      } else if (!inScript && this.nextIs("</")) {
+      } else if (!this._inScript && this.nextIs("</")) {
         this.advance();
         this.close();
-      } else if (!inScript && !nextIs("< ") && nextIs("<")) {
+      } else if (!this._inScript && !this.nextIs("< ") && this.nextIs("<")) {
         this.advance();
         this.inTag(doc);
       } else {
-        if (!inScript && this.nextIs("${")) {
-          inScript = true;
+        if (!this._inScript && this.nextIs("${")) {
+          this._inScript = true;
           this._currentScript = [];
-        } else if (inScript && this.nextIs("}") && XJS.validate(currentScript.toString().substring(2))) {
-          inScript = false;
+        } else if (this._inScript && this.nextIs("}") && XJS.validate(currentScript.toString().substring(2))) {
+          this._inScript = false;
           this._currentScript = null;
         }
-        const currentChar = read();
-        if (inScript) {
+        const currentChar = this.read();
+        if (this._inScript) {
           this._currentScript.push(currentChar);
         }
       }
@@ -822,29 +823,29 @@ class HTMLParser {
     const sb = [];
     let j = this._currentIndex;
     while (true) {
-      if (ca[j] == '<' && ca[j + 1] == '/') {
+      if (this._charArray[j] == '<' && this._charArray[j + 1] == '/') {
         let h = j + 2;
         let c;
         let valName = [];
-        while (ca.length > h && (c = ca[h++]) != '>') {
+        while (this._charArray.length > h && (c = this._charArray[h++]) != '>') {
           valName.push(c);
         }
-        if (sbName.join('').trim() == tagName) {
+        if (valName.join('').trim() == tagName) {
           this._currentIndex = j + 2;
           const text = new Text();
           this._textNodes.push(text);
-          text.setText(sb.join(''));
+          text.text = sb.join('');
           this._currentParent.addChild(text);
           this.close();
           return;
         }
       }
-      sb.push(ca[j++]);
+      sb.push(this._charArray[j++]);
     }
   }
   inTag(doc) {
-    let name = readTill(" ", ">", "/>", "\n", "\t").toLowerCase();
-    if (this._isCheckingHtmlElement && name.equalsIgnoreCase("html")) {
+    let name = this.readTill(" ", ">", "/>", "\n", "\t").toLowerCase();
+    if (this._isCheckingHtmlElement && _eqIgnoreCase(name, "html")) {
       this._foundHtml = true;
       return;
     }
@@ -900,9 +901,10 @@ class HTMLParser {
       } else {
         let s = this.read(attVal);
         if (s == '=') {
-          let attName = attVal.substring(0, attVal.length - 1).trim();
+          let attJoin = attVal.join('');
+          let attName = attJoin.substring(0, attJoin.length - 1).trim();
           attVal = [];
-          let c = ca[this._currentIndex];
+          let c = this._charArray[this._currentIndex];
           if (c == '\'' || c == '"' || c != ' ') {
             s = c;
             this.read(attVal);
@@ -910,7 +912,7 @@ class HTMLParser {
             while (true) {
               c = this.read(attVal);
               let endNoAspas = (!aspas && c == ' ') ||
-                (!aspas && ((c == '/' && ca[this._currentIndex + 1] == '>') || c == '>'));
+                (!aspas && ((c == '/' && this._charArray[this._currentIndex + 1] == '>') || c == '>'));
               if (endNoAspas || (aspas && c == s && this.previous(2) != '\\')) {
                 let val;
                 if (endNoAspas) {
@@ -968,18 +970,18 @@ class HTMLParser {
         }
         v.setElementId(elementId);
       });
-      _.extend(boundModals, modalBindMap);
+      _.extend(this._boundModals, modalBindMap);
     }
     this.prepareElementsWithSource(element);
   }
   prepareElementsWithSource(element) {
-    if (element.name.toUpperCase().equals("SCRIPT")) {
+    if (element.name.toUpperCase() == "SCRIPT") {
       let src = element.getAttribute("src");
       if (src && src.startsWith("/")) {
         element.setAttribute("src", `{webctx}${src}`);
       }
     }
-    if (element.name.toUpperCase().equals("A")) {
+    if (element.name.toUpperCase() == "A") {
       let href = element.getAttribute("href");
       if (href && href.startsWith("/")) {
         element.setAttribute("href", `{webctx}${href}`)
@@ -997,7 +999,7 @@ class HTMLParser {
   discard(c) {
     let j = this._currentIndex;
     let discarded = false;
-    while (ca[j] == c) {
+    while (this._charArray[j] == c) {
       j++;
       discarded = true;
     }
@@ -1014,7 +1016,7 @@ class HTMLParser {
     }
   }
   closeTag(tagName) {
-    if (tagName.equalsIgnoreCase("requires")) {
+    if (_eqIgnoreCase(tagName, "requires")) {
       this._currentRequires.close();
       this._currentRequires = null;
     } else {
@@ -1055,7 +1057,7 @@ class HTMLParser {
           break main;
         }
       }
-      sb.push(ca[j++]);
+      sb.push(this._charArray[j++]);
     }
     this.lastAdvance = j - this._currentIndex;
     this.advance();
@@ -1075,23 +1077,23 @@ class HTMLParser {
     }
   }
   advance() {
-    i += this.lastAdvance;
+    this._currentIndex += this.lastAdvance;
   }
   nextIs(s, index) {
     const sb = [];
     this.lastAdvance = s.length;
     let usedIndex = index || this._currentIndex;
     let j = usedIndex;
-    for (; j < s.length + usedIndex && j < ca.length; j++) {
-      sb.push(ca[j]);
+    for (; j < s.length + usedIndex && j < this._charArray.length; j++) {
+      sb.push(this._charArray[j]);
     }
     return sb.join('') == s;
   }
   hasMore() {
-    return this._currentIndex < ca.length;
+    return this._currentIndex < this._charArray.length;
   }
   read(sb) {
-    let c = ca[this._currentIndex++];
+    let c = this._charArray[this._currentIndex++];
     if (c == '\n') {
       //starting new line
       this._currentLine = [];
@@ -1113,7 +1115,7 @@ class HTMLParser {
     let localIndex = this._currentIndex;
     let line = [];
     let c;
-    while (localIndex < ca.length - 1 && (c = ca[localIndex++]) != '\n') {
+    while (localIndex < this._charArray.length - 1 && (c = this._charArray[localIndex++]) != '\n') {
       line.push(c);
     }
     return line.join('');

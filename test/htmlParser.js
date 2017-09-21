@@ -36,4 +36,10 @@ describe('Test html parser', function () {
 
     expect(doc.toHTML()).is.eq('<html><head><script>console.log(1);</script></head><body>Comment<div id="1234" att="val"></div></body></html>');
   });
+
+  it('Test simple parsing', () => {
+    let parser = new htmlParser.HTMLParser();
+    let doc = parser.parse('<html><head><script>console.log(1);</script></head><body>Comment<div id="1234" att="val"></div></body></html>');
+    console.log(doc.toHTML());
+  });
 });
