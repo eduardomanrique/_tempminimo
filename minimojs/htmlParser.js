@@ -5,6 +5,7 @@ const _prepareXScriptsValues = (value) => {
   let last = value;
   if (value != null) {
     let pattern = /\$\{(?:(?!\$\{|}).)*}/g;
+    let matcher;
     while ((matcher = pattern.exec(last)) != null) {
       let js = matcher[0];
       let jsok = js.substring(2, js.length - 1).replace(/"/g, "&quot;");
@@ -141,7 +142,7 @@ class Attribute {
     this._value = value;
   }
   get name() {
-    this._name;
+    return this._name;
   }
   set name(name) {
     this._name = name;
@@ -150,10 +151,10 @@ class Attribute {
     return this._deliminitator;
   }
   toString() {
-    return name + (value != null ? `=${deliminitator}${value}${deliminitator}` : "");
+    return this.name + (this.value != null ? `=${this.deliminitator}${this.value}${this.deliminitator}` : "");
   }
   toJSON() {
-    return `'${name}':` + (value != null ? deliminitator + value + deliminitator : "null");
+    return `'${this.name}':` + (this.value != null ? this.deliminitator + this.value + this.deliminitator : "null");
   }
 }
 
@@ -212,6 +213,7 @@ class Text extends Node {
     let t = new Text();
     this.addAfter(t);
     this.remove();
+    let m;
     while ((m = patter.exec(text)) != null) {
       if (index != m.index) {
         let newText = text.substring(index, m.index);
@@ -271,7 +273,7 @@ class Text extends Node {
       `{t:"${StringEscapeUtils.unescapeHtml4(text.replace("\"", "\\\"").replace("\n", ""))}"}`);
   }
   close() { }
-  getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp) {
+  _getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp) {
     return this._getNonNullText();
   }
 }
@@ -410,7 +412,7 @@ class Element extends Node {
   toString() {
     return `<${this._name} ${_.values(this.getAttributes()).map(a => a.toString()).join(' ')} ` +
       _.pairs(this._hiddenAttributes).map(p => `_hidden_${p[0]}='${p[1].replace(/'/g, "\\'")}' `).join(' ') + '>' +
-      (!this._notClosed && NO_END_TAG.indexOf(`_${this._name}_`) < 0 ? `${this.printHTML()}</${this._name}>` : '');
+      (!this._notClosed && NO_END_TAG.indexOf(`_${this._name}_`) < 0 ? `${this.toHTML()}</${this._name}>` : '');
   }
   toJson() {
     if (_eqIgnoreCase(this._name, "xscr")) {
@@ -429,6 +431,7 @@ class Element extends Node {
         if (a.value) {
           let index = 0;
           let pattern = /\$\{(.*?)}/g;
+          let m;
           while ((m = pattern.exec(a.value)) != null) {
             if (index != m.index) {
               sbuilder.push(`{v:${a.getDeliminitator()}${a.value.substring(index, m.index).replace("\n", "\\n")}${a.getDeliminitator()}},`);
@@ -502,10 +505,10 @@ class Element extends Node {
       }
     });
   }
-  printHTML(){
-    return this.getHTML({}, {}, {});
+  toHTML(){
+    return this._getHTML({}, {}, {});
   }
-  getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp) {
+  _getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp) {
     const xcompId = this.getHiddenAttribute("xcompId");
     if (xcompId) {
       jsonComp[xcompId] = this.getHiddenAttribute("xcompName");
@@ -523,17 +526,18 @@ class Element extends Node {
       sb.push("></xscript>");
       return sb.join('');
     } else {
-      sb.push(this._name);
+      sb.push(`${this._name} `);
       _.values(this.getAttributes()).forEach(a => {
         let isDynAtt = false;
         if (a.value) {
           let index = 0;
           let attValues;
+          let m;
           while((m = /\$\{(.*?)}/g.exec(a.value)) != null){
             isDynAtt = true;
             if (dynId == null) {
               dynId = XComponents.generateId();
-              sb.push(` data-xdynid='${dynId}' `);
+              sb.push(`data-xdynid='${dynId}' `);
             }
             // get dynamic atts for element
             let dynAtts = jsonDynAtt[dynId];
@@ -563,7 +567,7 @@ class Element extends Node {
             }
           }
           if (!isDynAtt) {
-            sb.push(`${a.toString()}`);
+            sb.push(`${a.toString()} `);
           }
         }
       });
@@ -571,7 +575,7 @@ class Element extends Node {
         dynId = this.getAttribute("data-xdynid");
         if (!dynId) {
           dynId = _generateId();
-          sb.push(` data-xdynid='${dynId}' `);
+          sb.push(`data-xdynid='${dynId}' `);
         }
         jsonHiddenAtt[dynId] = _.clone(this._hiddenAttributes);
       }
@@ -583,7 +587,7 @@ class Element extends Node {
           if (!_isEmptyText(n)) {
             let hiddenIterator = n instanceof Element && _eqIgnoreCase(n.name, "xiterator");
             if (!hiddenIterator) {
-              sbChild.push(n.getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp));
+              sbChild.push(n._getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp));
             } else {
               // hidden iterator
               sbHiddenIterators.push(`${n.getHiddenAttribute("xiterId")},${i}|`);
@@ -592,13 +596,12 @@ class Element extends Node {
           }
         });
         if (sbHiddenIterators.length > 0) {
-          sb.push(` data-hxiter='${sbHiddenIterators}'`);
+          sb.push(`data-hxiter='${sbHiddenIterators}' `);
         }
-        sb.push(`>${sbChild}</${this._name}>`);
+        return `${sb.join('').trim()}>${sbChild.join('')}</${this._name}>`;
       } else {
-        sb.push(">");
+        return `${sb.join('').trim()}>`;
       }
-      return sb.join('');
     }
   }
 }
@@ -678,8 +681,8 @@ class HTMLDoc extends Element {
   get htmlElement() {
     return this._htmlElement;
   }
-  getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp) {
-    this.children.map(n => n.getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp)).join('').trim();
+  _getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp) {
+    return this.children.map(n => n._getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp)).join('').trim();
   }
 }
 
