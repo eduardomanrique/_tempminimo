@@ -24,22 +24,26 @@ describe('Test html parser', function () {
   it('Test dom', () => {
     let doc = new htmlParser.HTMLDoc();
     let htmlEl = doc.addElement('html');
-    let script = new htmlParser.Text('console.log(1);');
+    let script = new htmlParser.Text('console.log("1");');
     htmlEl.addElement('head').addElement('script').addChild(script);
     let body = htmlEl.addElement('body');
     let comment = new htmlParser.Comment('Comment');
     body.addChild(comment);
-    let input = body.addElement('div');
-    input.setAttribute("id", "1234");
-    input.setAttribute("att", "val");
-    input.innerHTML = 'Div of id 1234';
+    let div = body.addElement('div');
+    div.setAttribute("id", "1234");
+    div.setAttribute("att", "val");
+    let divText = new htmlParser.Text('Div of id 1234');
+    div.addChild(divText);
+    let bodyText = new htmlParser.Text('Text 1234 "aa"');
+    body.addChild(bodyText);
 
-    expect(doc.toHTML()).is.eq('<html><head><script>console.log(1);</script></head><body>Comment<div id="1234" att="val"></div></body></html>');
+    expect(doc.toHTML()).is.eq('<html><head><script>console.log("1");</script></head><body><!--Comment--><div id="1234" att="val">Div of id 1234</div>Text 1234 "aa"</body></html>');
   });
 
   it('Test simple parsing', () => {
     let parser = new htmlParser.HTMLParser();
-    let doc = parser.parse('<html><head><script>console.log(1);</script></head><body>Comment<div id="1234" att="val"></div></body></html>');
+    let doc = parser.parse('<html><head><script>console.log("1");</script></head><body><!--Comment--><div id="1234" att="val">Div of id 1234</div>Text 1234 "aa"</body></html>');
     console.log(doc.toHTML());
+    expect(doc.toHTML()).is.eq('<html><head><script>console.log("1");</script></head><body><!--Comment--><div id="1234" att="val">Div of id 1234</div>Text 1234 "aa"</body></html>');
   });
 });

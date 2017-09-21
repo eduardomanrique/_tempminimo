@@ -25,7 +25,7 @@ const _getAllTextNodes = (element) =>
     }
   }));
 
-const _generateId = () => "id_" + Math.random();
+const _generateId = (prefix) => (prefix || "id_") + parseInt(Math.random() * 999999);
 
 const _isEmptyText = (node) => node instanceof Text && !(node instanceof Comment) && node.text.trim() == '';
 
@@ -277,18 +277,20 @@ class Text extends Node {
   _getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp) {
     return this._getNonNullText();
   }
+
 }
 
 class Comment extends Text {
   constructor(text) {
     super(text);
-    this.addString("<!--");
   }
   close() {
-    this.addString("-->");
   }
   toJson() {
     return "";
+  }
+  _getHTML(a,b,c){
+    return `<!--${super._getHTML(a, b, c)}-->`;
   }
 }
 
@@ -936,7 +938,7 @@ class HTMLParser {
                     // var
                     modalBind.setVarName(attName.substring("data-xmodal-".length));
                   } else {
-                    modalBind.setVarName("xvmd_" + (Math.random() * 99999));
+                    modalBind.setVarName(_generateId("xvmd_"));
                   }
                   modalBind.setPath(element.getAttribute(attName).trim());
                   modalBindMap[modalBind.getVarName()] = modalBind;
@@ -954,7 +956,7 @@ class HTMLParser {
     if (_.keys(modalBindMap).length == 0) {
       let elementId = element.getAttribute("id");
       if (!elementId) {
-        elementId = "xmd_" + (Math.random() * 99999);
+        elementId = _generateId("xmd_");
         element.setAttribute("id", elementId);
       }
       let toggle = element.getAttribute("data-xmodal-toggle");
