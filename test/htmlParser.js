@@ -75,6 +75,5 @@ describe('Test html parser', function () {
     expect(list[5].text.trim()).to.be.equal('Text 1234 "aa"');
     // expect(list[6].getAttribute("dyn").trim()).to.be.equal("${a.op() + '3'}");
     
-    console.log(doc.toHTML())
   });
 });
