@@ -23,6 +23,7 @@ const _getAllTextNodes = (element) =>
     } else if (e instanceof Text) {
       list.push(e);
     }
+    return list;
   }));
 
 const _generateId = (prefix) => (prefix || "id_") + parseInt(Math.random() * 999999);
@@ -300,7 +301,6 @@ class Element extends Node {
     super();
     this._children = [];
     this._attributes = {};
-    this._innerText = null;
     this._tagText = null;
     this._name = name;
     this._notClosed = false;
@@ -377,10 +377,7 @@ class Element extends Node {
     return this.children.filter(e => e instanceof Element);
   }
   get innerText() {
-    return this._innerText;
-  }
-  set innerText(text) {
-    this._innerText = text;
+    return this.getAllTextNodes().map(e => e.text).join('');
   }
   getTagText() {
     return this._tagText;
@@ -716,10 +713,10 @@ class HTMLParser {
         //if template script eg: $if(exp){
         const hiddenIteratorElement = new Element("xiterator", doc);
         hiddenIteratorElement.setAttribute("count", `(${templateIfScript})?1:0`);
-        currentParent.addChild(hiddenIteratorElement);
-        currentParent = hiddenIteratorElement;
+        this._currentParent.addChild(hiddenIteratorElement);
+        this._currentParent = hiddenIteratorElement;
         this._current = null;
-        templateScriptLlist.push(hiddenIteratorElement);
+        this._templateScriptLlist.push(hiddenIteratorElement);
         this.advanceLine();
       } else if (!this._inScript && this.nextIs("$for") && (templateForScript = this.isForTemplateScript()) != null) {
         //if template script eg: $if(exp){
@@ -736,8 +733,8 @@ class HTMLParser {
         this.advanceLine();
       } else if (this._templateScriptLlist.length > 0 && this.isEndOfTemplateScript()) {
         //end of template script eg: }
-        let ind = templateScriptLlist.size() - 1;
-        hiddenIteratorElement = this._templateScriptLlist[ind];
+        let ind = this._templateScriptLlist.length - 1;
+        let hiddenIteratorElement = this._templateScriptLlist[ind];
         this._templateScriptLlist.splice(ind, 1);
         this.advanceLine();
         this.closeTag("xiterator");
