@@ -1,6 +1,9 @@
 const _ = require('underscore');
 const esprima = require('esprima');
 
+const _str = (sb) => {
+  return sb.join('');
+}
 const _prepareXScriptsValues = (value) => {
   let last = value;
   if (value != null) {
@@ -90,7 +93,7 @@ class Node {
     this._buffer.push(s);
   }
   toString() {
-    return this._buffer.join('');
+    return _str(this._buffer);
   }
   remove() {
     let index = this.parent.children.indexOf(this);
@@ -98,7 +101,7 @@ class Node {
     this._parent = null;
   }
   printHiddenAttributesInJsonFormat() {
-    return _.pairs(this._hiddenAttributes).map(pair => `${pair[0]}:'${pair[1].replace(/'/g, "\\\\'")}'`).join('');
+    return _str(_.pairs(this._hiddenAttributes).map(pair => `${pair[0]}:'${pair[1].replace(/'/g, "\\\\'")}'`));
   }
   setHiddenAttribute(attrName, val) {
     if (_.has(this._hiddenAttributes, attrName) == null) {
@@ -193,7 +196,7 @@ class Text extends Node {
     this.text = text;
   }
   get text() {
-    return !this._text || this._text.trim() == "" ? this._buffer.join('') : this._text;
+    return !this._text || this._text.trim() == "" ? _str(this._buffer) : this._text;
   }
   _getNonNullText(fn) {
     let text = this.text;
@@ -255,7 +258,7 @@ class Text extends Node {
       } catch (ee) {
         throw new Error(`UNKNOWN ERROR IN XTEXT TO STRING: ${e.message}`);
       }
-      textValueg = doc.children.get(0).children.map(child => {
+      textValueg = _str(doc.children.get(0).children.map(child => {
         if (child instanceof XText) {
           return child.text;
         } else {
@@ -266,7 +269,7 @@ class Text extends Node {
           _.pairs(this._hiddenAttributes).forEach(e => child.setHiddenAttribute(e[0], e[1]));
           return child.toString();
         }
-      }).join('');
+      }));
     }
     return textValue;
   }
@@ -373,11 +376,14 @@ class Element extends Node {
   get children() {
     return this._children;
   }
+  clearChildren() {
+    this._children = [];
+  }
   getElements() {
     return this.children.filter(e => e instanceof Element);
   }
   get innerText() {
-    return this.getAllTextNodes().map(e => e.text).join('');
+    return _str(this.getAllTextNodes().map(e => e.text));
   }
   getTagText() {
     return this._tagText;
@@ -424,9 +430,9 @@ class Element extends Node {
         sb.push(`,h:{${thisprintHiddenAttributesInJsonFormat()}}`);
       }
       sb.push("}");
-      return sb.join('');
+      return _str(sb);
     } else {
-      const sbAttr = _.flatten(this.getAttributes().map(a => {
+      const sbAttr = _str(_.flatten(this.getAttributes().map(a => {
         const sbuilder = [`'${a.name}':[`];
         if (a.value) {
           let index = 0;
@@ -445,7 +451,7 @@ class Element extends Node {
         }
         sbAttr.push("],");
         return sbAttr;
-      })).join('');
+      })));
       const sb = [`{n:'${this._name}',`];
       if (sbAttr.length > 0) {
         sb.push(`a:{${sbAttr}},`);
@@ -460,17 +466,17 @@ class Element extends Node {
         sb.push(`h:{${hidden}}`);
       }
       sb.push("}");
-      return sb.join('');
+      return _str(sb);
     }
   }
   innerHTML() {
-    this.children.filter(n => !_isEmptyText(n)).map(n => n.toString()).join('');
+    return _str(this.children.filter(n => !_isEmptyText(n)).map(n => n.toString()));
   }
   setNotClosed() {
     if (this.parent) {
       this._notClosed = true;
       this.children.forEach(n => this.parent.addChild(n));
-      this.children.clear();
+      this.clearChildren();
     }
   }
   isClosed() {
@@ -524,7 +530,7 @@ class Element extends Node {
         jsonHiddenAtt[dynId] = _.clone(this._hiddenAttributes);
       }
       sb.push("></xscript>");
-      return sb.join('');
+      return _str(sb);
     } else {
       sb.push(`${this._name} `);
       _.values(this.getAttributes()).forEach(a => {
@@ -598,9 +604,9 @@ class Element extends Node {
         if (sbHiddenIterators.length > 0) {
           sb.push(`data-hxiter='${sbHiddenIterators}' `);
         }
-        return `${sb.join('').trim()}>${sbChild.join('')}</${this._name}>`;
+        return `${_str(sb).trim()}>${_str(sbChild)}</${this._name}>`;
       } else {
-        return `${sb.join('').trim()}>`;
+        return `${_str(sb).trim()}>`;
       }
     }
   }
@@ -658,7 +664,7 @@ class HTMLDoc extends Element {
   }
   toString() {
     this._prepareHTML();
-    return this.children.map(n => n.toString()).join('').trim();
+    return _str(this.children.map(n => n.toString())).trim();
   }
   addChild(node) {
     if (node instanceof Element && _eqIgnoreCase(node.name, "html")) {
@@ -670,7 +676,7 @@ class HTMLDoc extends Element {
     return this._requiredResourcesList;
   }
   getHtmlStructure() {
-    return this.children.map(n => n.toString()).join('').trim();
+    return _str(this.children.map(n => n.toString())).trim();
   }
   replaceAllTexts(replacer) {
     this.getAllTextNodes().forEach(e => e.text = replacer.replace(e.text));
@@ -682,7 +688,7 @@ class HTMLDoc extends Element {
     return this._htmlElement;
   }
   _getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp) {
-    return this.children.map(n => n._getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp)).join('').trim();
+    return _str(this.children.map(n => n._getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp))).trim();
   }
 }
 
@@ -694,7 +700,7 @@ class HTMLParser {
     this._inScript = false;
     this._currentScript = null;
     this._current = null;
-    this._templateScriptLlist = [];
+    this._templateScriptList = [];
     this._currentIndex = 0;
     this._isCheckingHtmlElement = false;
     this._foundHtml = false;
@@ -716,7 +722,7 @@ class HTMLParser {
         this._currentParent.addChild(hiddenIteratorElement);
         this._currentParent = hiddenIteratorElement;
         this._current = null;
-        this._templateScriptLlist.push(hiddenIteratorElement);
+        this._templateScriptList.push(hiddenIteratorElement);
         this.advanceLine();
       } else if (!this._inScript && this.nextIs("$for") && (templateForScript = this.isForTemplateScript()) != null) {
         //if template script eg: $if(exp){
@@ -729,13 +735,13 @@ class HTMLParser {
         this._currentParent.addChild(hiddenIteratorElement);
         this._currentParent = hiddenIteratorElement;
         this._current = null;
-        this._templateScriptLlist.push(hiddenIteratorElement);
+        this._templateScriptList.push(hiddenIteratorElement);
         this.advanceLine();
-      } else if (this._templateScriptLlist.length > 0 && this.isEndOfTemplateScript()) {
+      } else if (this._templateScriptList.length > 0 && this.isEndOfTemplateScript()) {
         //end of template script eg: }
-        let ind = this._templateScriptLlist.length - 1;
-        let hiddenIteratorElement = this._templateScriptLlist[ind];
-        this._templateScriptLlist.splice(ind, 1);
+        let ind = this._templateScriptList.length - 1;
+        let hiddenIteratorElement = this._templateScriptList[ind];
+        this._templateScriptList.splice(ind, 1);
         this.advanceLine();
         this.closeTag("xiterator");
       } else if (!this._inScript && this.isCurrentTextOnlyTag()) {
@@ -756,7 +762,7 @@ class HTMLParser {
         if (!this._inScript && this.nextIs("${")) {
           this._inScript = true;
           this._currentScript = [];
-        } else if (this._inScript && this.nextIs("}") && XJS.validate(currentScript.toString().substring(2))) {
+        } else if (this._inScript && this.nextIs("}") && _validateJS(_str(this._currentScript).substring(2))) {
           this._inScript = false;
           this._currentScript = null;
         }
@@ -829,11 +835,11 @@ class HTMLParser {
         while (this._charArray.length > h && (c = this._charArray[h++]) != '>') {
           valName.push(c);
         }
-        if (valName.join('').trim() == tagName) {
+        if (_str(valName).trim() == tagName) {
           this._currentIndex = j + 2;
           const text = new Text();
           this._textNodes.push(text);
-          text.text = sb.join('');
+          text.text = _str(sb);
           this._currentParent.addChild(text);
           this.close();
           return;
@@ -864,15 +870,15 @@ class HTMLParser {
     let dynAttr = 0;
     while (true) {
       if (this.discard(' ')) {
-        if (attVal.join('').trim().length > 0) {
-          element.setAttribute(attVal.join('').trim(), null);
+        if (_str(attVal).trim().length > 0) {
+          element.setAttribute(_str(attVal).trim(), null);
         }
         attVal = [];
       }
       if (this.nextIs("/>")) {
         this.advance();
         if (attVal.length > 0) {
-          element.setAttribute(attVal.join(''), null);
+          element.setAttribute(_str(attVal), null);
         }
         if (this.isRequiresTag) {
           this._currentRequires.close();
@@ -884,7 +890,7 @@ class HTMLParser {
       } else if (this.nextIs(">")) {
         this.advance();
         if (attVal.length > 0) {
-          element.setAttribute(attVal.join(''), null);
+          element.setAttribute(_str(attVal), null);
         }
         this._current = null;
         break;
@@ -892,15 +898,15 @@ class HTMLParser {
       if (this.nextIs("${")) {
         this.advance();
         let script = [];
-        while (!this.nextIs("}") && _validateJS(script.join(''))) {
+        while (!this.nextIs("}") && _validateJS(_str(script))) {
           this.read(script);
         }
         this.discard('}');
-        element.setAttribute("_outxdynattr_" + dynAttr++, script.join(''));
+        element.setAttribute("_outxdynattr_" + dynAttr++, _str(script));
       } else {
         let s = this.read(attVal);
         if (s == '=') {
-          let attJoin = attVal.join('');
+          let attJoin = _str(attVal);
           let attName = attJoin.substring(0, attJoin.length - 1).trim();
           attVal = [];
           let c = this._charArray[this._currentIndex];
@@ -916,9 +922,9 @@ class HTMLParser {
                 let val;
                 if (endNoAspas) {
                   this._currentIndex--;
-                  val = attVal.join('').substring(0, attVal.length - 1);
+                  val = _str(attVal).substring(0, attVal.length - 1);
                 } else {
-                  val = attVal.join('');
+                  val = _str(attVal);
                 }
                 element.setAttribute(attName, val);
                 if (attName == "data-xbind") {
@@ -1060,7 +1066,7 @@ class HTMLParser {
     }
     this.lastAdvance = j - this._currentIndex;
     this.advance();
-    return sb.join('');
+    return _str(sb);
   }
   inComment() {
     this._current = new Comment();
@@ -1086,7 +1092,7 @@ class HTMLParser {
     for (; j < s.length + usedIndex && j < this._charArray.length; j++) {
       sb.push(this._charArray[j]);
     }
-    return sb.join('') == s;
+    return _str(sb) == s;
   }
   hasMore() {
     return this._currentIndex < this._charArray.length;
@@ -1117,7 +1123,7 @@ class HTMLParser {
     while (localIndex < this._charArray.length - 1 && (c = this._charArray[localIndex++]) != '\n') {
       line.push(c);
     }
-    return line.join('');
+    return _str(line);
   }
   getBoundObjects() {
     return this._boundObjects;

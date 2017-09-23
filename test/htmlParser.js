@@ -50,7 +50,9 @@ describe('Test html parser', function () {
         <body>
           <!--Comment-->
           <div id="1234" att="val">Div of id 1234</div>
+          <br>
           Text 1234 "aa"
+          <div><div>a</div><br><span>b</span></div>
           $if(a == 1){
             <div dyn="\${a.op() + '3'}" att="val">Div of id 1234</div>
           }
@@ -72,8 +74,18 @@ describe('Test html parser', function () {
     expect(list[3].innerText).to.be.equal('Div of id 1234');
     expect(list[3].getAttribute("id")).to.be.equal('1234');
     expect(list[3].getAttribute("att")).to.be.equal('val');
-    expect(list[5].text.trim()).to.be.equal('Text 1234 "aa"');
+    expect(list[5].name).to.be.equal('br');
+    expect(list[5].children).to.have.lengthOf(0);
+    expect(list[7].text.trim()).to.be.equal('Text 1234 "aa"');
+    expect(list[8].name).to.be.equal('div');
+    expect(list[8].children).to.have.lengthOf(3);
+    expect(list[8].children[0].name).is.equal('div');
+    expect(list[8].children[0].innerText).is.equal('a');
+    expect(list[8].children[1].name).is.equal('br');
+    expect(list[8].children[2].name).is.equal('span');
+    expect(list[8].children[2].innerText).is.equal('b');
     // expect(list[6].getAttribute("dyn").trim()).to.be.equal("${a.op() + '3'}");
-    
+    console.log(doc.toHTML());
+
   });
 });
