@@ -1,16 +1,20 @@
 
 
 
-remove xmd
-remove id for every element
-iterator data-hxiter
-pensar em estrutura estra para
-  iterator
-  if
-  components
-  hidden
-  modal attrib
-  lembrar dos escopos
-  
+parser
+    remove xmd?
+    remove id for every element?
+    iterator data-hxiter?
+    pensar em estrutura separada para?
+        iterator
+        if
+        components
+        hidden
+        modal attrib
+        lembrar dos escopos
+    fazer parser recursivo com promise
 
+html creator
+    recursivo?
+        se for recursivo, fazer com promise
 
