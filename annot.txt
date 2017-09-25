@@ -1,0 +1,16 @@
+
+
+
+remove xmd
+remove id for every element
+iterator data-hxiter
+pensar em estrutura estra para
+  iterator
+  if
+  components
+  hidden
+  modal attrib
+  lembrar dos escopos
+  
+
+
