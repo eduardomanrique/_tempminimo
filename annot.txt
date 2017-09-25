@@ -1,16 +1,40 @@
 
 
+toJson tem que ser json mesmo, e nao string
+entender pra que serve hiddenattributes e tempatributes
 
-remove xmd
-remove id for every element
-iterator data-hxiter
-pensar em estrutura estra para
-  iterator
-  if
-  components
-  hidden
-  modal attrib
-  lembrar dos escopos
-  
+parser
+    remove xmd?
+    remove id for every element?
+    iterator data-hxiter?
+    pensar em estrutura separada para?
+        iterator
+        if
+        components
+        hidden
+        modal attrib
+        lembrar dos escopos
+    fazer parser recursivo com promise
+    arrumar a bagunca dos delimitadores
+    ver os quot
+    ver os _x_text_with_attributes
+    ver o setHiddenAttributeOnChildren
+    ver quando precisa do tohtml e quando nao precisa (so do tojson)
+
+html creator
+    recursivo?
+        se for recursivo, fazer com promise
+
+ideias:
+    retornar uma estrutura (json) do html 
+    ao construir os elementos no browser, salvar cada elemento numa property da estrutura
+    alterar a estrutura dinamicamente quando se inserir mais nos (via ifs e for)
+        manter o que é a estrutura original
+            o que deve acontecer se um jquery alterar o elemento? altera-se a estrutura?
+        ===ver o que acontece hoje quando ha uma mutation...
+    assim é possivel mudar a maneira que os updates sao feito. Pode-se usar o json em vcs do browser dom
+    ao criar novos if e for registrar num global
+    ver se precisa ser com callbacks. Se nao for, deixar recursivo apenas. 
+        Talvez so precise para as tag script
 
 

@@ -5,8 +5,8 @@ const expect = require('chai').expect;
 const _ = require('underscore');
 const assert = require('assert');
 const process = require('process');
-const htmlParser = require('../minimojs/htmlParser');
-const _htmlParser = rewire('../minimojs/htmlParser');
+const htmlParser = require('../minimojs/htmlparser');
+const _htmlParser = rewire('../minimojs/htmlparser');
 
 
 
