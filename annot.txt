@@ -21,6 +21,8 @@ parser
     ver o setHiddenAttributeOnChildren
     ver quando precisa do tohtml e quando nao precisa (so do tojson)
 
+    template fn tem que ser elementos novos
+
 html creator
     recursivo?
         se for recursivo, fazer com promise

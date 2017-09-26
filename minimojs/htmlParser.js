@@ -311,7 +311,6 @@ class Element extends Node {
     this._isComponent = false;
     this._componentName = null;
     this._root = root;
-    this._lastAdvance = 0;
   }
   set root(root) {
     this._root = root;
@@ -687,31 +686,102 @@ class HTMLDoc extends Element {
   }
 }
 
+class _ParseInput {
+  constructor(text){
+    this._charArray = (html + "\n");
+    this._index = 0;
+    this._lastAdvance = 0;
+  }
+  currentWithOffset(offset){
+    return this._charArray[this._index+offset];
+  }
+  current() {
+    return this.curOffset(0);
+  }
+  skip(n){
+    this._index += n;
+    return this.cur();
+  }
+  next(){
+    return this._skip(1);
+  }
+  hasMore(){
+    return this._index < this._charArray.length;
+  }
+  currentLine() {
+    let localIndex = this._index;
+    let line = [];
+    let c;
+    while (localIndex < this._charArray.length - 1 && (c = this._charArray[localIndex++]) != '\n') {
+      line.push(c);
+    }
+    return _str(line);
+  }
+  advance() {
+    this._index += this._lastAdvance;
+  }
+  nextIs(s, index) {
+    const sb = [];
+    this._lastAdvance = s.length;
+    let usedIndex = index || this._index;
+    let j = usedIndex;
+    for (; j < s.length + usedIndex && j < this._charArray.length; j++) {
+      sb.push(this._charArray[j]);
+    }
+    return _str(sb) == s;
+  }
+  readTill(...s) {
+    let sb = [];
+    let j = this._index;
+    main: while (true) {
+      for (let z = 0; z < s.length; z++) {
+        if (this.nextIs(s[z], j)) {
+          break main;
+        }
+      }
+      sb.push(this._charArray[j++]);
+    }
+    this.lastAdvance = j - this._index;
+    this.advance();
+    return _str(sb);
+  }
+  apply(fn){
+    let line = this.currentLine().trim();
+    this._lastAppliedFunctionValue = fn(line);
+    return this._lastAppliedFunctionValue;
+  }
+  getApplied(){
+    return this._lastAppliedFunctionValue;
+  }
+}
+
+const _ifTemplateFunction = (line) => {
+  if(!line.trim().startsWith("$if")){
+    let matcher = /^\$if\s{0,}\((.*?)\)\s{0,}\{$/g.exec(line);
+    if (matcher) {
+      return matcher[1];
+    } else {
+      matcher = /^\$if\s{1,}(.*?)[^\)]\s{0,}\{$/g.exec(line);
+      if (matcher != null) {
+        return matcher[1];
+      }
+    }
+  }
+  return null;
+}
+
 class HTMLParser {
   constructor() {
-    this._textNodes = [];
     this._doc = new HTMLDoc();
-    this._currentParent = this._doc;
-    this._inScript = false;
-    this._currentScript = null;
-    this._current = null;
-    this._templateScriptList = [];
-    this._currentIndex = 0;
-    this._isCheckingHtmlElement = false;
-    this._foundHtml = false;
-    this._currentRequires = false;
-    this._boundObjects = [];
-    this._boundModals = {};
-    this._currentLine = [];
   }
   parse(html) {
-    this._charArray = (html + "\n");
-    let doc = this._doc;
-    while (this.hasMore()) {
-      let templateIfScript;
-      let templateForScript;
-      if (!this._inScript && this.nextIs("$if") && (templateIfScript = this.isIfTemplateScript()) != null) {
-        //if template script eg: $if(exp){
+    this._nav = new _ParseInput(html);
+    return this._parse(this._nav, this._doc);
+  }
+  _parse(nav, currEl) {
+    while (nav.hasMore()) {
+      if (nav.apply(_ifTemplateFunction)) {
+        const templateScript = nav.getApplied();
         const hiddenIteratorElement = new Element("xiterator", doc);
         hiddenIteratorElement.setAttribute("count", `(${templateIfScript})?1:0`);
         this._currentParent.addChild(hiddenIteratorElement);
@@ -782,19 +852,7 @@ class HTMLParser {
   advanceLine() {
     return this.readTill("\n").toLowerCase();
   }
-  isIfTemplateScript() {
-    let line = this.getFullCurrentLine().trim();
-    let matcher = /^\$if\s{0,}\((.*?)\)\s{0,}\{$/g.exec(line);
-    if (matcher) {
-      return matcher[1];
-    } else {
-      matcher = /^\$if\s{1,}(.*?)[^\)]\s{0,}\{$/g.exec(line);
-      if (matcher != null) {
-        return matcher[1];
-      }
-    }
-    return null;
-  }
+  
   isForTemplateScript() {
     let line = this.getFullCurrentLine().trim();
     let matcher = /^\$for\s{0,}\((.*?)\)\s{0,}\{$/.exec(line);
@@ -1048,21 +1106,6 @@ class HTMLParser {
     this._current.close();
     this._current = null;
   }
-  readTill(...s) {
-    let sb = [];
-    let j = this._currentIndex;
-    main: while (true) {
-      for (let z = 0; z < s.length; z++) {
-        if (this.nextIs(s[z], j)) {
-          break main;
-        }
-      }
-      sb.push(this._charArray[j++]);
-    }
-    this.lastAdvance = j - this._currentIndex;
-    this.advance();
-    return _str(sb);
-  }
   inComment() {
     this._current = new Comment();
     this._currentParent.addChild(this._current);
@@ -1076,50 +1119,7 @@ class HTMLParser {
       this.read();
     }
   }
-  advance() {
-    this._currentIndex += this.lastAdvance;
-  }
-  nextIs(s, index) {
-    const sb = [];
-    this.lastAdvance = s.length;
-    let usedIndex = index || this._currentIndex;
-    let j = usedIndex;
-    for (; j < s.length + usedIndex && j < this._charArray.length; j++) {
-      sb.push(this._charArray[j]);
-    }
-    return _str(sb) == s;
-  }
-  hasMore() {
-    return this._currentIndex < this._charArray.length;
-  }
-  read(sb) {
-    let c = this._charArray[this._currentIndex++];
-    if (c == '\n') {
-      //starting new line
-      this._currentLine = [];
-    }
-    if (!sb) {
-      if (this._current == null) {
-        this._current = new Text();
-        this._textNodes.push(this._current);
-        this._currentParent.addChild(this._current);
-      }
-      this._current.addChar(c);
-    } else {
-      sb.push(c);
-    }
-    this._currentLine.push(c);
-    return c;
-  }
-  getFullCurrentLine() {
-    let localIndex = this._currentIndex;
-    let line = [];
-    let c;
-    while (localIndex < this._charArray.length - 1 && (c = this._charArray[localIndex++]) != '\n') {
-      line.push(c);
-    }
-    return _str(line);
-  }
+  
   getBoundObjects() {
     return this._boundObjects;
   }
