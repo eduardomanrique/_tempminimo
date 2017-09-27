@@ -38,5 +38,9 @@ ideias:
     ao criar novos if e for registrar num global
     ver se precisa ser com callbacks. Se nao for, deixar recursivo apenas. 
         Talvez so precise para as tag script
+=======
 
+html creator
+    recursivo?
+        se for recursivo, fazer com promise
 
