@@ -4,19 +4,6 @@ const esprima = require('esprima');
 const _str = (sb) => {
   return sb.join('');
 }
-const _prepareXScriptsValues = (text) => {
-  let last = text;
-  if (text != null) {
-    let pattern = /\$\{(?:(?!\$\{|}).)*}/g;
-    let matcher;
-    while ((matcher = pattern.exec(last)) != null) {
-      let js = matcher[0];
-      let jsok = js.substring(2, js.length - 1).replace(/"/g, "&quot;");
-      last = `${text.substring(0, matcher.index)}<xscr scr="${jsok}"></xscr>${text.substring(matcher.index + js.length)}`;
-    }
-  }
-  return last;
-}
 
 const _clearObj = (obj) => _.omit(obj, v => !_.isNull(v) && !_.isEmpty(v));
 
@@ -132,18 +119,33 @@ class Attribute {
   get value() {
     return this._value;
   }
-  set value(value) {
-    this._deliminitator = '"';
-    if (value != null) {
+  set value(attributeValue) {
+    let deliminitator = '"';
+    let value = attributeValue;
+    if (value) {
       value = value.trim();
       if (value.startsWith("\"") || value.startsWith("'")) {
-        this._deliminitator = value.charAt(0);
+        deliminitator = value.charAt(0);
         value = value.substring(1, value.length - 1);
-      } else {
-        value = value.replace('"', '\\"');
       }
+      value = deliminitator == '"' ? value.replace('\\"', '"') : value.replace("\\'", "'");
     }
-    this._value = value;
+    //parse inner scripts
+    this._value = [];
+    let index = 0;
+    let pattern = /\$\{(.*?)}/g;
+    let m;
+    while ((m = pattern.exec(value)) != null) {
+      if (index != m.index) {
+        this._value.push(value.substring(index, m.index));
+      }
+      //script
+      this._value.push({s:m[1]});
+      index = m.index + m[1].length;
+    }
+    if (index < value.length) {
+      this._value.push(value.substring(index, value.length));
+    }
   }
   get name() {
     return this._name;
@@ -155,12 +157,12 @@ class Attribute {
     return this._deliminitator;
   }
   toString() {
-    return this.name + (this.value != null ? `=${this.deliminitator}${this.value}${this.deliminitator}` : "");
+    return this.name + (!_.isEmpty(this._value) ? `="${_str(this._value.filter(i => _.isString(i)))}"` : "");
   }
-  toJSON() {
-    result = {};
-    result[this.name] = this.value
-    return result;
+  toJson() {
+    const result = {};
+    result[a.name] = this._value;
+    
   }
 }
 
@@ -206,76 +208,11 @@ class Text extends Node {
     }
     return (fn || ((f) => f))(text);
   }
-  set text(text) {
-    this._text = text;
-  }
-  normalize(doc) {
-    let text = this._getNonNullText();
-    if (text == "") {
-      return;
-    }
-    let pattern = /\$\{(.*?)}/g;
-    let index = 0;
-    let t = new Text();
-    this.addAfter(t);
-    this.remove();
-    let m;
-    while ((m = pattern.exec(text)) != null) {
-      if (index != m.index) {
-        let newText = text.substring(index, m.index);
-        if (newText.length > 0) {
-          let tNew = new Text();
-          tNew.text = newText;
-          t.addAfter(tNew);
-          t = tNew;
-        }
-      }
-      let x = new Element("xscript", doc);
-      x.setAttribute("data-xscript", m[1]);
-      _.pairs(this._hiddenAttributes).forEach(pair => {
-        x.setHiddenAttribute(pair[0], pair[1]);
-      });
-      t.addAfter(x);
-      t = x;
-      index = m.index + m[0].length;
-    }
-    if (index < text.length) {
-      let newText = text.substring(index, text.length);
-      if (newText.length > 0) {
-        let tNew = new Text();
-        tNew.text = newText;
-        t.addAfter(tNew);
-        t = tNew;
-      }
-    }
-  }
   toString() {
-    let textValue = _prepareValueInXScript(this.text, _eqIgnoreCase(this.parent.name, "script"));
-    if (!_isEmpty(this._hiddenAttributes)) {
-      // separete xscripts
-      let doc = null;
-      try {
-        doc = new HTMLParser().parse(`<root>${textValue}</root>`);
-      } catch (ee) {
-        throw new Error(`UNKNOWN ERROR IN XTEXT TO STRING: ${e.message}`);
-      }
-      textValueg = _str(doc.children.get(0).children.map(child => {
-        if (child instanceof XText) {
-          return child.text;
-        } else {
-          if (!child.name.toLowerCase() == "xscript") {
-            throw new Error(
-              `THERE SHOUDN'T BE A TAG DIFFERENT THAN XSCRIPT INSIDE A XTEXT. TAG: ${child.name}`);
-          }
-          _.pairs(this._hiddenAttributes).forEach(e => child.setHiddenAttribute(e[0], e[1]));
-          return child.toString();
-        }
-      }));
-    }
-    return textValue;
+    return this._getNonNullText();
   }
   toJson() {
-    return this._getNonNullText(text => {t:text});
+    return this._getNonNullText();
   }
   close() { }
   _getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp) {
@@ -295,6 +232,38 @@ class Comment extends Text {
   }
   _getHTML(a,b,c){
     return `<!--${super._getHTML(a, b, c)}-->`;
+  }
+}
+
+class TextScript extends Node {
+  constructor(script){
+    this._script = script;
+  }
+  toJson(){
+    return _clearObj({
+      x: this._script,
+      h: this._hiddenAttributes
+    });
+  }
+  toHTML(){
+    return '';
+  }
+}
+
+class TemplateScript extends Node {
+  constructor(){
+  }
+  set count(c) {
+    this._cont = c;
+  }
+  toJson(){
+    return _clearObj({
+      x: this._condition,
+      h: this._hiddenAttributes
+    });
+  }
+  toHTML(){
+    return '';
   }
 }
 
@@ -391,12 +360,8 @@ class Element extends Node {
     return _.clone(this._attributes);
   }
   setAttribute(name, val) {
-    if (name.startsWith("_hidden_")) {
-      this.setHiddenAttribute(name.substring("_hidden_".length), val);
-    } else {
-      let a = new Attribute(name, val);
-      this._attributes[a.name] = a;
-    }
+    let a = new Attribute(name, val);
+    this._attributes[a.name] = a;
   }
   getAttribute(name) {
     return _.has(this._attributes, name) ? this._attributes[name].value : null;
@@ -415,53 +380,16 @@ class Element extends Node {
     this._isClosed = true;
   }
   toString() {
-    return `<${this._name} ${_.values(this.getAttributes()).map(a => a.toString()).join(' ')} ` +
-      _.pairs(this._hiddenAttributes).map(p => `_hidden_${p[0]}='${p[1].replace(/'/g, "\\'")}' `).join(' ') + '>' +
+    return `<${this._name} ${_.values(this.getAttributes()).map(a => a.toString()).join(' ')} >` +
       (!this._notClosed && NO_END_TAG.indexOf(`_${this._name}_`) < 0 ? `${this.toHTML()}</${this._name}>` : '');
   }
-  _isXscr(){
-    return _eqIgnoreCase(this._name, "xscr");
-  }
-  _xscrToJson(){
-    if(this._isXscr()){
-      return _clearObj({
-        x: this.getAttribute("scr").value,
-        h: this._hiddenAttributes
-      });
-    }
-  }
   toJson() {
-    if(this._isXscr()){
-      return this._xscrToJson();
-    }else{
-      return _clearObj({
-        n:this._name,
-        a: this.getAttributes().map(a => {
-            const result = {};
-            const val = [];
-            result[a.name] = val;
-            if (a.value) {
-              let index = 0;
-              let pattern = /\$\{(.*?)}/g;
-              let m;
-              while ((m = pattern.exec(a.value)) != null) {
-                if (index != m.index) {
-                  val.push(a.value.substring(index, m.index));
-                }
-                //script
-                val.push({s:m[1]});
-                index = m.index + m[1].length;
-              }
-              if (index < a.value.length) {
-                val.push(a.value.substring(index, a.value.length));
-              }
-            }
-            return result;
-          }),
-          c: this.children.filter(n => !_isEmptyText(n)).map(n.toJson()).filter(c => !_.isEmpty(c)),
-          h: this._hiddenAttributes
-        });
-    }
+    return _clearObj({
+      n:this._name,
+      a: _.extend({}, ...this.getAttributes().map(a => a.toJson())),
+      c: this.children.filter(n => !_isEmptyText(n)).map(n.toJson()).filter(c => !_.isEmpty(c)),
+      h: this._hiddenAttributes
+    });
   }
   innerHTML() {
     return _str(this.children.filter(n => !_isEmptyText(n)).map(n => n.toString()));
@@ -500,7 +428,7 @@ class Element extends Node {
   setHiddenAttributeOnChildren(attr, val) {
     this.children.forEach(node => {
       node.setHiddenAttribute(attr, val);
-      if (node instanceof Element && !node.name == "_x_text_with_attributes") {
+      if (node instanceof Element) {
         node.setHiddenAttributeOnChildren(attr, val);
       }
     });
@@ -669,9 +597,6 @@ class HTMLDoc extends Element {
   get requiredResourcesList() {
     return this._requiredResourcesList;
   }
-  getHtmlStructure() {
-    return _str(this.children.map(n => n.toString())).trim();
-  }
   replaceAllTexts(replacer) {
     this.getAllTextNodes().forEach(e => e.text = replacer.replace(e.text));
   }
@@ -747,16 +672,45 @@ class _ParseInput {
   }
   apply(fn){
     let line = this.currentLine().trim();
-    this._lastAppliedFunctionValue = fn(line);
-    return this._lastAppliedFunctionValue;
+    let result = fn(line);
+    if(!_.isEmpty(result)){
+      this._lastAppliedFunctionValue = result;
+      return true;
+    }
+    return false;
   }
   getApplied(){
     return this._lastAppliedFunctionValue;
   }
+  advanceLine() {
+    return this.readTill("\n").toLowerCase();
+  }
+}
+
+const _forTemplateScript = (line) => {
+  if(line.trim().startsWith('$for')){
+    let matcher = /^\$for\s{0,}\((.*?)\)\s{0,}\{$/.exec(line);
+    let variables = null;
+    if (matcher) {
+      variables = matcher[1];
+    } else {
+      matcher = /^\$for\s{1,}(.*?)[^\)]\s{0,}\{$/.exec(line);
+      if (matcher) {
+        variables = matcher[1];
+      }
+    }
+    if (variables != null) {
+      matcher = /(\S*?)\s{1,}in\s{1,}(\S*)(\s{1,}with\s{1,}(\S*))?/.exec(variables);
+      if (matcher) {
+        return [matcher[1], matcher[2], matcher[4]];
+      }
+    }
+  }
+  return null;
 }
 
 const _ifTemplateFunction = (line) => {
-  if(!line.trim().startsWith("$if")){
+  if(line.trim().startsWith("$if")){
     let matcher = /^\$if\s{0,}\((.*?)\)\s{0,}\{$/g.exec(line);
     if (matcher) {
       return matcher[1];
@@ -773,35 +727,31 @@ const _ifTemplateFunction = (line) => {
 class HTMLParser {
   constructor() {
     this._doc = new HTMLDoc();
+    this._templateScriptList = [];
   }
   parse(html) {
     this._nav = new _ParseInput(html);
-    return this._parse(this._nav, this._doc);
+    this._doc.addChildList(this._parse(this._nav));
+    return this._doc;
   }
   _parse(nav, currEl) {
-    while (nav.hasMore()) {
-      if (nav.apply(_ifTemplateFunction)) {
-        const templateScript = nav.getApplied();
-        const hiddenIteratorElement = new Element("xiterator", doc);
-        hiddenIteratorElement.setAttribute("count", `(${templateIfScript})?1:0`);
-        this._currentParent.addChild(hiddenIteratorElement);
-        this._currentParent = hiddenIteratorElement;
-        this._current = null;
-        this._templateScriptList.push(hiddenIteratorElement);
-        this.advanceLine();
-      } else if (!this._inScript && this.nextIs("$for") && (templateForScript = this.isForTemplateScript()) != null) {
-        //if template script eg: $if(exp){
-        const hiddenIteratorElement = new Element("xiterator", doc);
-        hiddenIteratorElement.setAttribute("list", templateForScript[1]);
-        hiddenIteratorElement.setAttribute("var", templateForScript[0]);
-        if (templateForScript[2]) {
-          hiddenIteratorElement.setAttribute("indexvar", templateForScript[2]);
+    const elements = [];
+    if (nav.hasMore()) {
+      let element;
+      if (nav.apply(_ifTemplateFunction) || nav.apply(_forTemplateScript)) {
+        const applied = nav.getApplied();
+        element = new TemplateScript();
+        if(_.isString(applied)){
+          element.count = `(${applied})?1:0`;
+        }else{
+          element.list = applied[1];
+          element.variable = applied[0];
+          if (applied[2]) {
+            element.indexVariable = applied[2];
+          }
         }
-        this._currentParent.addChild(hiddenIteratorElement);
-        this._currentParent = hiddenIteratorElement;
-        this._current = null;
-        this._templateScriptList.push(hiddenIteratorElement);
-        this.advanceLine();
+        this._templateScriptList.push(element);
+        nav.advanceLine();
       } else if (!_.isEmpty(this._templateScriptList) && this.isEndOfTemplateScript()) {
         //end of template script eg: }
         let ind = this._templateScriptList.length - 1;
@@ -839,6 +789,7 @@ class HTMLParser {
       if (this._foundHtml && this._isCheckingHtmlElement) {
         return null;
       }
+      elements.push(element);
     }
     while (!this._currentParent._isClosed && this._currentParent != doc) {
       this._currentParent.setNotClosed();
@@ -848,30 +799,6 @@ class HTMLParser {
       text.normalize(doc);
     });
     return doc;
-  }
-  advanceLine() {
-    return this.readTill("\n").toLowerCase();
-  }
-  
-  isForTemplateScript() {
-    let line = this.getFullCurrentLine().trim();
-    let matcher = /^\$for\s{0,}\((.*?)\)\s{0,}\{$/.exec(line);
-    let variables = null;
-    if (matcher) {
-      variables = matcher[1];
-    } else {
-      matcher = /^\$for\s{1,}(.*?)[^\)]\s{0,}\{$/.exec(line);
-      if (matcher) {
-        variables = matcher[1];
-      }
-    }
-    if (variables != null) {
-      matcher = /(\S*?)\s{1,}in\s{1,}(\S*)(\s{1,}with\s{1,}(\S*))?/.exec(variables);
-      if (matcher) {
-        return [matcher[1], matcher[2], matcher[4]];
-      }
-    }
-    return null;
   }
   isEndOfTemplateScript() {
     return this.getFullCurrentLine().trim() == "}";
