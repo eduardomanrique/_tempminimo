@@ -170,13 +170,12 @@ class Attribute {
   get deliminitator() {
     return this._deliminitator;
   }
-  toString() {
+  _getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp) {
     return this.name + (!_.isEmpty(this._value) ? `="${_str(this._value.filter(i => _.isString(i)))}"` : "");
   }
   toJson() {
     const result = {};
     result[a.name] = this._value;
-    
   }
 }
 
@@ -554,25 +553,16 @@ class HTMLDoc extends Element {
     super("DOCUMENT", null);
     this.root = this;
     this._requiredResourcesList = [];
-    this._htmlElement = null;
   }
-  _prepareHTML() {
-    let htmlElement = this._htmlElement;
+  _prepareHTMLElement() {
     if (!_.isEmpty(this._requiredResourcesList)) {
-      this.getElements().filter(e => _eqIgnoreCase(e.name, "html")).forEach(htmlElement => {
-        htmlElement.getElements().forEach(ce => {
-          if (!this._bodyElement && _eqIgnoreCase(ce.name, "body")) {
-            this._bodyElement = ce;
-          } else if (!this._headElement && _eqIgnoreCase(ce.name, "head")) {
-            this._headElement = ce;
-          }
-        });
+      if(this._htmlElement) {
+        this._bodyElement = _.find(this._htmlElement.getElements(), ce => _eqIgnoreCase(ce.name, "body"));
+        this._headElement = _.find(this._htmlElement.getElements(), ce => _eqIgnoreCase(ce.name, "head"));
         if (!this._headElement) {
           this._headElement = new Element("head", this);
-          htmlElement.insertChild(this._headElement, 0);
+          this._htmlElement.insertChild(this._headElement, 0);
         }
-      });
-      if (this._bodyElement || this._headElement) {
         this._requiredResourcesList.forEach(e => {
           const source = e.getAttribute("src").trim();
           if (source.toLowerCase().endsWith(".js")) {
@@ -599,7 +589,7 @@ class HTMLDoc extends Element {
     }
   }
   toString() {
-    this._prepareHTML();
+    this._prepareHTMLElement();
     return _str(this.children.map(n => n.toString())).trim();
   }
   addChild(node) {
@@ -620,8 +610,16 @@ class HTMLDoc extends Element {
   get htmlElement() {
     return this._htmlElement;
   }
-  _getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp) {
-    return _str(this.children.map(n => n._getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp))).trim();
+  toHTML(){
+    this._prepareHTMLElement();
+    _getHTML({}, {}, {});
+  }
+  getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp) {
+    if(this.htmlElement){
+      return this.htmlElement.children.filter(n => n.name.toLowerCase() != "body").map(n => n._getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp))).trim();  
+    }else{
+      return this.toJson();
+    }
   }
 }
 

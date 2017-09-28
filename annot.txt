@@ -20,8 +20,10 @@ parser
     ver os _x_text_with_attributes
     ver o setHiddenAttributeOnChildren
     ver quando precisa do tohtml e quando nao precisa (so do tojson)
-
+    eliminar o chord
     template fn tem que ser elementos novos
+    mutation 
+        href novos - capturar o link e disparar o url change event
 
 html creator
     recursivo?
@@ -38,9 +40,36 @@ ideias:
     ao criar novos if e for registrar num global
     ver se precisa ser com callbacks. Se nao for, deixar recursivo apenas. 
         Talvez so precise para as tag script
+
+    text com script serao textnodes guardados a parte com o seu escopo
+    attributes com script sera guardados a parte com o seu escopo
+    template scripts serao 2 textnodes (inicio e fim) vazios para ser o ponto de insercao. Serao guardados a parte
+
 =======
+
+appcache
+    usar fallback para templates - testar
+    para cada item que tem template e foi referenciado no cache, tem um item de fallback apontando para seu template
 
 html creator
     recursivo?
         se for recursivo, fazer com promise
 
+
+html
+    sempre (com ou sem template) sera renderizado um html vazio.
+        se for um com template
+            chama via rest (cached) o json do template
+            renderizado
+        chama via rest o json da paginda
+        renderiza no ponto de insercao
+
+steps
+    url no browser ou no evento the change url onde o template da pagina é diferente da pagina atual ou se a pagina tem htmlelement
+        carrega template se tiver
+            o template tera o script para carregar o json e o script da pagina no target element do template
+                com o uso do fallback, o template sera repetido. Ele pegara da url o caminho para fazer o load do json de pagina correto
+            no oncreate de href: alterar os links para disparar o change url event
+    url event e o template é o mesmo (ou ambas nao usam template?) - 
+        limpar o target element
+        recarregar o json e o script da pagina no target element do template
