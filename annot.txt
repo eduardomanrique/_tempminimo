@@ -44,7 +44,7 @@ ideias:
     text com script serao textnodes guardados a parte com o seu escopo
     attributes com script sera guardados a parte com o seu escopo
     template scripts serao 2 textnodes (inicio e fim) vazios para ser o ponto de insercao. Serao guardados a parte
-
+    _outxdynattr_ removidos
 =======
 
 appcache
@@ -60,7 +60,8 @@ html
     sempre (com ou sem template) sera renderizado um html vazio.
         se for um com template
             chama via rest (cached) o json do template
-            renderizado
+            incluir os elementos dentro do head
+            incluir os elementos dentro do body
         chama via rest o json da paginda
         renderiza no ponto de insercao
 

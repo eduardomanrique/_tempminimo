@@ -673,31 +673,32 @@ class HTMLParser {
     }
     let element = new Element(name, this._doc);
     let modalBindMap = {};
-    let isRequiresTag = false;
-    if (_eqIgnoreCase(name, "requires")) {
+    let isRequiresTag = _eqIgnoreCase(name, "requires");
+    if (isRequiresTag) {
       this._doc._requiredResourcesList.push(element);
       this._currentRequires = element;
-      isRequiresTag = true;
     } else {
       this._currentParent.addChild(element);
       this._currentParent = element;
       this._current = element;
     }
-    let attVal = [];
+    //read attributes
+    let currentAttributeValue = [];
+    const checkEmptyAttribute = () => {
+      if (_str(currentAttributeValue).trim().length > 0) 
+        element.setAttribute(_str(currentAttributeValue).trim(), null);
+      currentAttributeValue = [];
+    };
     let dynAttr = 0;
     while (true) {
       if (this.discard(' ')) {
-        if (_str(attVal).trim().length > 0) {
-          element.setAttribute(_str(attVal).trim(), null);
-        }
-        attVal = [];
+        checkEmptyAttribute();
       }
       if (this.nextIs("/>")) {
+        //element without body
         this.advance();
-        if (attVal.length > 0) {
-          element.setAttribute(_str(attVal), null);
-        }
-        if (this.isRequiresTag) {
+        checkEmptyAttribute();
+        if (isRequiresTag) {
           this._currentRequires.close();
           this._currentRequires = null;
         } else {
@@ -705,72 +706,63 @@ class HTMLParser {
         }
         break;
       } else if (this.nextIs(">")) {
+        //element with body
         this.advance();
-        if (attVal.length > 0) {
-          element.setAttribute(_str(attVal), null);
-        }
+        checkEmptyAttribute();
         this._current = null;
         break;
       }
-      if (this.nextIs("${")) {
-        this.advance();
-        let script = [];
-        while (!this.nextIs("}") && _validateJS(_str(script))) {
-          this.read(script);
-        }
-        this.discard('}');
-        element.setAttribute("_outxdynattr_" + dynAttr++, _str(script));
-      } else {
-        let s = this.read(attVal);
-        if (s == '=') {
-          let attJoin = _str(attVal);
-          let attName = attJoin.substring(0, attJoin.length - 1).trim();
-          attVal = [];
-          let c = this._charArray[this._currentIndex];
-          if (c == '\'' || c == '"' || c != ' ') {
-            s = c;
-            this.read(attVal);
-            let aspas = c == '\'' || c == '"';
-            while (true) {
-              c = this.read(attVal);
-              let endNoAspas = (!aspas && c == ' ') ||
-                (!aspas && ((c == '/' && this._charArray[this._currentIndex + 1] == '>') || c == '>'));
-              if (endNoAspas || (aspas && c == s && this.previous(2) != '\\')) {
-                let val;
-                if (endNoAspas) {
-                  this._currentIndex--;
-                  val = _str(attVal).substring(0, attVal.length - 1);
-                } else {
-                  val = _str(attVal);
-                }
-                element.setAttribute(attName, val);
-                if (attName == "data-xbind") {
-                  let bind = element.getAttribute(attName).trim();
-                  let varName = bind.split(".")[0];
-                  if (varName != "window" && varName != "xuser") {
-                    boundObjects.push(varName.split("[")[0]);
-                  }
-                } else if (attName.startsWith("data-xmodal") && attName != "data-xmodal-toggle") {
-                  let modalBind = new ModalBind();
-                  if (attName.startsWith("data-xmodal-")) { // has
-                    // a
-                    // bound
-                    // var
-                    modalBind.setVarName(attName.substring("data-xmodal-".length));
-                  } else {
-                    modalBind.setVarName(_generateId("xvmd_"));
-                  }
-                  modalBind.setPath(element.getAttribute(attName).trim());
-                  modalBindMap[modalBind.getVarName()] = modalBind;
-                }
-                attVal = [];
-                break;
+      let s = this.read();
+      if (s == '=') {asdf
+        let attName = _str(currentAttributeValue).trim();
+        currentAttributeValue = [];
+        let c = this._charArray[this._currentIndex];
+        if (c == '\'' || c == '"' || c != ' ') {
+          s = c;
+          currentAttributeValue.push(this.read());
+          let aspas = c == '\'' || c == '"';
+          while (true) {
+            c = this.read();
+            currentAttributeValue.push(c);
+            let endNoAspas = (!aspas && c == ' ') ||
+              (!aspas && ((c == '/' && this._charArray[this._currentIndex + 1] == '>') || c == '>'));
+            if (endNoAspas || (aspas && c == s && this.previous(2) != '\\')) {
+              let val;
+              if (endNoAspas) {
+                this._currentIndex--;
+                val = _str(currentAttributeValue).substring(0, currentAttributeValue.length - 1);
+              } else {
+                val = _str(currentAttributeValue);
               }
+              element.setAttribute(attName, val);
+              if (attName == "data-xbind") {
+                let bind = element.getAttribute(attName).trim();
+                let varName = bind.split(".")[0];
+                if (varName != "window" && varName != "xuser") {
+                  boundObjects.push(varName.split("[")[0]);
+                }
+              } else if (attName.startsWith("data-xmodal") && attName != "data-xmodal-toggle") {
+                let modalBind = new ModalBind();
+                if (attName.startsWith("data-xmodal-")) { // has
+                  // a
+                  // bound
+                  // var
+                  modalBind.setVarName(attName.substring("data-xmodal-".length));
+                } else {
+                  modalBind.setVarName(_generateId("xvmd_"));
+                }
+                modalBind.setPath(element.getAttribute(attName).trim());
+                modalBindMap[modalBind.getVarName()] = modalBind;
+              }
+              currentAttributeValue = [];
+              break;
             }
-          } else {
-            element.setAttribute(attName, null);
           }
+        } else {
+          element.setAttribute(attName, null);
         }
+      }else{
+        currentAttributeValue.push(s);
       }
     }
     if (_.keys(modalBindMap).length == 0) {
