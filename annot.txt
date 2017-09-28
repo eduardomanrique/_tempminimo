@@ -45,6 +45,8 @@ ideias:
     attributes com script sera guardados a parte com o seu escopo
     template scripts serao 2 textnodes (inicio e fim) vazios para ser o ponto de insercao. Serao guardados a parte
     _outxdynattr_ removidos
+
+    no parser o {webctx} precisa ja ser alterado
 =======
 
 appcache

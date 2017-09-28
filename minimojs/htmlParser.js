@@ -252,6 +252,10 @@ class TextScript extends Node {
 
 class TemplateScript extends Node {
   constructor(){
+    this._cont = null;
+    this._listVariable = null;
+    this._iterateVariable = null;
+    this._indexVariable = null;
   }
   set count(c) {
     this._cont = c;
@@ -268,7 +272,7 @@ class TemplateScript extends Node {
   toJson(){
     return _clearObj({
       xc: this._condition,
-      xl: this._listVariable;
+      xl: this._listVariable,
       xv: this._iterateVariable,
       xi: this._indexVariable,
       h: this._hiddenAttributes,
@@ -727,19 +731,16 @@ class HTMLParser {
             let endNoAspas = (!aspas && c == ' ') ||
               (!aspas && ((c == '/' && this._charArray[this._currentIndex + 1] == '>') || c == '>'));
             if (endNoAspas || (aspas && c == s && this.previous(2) != '\\')) {
-              let val;
+              let val = _str(currentAttributeValue).substring(0, currentAttributeValue.length - 1);
               if (endNoAspas) {
                 this._currentIndex--;
-                val = _str(currentAttributeValue).substring(0, currentAttributeValue.length - 1);
-              } else {
-                val = _str(currentAttributeValue);
               }
               element.setAttribute(attName, val);
               if (attName == "data-xbind") {
-                let bind = element.getAttribute(attName).trim();
+                let bind = val.trim();
                 let varName = bind.split(".")[0];
                 if (varName != "window" && varName != "xuser") {
-                  boundObjects.push(varName.split("[")[0]);
+                  this._boundObjects.push(varName.split("[")[0]);
                 }
               } else if (attName.startsWith("data-xmodal") && attName != "data-xmodal-toggle") {
                 let modalBind = new ModalBind();
