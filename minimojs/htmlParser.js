@@ -170,9 +170,6 @@ class Attribute {
   get deliminitator() {
     return this._deliminitator;
   }
-  _getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp) {
-    return this.name + (!_.isEmpty(this._value) ? `="${_str(this._value.filter(i => _.isString(i)))}"` : "");
-  }
   toJson() {
     const result = {};
     result[a.name] = this._value;
@@ -228,10 +225,6 @@ class Text extends Node {
     return this._getNonNullText();
   }
   close() { }
-  _getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp) {
-    return this._getNonNullText();
-  }
-
 }
 
 class Comment extends Text {
@@ -242,9 +235,6 @@ class Comment extends Text {
   }
   toJson() {
     return "";
-  }
-  _getHTML(a,b,c){
-    return `<!--${super._getHTML(a, b, c)}-->`;
   }
 }
 
@@ -258,9 +248,6 @@ class TextScript extends Node {
       h: this._hiddenAttributes
     });
   }
-  toHTML(){
-    return '';
-  }
 }
 
 class TemplateScript extends Node {
@@ -269,14 +256,24 @@ class TemplateScript extends Node {
   set count(c) {
     this._cont = c;
   }
+  set listVariable(c) {
+    this._listVariable = c;
+  }
+  set iterateVariable(c) {
+    this._iterateVariable = c;
+  }
+  set indexVariable(c) {
+    this._indexVariable = c;
+  }
   toJson(){
     return _clearObj({
-      x: this._condition,
-      h: this._hiddenAttributes
+      xc: this._condition,
+      xl: this._listVariable;
+      xv: this._iterateVariable,
+      xi: this._indexVariable,
+      h: this._hiddenAttributes,
+      c: this.children.toJson
     });
-  }
-  toHTML(){
-    return '';
   }
 }
 
@@ -392,10 +389,6 @@ class Element extends Node {
   close() {
     this._isClosed = true;
   }
-  toString() {
-    return `<${this._name} ${_.values(this.getAttributes()).map(a => a.toString()).join(' ')} >` +
-      (!this._notClosed && NO_END_TAG.indexOf(`_${this._name}_`) < 0 ? `${this.toHTML()}</${this._name}>` : '');
-  }
   toJson() {
     return _clearObj({
       n:this._name,
@@ -403,9 +396,6 @@ class Element extends Node {
       c: this.children.filter(n => !_isEmptyText(n)).map(n.toJson()).filter(c => !_.isEmpty(c)),
       h: this._hiddenAttributes
     });
-  }
-  innerHTML() {
-    return _str(this.children.filter(n => !_isEmptyText(n)).map(n => n.toString()));
   }
   setNotClosed() {
     if (this.parent) {
@@ -445,105 +435,6 @@ class Element extends Node {
         node.setHiddenAttributeOnChildren(attr, val);
       }
     });
-  }
-  toHTML(){
-    return this._getHTML({}, {}, {});
-  }
-  _getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp) {
-    const xcompId = this.getHiddenAttribute("xcompId");
-    if (xcompId) {
-      jsonComp[xcompId] = this.getHiddenAttribute("xcompName");
-    }
-    const sb = ["<"];
-    let dynId = this.getAttribute("data-xdynid");
-    if (_eqIgnoreCase(this._name, "xscript")) {
-      const att = this.getAttribute("scr");
-      sb.push(`xscript data-xscript=${att.getDeliminitator()}${att.value}${att.getDeliminitator()}`);
-      if (this.hasHiddenAttributes()) {
-        dynId = dynId || _generateId();
-        sb.push(` data-xdynid='${dynId}' `);
-        jsonHiddenAtt[dynId] = _.clone(this._hiddenAttributes);
-      }
-      sb.push("></xscript>");
-      return _str(sb);
-    } else {
-      sb.push(`${this._name} `);
-      _.values(this.getAttributes()).forEach(a => {
-        let isDynAtt = false;
-        if (a.value) {
-          let index = 0;
-          let attValues;
-          let m;
-          while((m = /\$\{(.*?)}/g.exec(a.value)) != null){
-            isDynAtt = true;
-            if (dynId == null) {
-              dynId = XComponents.generateId();
-              sb.push(`data-xdynid='${dynId}' `);
-            }
-            // get dynamic atts for element
-            let dynAtts = jsonDynAtt[dynId];
-            if (!dynAtts) {
-              dynAtts = {};
-              jsonDynAtt[dynId] = dynAtts;
-            }
-            // get values of the att
-            attValues = dynAtts[a.name];
-            if (!attValues) {
-              attValues = [];
-              dynAtts[a.name] = attValues;
-            }
-            if (index != m.index) {
-              attValues.push({
-                v: a.getDeliminitator() + a.value.substring(index, m.index).replace("\n", "\\n") + a.getDeliminitator()
-              });
-            }
-            index = m.index + m[1].length;
-            attValues.push({
-              s: a.getDeliminitator() + m[1].replace("\n", "\\n") + a.getDeliminitator()
-            });
-            if (isDynAtt && index < a.value.length) {
-              attValues.push({
-                v: a.getDeliminitator() + a.value.substring(index, a.value.length).replace("\n", "\\n") + a.getDeliminitator()
-              });
-            }
-          }
-          if (!isDynAtt) {
-            sb.push(`${a.toString()} `);
-          }
-        }
-      });
-      if (_.isEmpty(this._hiddenAttributes)) {
-        dynId = this.getAttribute("data-xdynid");
-        if (!dynId) {
-          dynId = _generateId();
-          sb.push(`data-xdynid='${dynId}' `);
-        }
-        jsonHiddenAtt[dynId] = _.clone(this._hiddenAttributes);
-      }
-      if (!this._notClosed && NO_END_TAG.indexOf("_" + this._name + "_") < 0) {
-        const sbChild = [];
-        const sbHiddenIterators = [];
-        let i = 0;
-        this.children.forEach(n => {
-          if (!_isEmptyText(n)) {
-            let hiddenIterator = n instanceof Element && _eqIgnoreCase(n.name, "xiterator");
-            if (!hiddenIterator) {
-              sbChild.push(n._getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp));
-            } else {
-              // hidden iterator
-              sbHiddenIterators.push(`${n.getHiddenAttribute("xiterId")},${i}|`);
-            }
-            i++;
-          }
-        });
-        if (!_.isEmpty(sbHiddenIterators)) {
-          sb.push(`data-hxiter='${sbHiddenIterators}' `);
-        }
-        return `${_str(sb).trim()}>${_str(sbChild)}</${this._name}>`;
-      } else {
-        return `${_str(sb).trim()}>`;
-      }
-    }
   }
 }
 
@@ -588,10 +479,6 @@ class HTMLDoc extends Element {
       }
     }
   }
-  toString() {
-    this._prepareHTMLElement();
-    return _str(this.children.map(n => n.toString())).trim();
-  }
   addChild(node) {
     if (node instanceof Element && _eqIgnoreCase(node.name, "html")) {
       this._htmlElement = node;
@@ -610,17 +497,6 @@ class HTMLDoc extends Element {
   get htmlElement() {
     return this._htmlElement;
   }
-  toHTML(){
-    this._prepareHTMLElement();
-    _getHTML({}, {}, {});
-  }
-  getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp) {
-    if(this.htmlElement){
-      return this.htmlElement.children.filter(n => n.name.toLowerCase() != "body").map(n => n._getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp))).trim();  
-    }else{
-      return this.toJson();
-    }
-  }
 }
 
 class HTMLParser {
@@ -628,12 +504,12 @@ class HTMLParser {
     this._textNodes = [];
     this._doc = new HTMLDoc();
     this._currentParent = this._doc;
-    this._inScript = false;
-    this._currentScript = null;
+    this._inTextScript = false;
+    this._currentText = null;
     this._current = null;
     this._templateScriptList = [];
     this._currentIndex = 0;
-    this._isCheckingHtmlElement = false;
+    this._isSearchingForHtmlElementOnly = false;
     this._foundHtml = false;
     this._currentRequires = false;
     this._boundObjects = [];
@@ -646,63 +522,69 @@ class HTMLParser {
     while (this.hasMore()) {
       let templateIfScript;
       let templateForScript;
-      if (!this._inScript && this.nextIs("$if") && (templateIfScript = this.isIfTemplateScript()) != null) {
+      if (!this._inTextScript && this.nextIs("$if") && (templateIfScript = this.isIfTemplateScript()) != null) {
+        this.closeCurrentText();
         //if template script eg: $if(exp){
-        const hiddenIteratorElement = new Element("xiterator", doc);
-        hiddenIteratorElement.setAttribute("count", `(${templateIfScript})?1:0`);
-        this._currentParent.addChild(hiddenIteratorElement);
-        this._currentParent = hiddenIteratorElement;
+        const templateIf = new TemplateScript();
+        templateIf.count = `(${templateIfScript})?1:0`;
+        this._currentParent.addChild(templateIf);
+        this._currentParent = templateIf;
         this._current = null;
-        this._templateScriptList.push(hiddenIteratorElement);
+        this._templateScriptList.push(templateIf);
         this.advanceLine();
-      } else if (!this._inScript && this.nextIs("$for") && (templateForScript = this.isForTemplateScript()) != null) {
+      } else if (!this._inTextScript && this.nextIs("$for") && (templateForScript = this.isForTemplateScript()) != null) {
+        this.closeCurrentText();
         //if template script eg: $if(exp){
-        const hiddenIteratorElement = new Element("xiterator", doc);
-        hiddenIteratorElement.setAttribute("list", templateForScript[1]);
-        hiddenIteratorElement.setAttribute("var", templateForScript[0]);
+        const templateFor = new TemplateScript();
+        templateFor.listVariable = templateForScript[1];
+        templateFor.iterateVariable = templateForScript[0];
         if (templateForScript[2]) {
-          hiddenIteratorElement.setAttribute("indexvar", templateForScript[2]);
+          templateFor.indexVariable = templateForScript[2];
         }
-        this._currentParent.addChild(hiddenIteratorElement);
-        this._currentParent = hiddenIteratorElement;
+        this._currentParent.addChild(templateFor);
+        this._currentParent = templateFor;
         this._current = null;
-        this._templateScriptList.push(hiddenIteratorElement);
+        this._templateScriptList.push(templateFor);
         this.advanceLine();
       } else if (this._templateScriptList.length > 0 && this.isEndOfTemplateScript()) {
+        this.closeCurrentText();
         //end of template script eg: }
         let ind = this._templateScriptList.length - 1;
-        let hiddenIteratorElement = this._templateScriptList[ind];
         this._templateScriptList.splice(ind, 1);
         this.advanceLine();
-        this.closeTag("xiterator");
-      } else if (!this._inScript && this.isCurrentTextOnlyTag()) {
-        this.readTilCloseTag();
-      } else if (!this._inScript && this.nextIs("<!--")) {
+        this.closeTag(e => e instanceof TemplateScript);
+      } else if (!this._inTextScript && this._currentParent.name && this._currentParent.name.toLowerCase() == 'script') {
+        this.closeCurrentText();
+        this.readScriptElementContent();
+      } else if (!this._inTextScript && this.nextIs("<!--")) {
+        this.closeCurrentText();
         this.advance();
         this.inComment();
-      } else if (!this._inScript && this.nextIs("<![")) {
+      } else if (!this._inTextScript && this.nextIs("<![")) {
+        this.closeCurrentText();
         this.advance();
-        this.inComment();
-      } else if (!this._inScript && this.nextIs("</")) {
+        this.inCDATA();
+      } else if (!this._inTextScript && this.nextIs("</")) {
+        this.closeCurrentText();
         this.advance();
         this.close();
-      } else if (!this._inScript && !this.nextIs("< ") && this.nextIs("<")) {
+      } else if (!this._inTextScript && !this.nextIs("< ") && this.nextIs("<")) {
+        this.closeCurrentText();
         this.advance();
-        this.inTag(doc);
+        this.inTag();
       } else {
-        if (!this._inScript && this.nextIs("${")) {
-          this._inScript = true;
-          this._currentScript = [];
-        } else if (this._inScript && this.nextIs("}") && _validateJS(_str(this._currentScript).substring(2))) {
-          this._inScript = false;
-          this._currentScript = null;
+        if (!this._inTextScript && this.nextIs("${")) {
+          this._inTextScript = true;
+          this.closeCurrentText();
+        } else if (this._inTextScript && this.nextIs("}") && _validateJS(_str(this._currentText).substring(2))) {
+          this._inTextScript = false;
+          this._currentParent.addChild(new TextScript(_str(this._currentText).substring(2)));
+          this._currentText = [];
         }
         const currentChar = this.read();
-        if (this._inScript) {
-          this._currentScript.push(currentChar);
-        }
+        this._currentText.push(currentChar);
       }
-      if (this._foundHtml && this._isCheckingHtmlElement) {
+      if (this._foundHtml && this._isSearchingForHtmlElementOnly) {
         return null;
       }
     }
@@ -710,10 +592,14 @@ class HTMLParser {
       this._currentParent.setNotClosed();
       this._currentParent = this._currentParent.parent;
     }
-    this._textNodes.forEach(text => {
-      text.normalize(doc);
-    });
     return doc;
+  }
+  closeCurrentText(){
+    const textValue = _str(this._currentText);
+    if(textValue.length > 0){
+      this._currentParent.addChild(new Text(textValue));
+    }
+    this._currentText = [];
   }
   advanceLine() {
     return this.readTill("\n").toLowerCase();
@@ -754,7 +640,7 @@ class HTMLParser {
   isEndOfTemplateScript() {
     return this.getFullCurrentLine().trim() == "}";
   }
-  readTilCloseTag() {
+  readScriptElementContent() {
     let tagName = this._currentParent.name;
     const sb = [];
     let j = this._currentIndex;
@@ -779,13 +665,13 @@ class HTMLParser {
       sb.push(this._charArray[j++]);
     }
   }
-  inTag(doc) {
-    let name = this.readTill(" ", ">", "/>", "\n", "\t").toLowerCase();
-    if (this._isCheckingHtmlElement && _eqIgnoreCase(name, "html")) {
+  inTag() {
+    const name = this.readTill(" ", ">", "/>", "\n", "\t").toLowerCase();
+    if (this._isSearchingForHtmlElementOnly && _eqIgnoreCase(name, "html")) {
       this._foundHtml = true;
       return;
     }
-    let element = new Element(name, doc);
+    let element = new Element(name, this._doc);
     let modalBindMap = {};
     let isRequiresTag = false;
     if (_eqIgnoreCase(name, "requires")) {
@@ -924,11 +810,6 @@ class HTMLParser {
       }
     }
   }
-  isCurrentTextOnlyTag() {
-    // put text only tag here
-    let textOnlyTags = " script ";
-    return this._currentParent != null && textOnlyTags.indexOf(this._currentParent.name) >= 0;
-  }
   previous(t) {
     return this._charArray[this._currentIndex - t];
   }
@@ -951,13 +832,15 @@ class HTMLParser {
       throw new Error(`Error closing tag ${(tagName != null ? tagName : "")}: ${e.message}`);
     }
   }
-  closeTag(tagName) {
-    if (_eqIgnoreCase(tagName, "requires")) {
+  closeTag(tagNameOrFilter) {
+    const isString = _.isString(tagNameOrFilter);
+    if (isString && _eqIgnoreCase(tagName, "requires")) {
       this._currentRequires.close();
       this._currentRequires = null;
     } else {
+      const filter = e => isString ? tagNameOrFilter != e.name : !tagNameOrFilter(e);
       let toClose = this._current instanceof Element ? this._current : this._currentParent;
-      while (tagName != toClose.name) {
+      while (filter(toClose)) {
         if (!toClose._isClosed) {
           toClose.setNotClosed();
         }
@@ -1000,17 +883,28 @@ class HTMLParser {
     return _str(sb);
   }
   inComment() {
-    this._current = new Comment();
-    this._currentParent.addChild(this._current);
+    const sb = [];
     while (true) {
       if (this.nextIs("-->")) {
         this.advance();
-        this._current.close();
-        this._current = null;
         break;
       }
-      this.read();
+      sb.push(this.read());
     }
+    const comment = new Comment(_str(sb));
+    this._currentParent.addChild(comment);
+    comment.close();
+  }
+  inCDATA(){
+    const sb = [];
+    while (true) {
+      if (this.nextIs("]]>")) {
+        this.advance();
+        break;
+      }
+      sb.push(this.read());
+    }
+    this._currentParent.addChild(new Text(_str(sb)));
   }
   advance() {
     this._currentIndex += this.lastAdvance;
@@ -1028,21 +922,11 @@ class HTMLParser {
   hasMore() {
     return this._currentIndex < this._charArray.length;
   }
-  read(sb) {
+  read() {
     let c = this._charArray[this._currentIndex++];
     if (c == '\n') {
       //starting new line
       this._currentLine = [];
-    }
-    if (!sb) {
-      if (this._current == null) {
-        this._current = new Text();
-        this._textNodes.push(this._current);
-        this._currentParent.addChild(this._current);
-      }
-      this._current.addChar(c);
-    } else {
-      sb.push(c);
     }
     this._currentLine.push(c);
     return c;
@@ -1063,7 +947,7 @@ class HTMLParser {
     return this._boundModals;
   }
   hasHtmlElement(content) {
-    this._isCheckingHtmlElement = true;
+    this._isSearchingForHtmlElementOnly = true;
     this.parse(content);
     return this._foundHtml;
   }
@@ -1075,6 +959,8 @@ module.exports = {
   Element: Element,
   HTMLDoc: HTMLDoc,
   ModalBind: ModalBind,
+  TextScript: TextScript,
+  TemplateScript: TemplateScript,
   Text: Text,
   HTMLParser: HTMLParser
 }
