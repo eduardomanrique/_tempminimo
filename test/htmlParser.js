@@ -37,7 +37,23 @@ describe('Test html parser', function () {
     let bodyText = new htmlParser.Text('Text 1234 "aa"');
     body.addChild(bodyText);
 
-    expect(doc.toHTML()).is.eq('<html><head><script>console.log("1");</script></head><body><!--Comment--><div id="1234" att="val">Div of id 1234</div>Text 1234 "aa"</body></html>');
+    let jsonDoc = doc.toJson();
+
+    expect(jsonDoc.n).is.eq('DOCUMENT');
+    let jsonHtml = jsonDoc.c[0];
+    expect(jsonHtml.n).is.eq('html');
+    expect(jsonHtml.c).to.have.lengthOf(2);
+    let jsonHead = jsonHtml.c[0];
+    expect(jsonHead.n).is.eq('head');
+    expect(jsonHead.c[0].n).is.eq('script');
+    expect(jsonHead.c[0].c[0]).is.eq('console.log("1");');
+    let jsonBody = jsonHtml.c[1];
+    expect(jsonBody.n).is.eq('body');
+    expect(jsonBody.c[0].n).is.eq('div');
+    expect(jsonBody.c[0].c[0]).is.eq('Div of id 1234');
+    expect(jsonBody.c[1]).is.eq('Text 1234 "aa"');
+
+    //expect(doc.toHTML()).is.eq('<html><head><script>console.log("1");</script></head><body><!--Comment--><div id="1234" att="val">Div of id 1234</div>Text 1234 "aa"</body></html>');
   });
 
   it('Test simple parsing', () => {
@@ -90,7 +106,7 @@ describe('Test html parser', function () {
     expect(list[8].children[3].children[1].innerText).is.equal('b');
 
     // expect(list[6].getAttribute("dyn").trim()).to.be.equal("${a.op() + '3'}");
-    console.log(doc.toHTML());
+    console.log(JSON.stringify(doc.toJson()));
 
   });
 });

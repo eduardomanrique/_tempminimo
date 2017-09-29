@@ -19,7 +19,7 @@ const _str = (sb) => {
   return sb.join('');
 }
 
-const _clearObj = (obj) => _.omit(obj, v => !_.isNull(v) && !_.isEmpty(v));
+const _clearObj = obj => _.omit(obj, v => _.isNull(v) || _.isEmpty(v));
 
 const _getAllTextNodes = (element) =>
   _.flatten(element.children.map(e => {
@@ -172,7 +172,7 @@ class Attribute {
   }
   toJson() {
     const result = {};
-    result[a.name] = this._value;
+    result[this.name] = this._value;
   }
 }
 
@@ -240,43 +240,13 @@ class Comment extends Text {
 
 class TextScript extends Node {
   constructor(script){
+    super();
     this._script = script;
   }
   toJson(){
     return _clearObj({
       x: this._script,
       h: this._hiddenAttributes
-    });
-  }
-}
-
-class TemplateScript extends Node {
-  constructor(){
-    this._cont = null;
-    this._listVariable = null;
-    this._iterateVariable = null;
-    this._indexVariable = null;
-  }
-  set count(c) {
-    this._cont = c;
-  }
-  set listVariable(c) {
-    this._listVariable = c;
-  }
-  set iterateVariable(c) {
-    this._iterateVariable = c;
-  }
-  set indexVariable(c) {
-    this._indexVariable = c;
-  }
-  toJson(){
-    return _clearObj({
-      xc: this._condition,
-      xl: this._listVariable,
-      xv: this._iterateVariable,
-      xi: this._indexVariable,
-      h: this._hiddenAttributes,
-      c: this.children.toJson
     });
   }
 }
@@ -396,8 +366,8 @@ class Element extends Node {
   toJson() {
     return _clearObj({
       n:this._name,
-      a: _.extend({}, ...this.getAttributes().map(a => a.toJson())),
-      c: this.children.filter(n => !_isEmptyText(n)).map(n.toJson()).filter(c => !_.isEmpty(c)),
+      a: _.extend({}, ..._.values(this.getAttributes()).map(a => a.toJson())),
+      c: this.children.filter(n => !_isEmptyText(n)).map(n => n.toJson()).filter(c => !_.isEmpty(c)),
       h: this._hiddenAttributes
     });
   }
@@ -442,6 +412,37 @@ class Element extends Node {
   }
 }
 
+class TemplateScript extends Element {
+  constructor(){
+    super();
+    this._cont = null;
+    this._listVariable = null;
+    this._iterateVariable = null;
+    this._indexVariable = null;
+  }
+  set count(c) {
+    this._cont = c;
+  }
+  set listVariable(c) {
+    this._listVariable = c;
+  }
+  set iterateVariable(c) {
+    this._iterateVariable = c;
+  }
+  set indexVariable(c) {
+    this._indexVariable = c;
+  }
+  toJson(){
+    return _clearObj({
+      xc: this._condition,
+      xl: this._listVariable,
+      xv: this._iterateVariable,
+      xi: this._indexVariable,
+      h: this._hiddenAttributes,
+      c: this.children.toJson
+    });
+  }
+}
 
 class HTMLDoc extends Element {
   constructor() {
@@ -509,7 +510,7 @@ class HTMLParser {
     this._doc = new HTMLDoc();
     this._currentParent = this._doc;
     this._inTextScript = false;
-    this._currentText = null;
+    this._currentText = [];
     this._current = null;
     this._templateScriptList = [];
     this._currentIndex = 0;
@@ -658,9 +659,8 @@ class HTMLParser {
         }
         if (_str(valName).trim() == tagName) {
           this._currentIndex = j + 2;
-          const text = new Text();
+          const text = new Text(_str(sb));
           this._textNodes.push(text);
-          text.text = _str(sb);
           this._currentParent.addChild(text);
           this.close();
           return;
@@ -717,7 +717,7 @@ class HTMLParser {
         break;
       }
       let s = this.read();
-      if (s == '=') {asdf
+      if (s == '=') {
         let attName = _str(currentAttributeValue).trim();
         currentAttributeValue = [];
         let c = this._charArray[this._currentIndex];
@@ -827,7 +827,7 @@ class HTMLParser {
   }
   closeTag(tagNameOrFilter) {
     const isString = _.isString(tagNameOrFilter);
-    if (isString && _eqIgnoreCase(tagName, "requires")) {
+    if (isString && _eqIgnoreCase(tagNameOrFilter, "requires")) {
       this._currentRequires.close();
       this._currentRequires = null;
     } else {
