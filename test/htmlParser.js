@@ -65,7 +65,7 @@ describe('Test html parser', function () {
         </head>
         <body>
           <!--Comment-->
-          <div id="1234" att="val">Div of id 1234</div>
+          <div id="1234" att="val" a="A" b='BB' c=C d=DD f=" A \${a(\\"a\\")} B \${1+b} C ">Div of id 1234</div>
           <br>
           Text 1234 "aa"
           <div><div>a</div><br><span>b</span><div><span>a</span><span>b</span></div></div>
@@ -90,23 +90,45 @@ describe('Test html parser', function () {
     expect(list[3].innerText).to.be.equal('Div of id 1234');
     expect(list[3].getAttribute("id")).to.be.equal('1234');
     expect(list[3].getAttribute("att")).to.be.equal('val');
+    expect(list[3].getAttribute("a")).to.be.equal('A');
+    expect(list[3].getAttribute("b")).to.be.equal('BB');
+    expect(list[3].getAttribute("c")).to.be.equal('C');
+    expect(list[3].getAttribute("d")).to.be.equal('DD');
+    expect(list[3].getAttribute("f")).to.be.equal(' A ${a("a")} B ${1+b} C ');
+    let attr = list[3].getAttributeObject("f").toJson().f;
+    expect(attr).to.have.lengthOf(5);
+    expect(attr[0]).to.be.equal(' A ');
+    expect(attr[1].s).to.be.equal('a("a")');
+    expect(attr[2]).to.be.equal(' B ');
+    expect(attr[3].s).to.be.equal('1+b');
+    expect(attr[4]).to.be.equal(' C ');
     expect(list[5].name).to.be.equal('br');
     expect(list[5].children).to.have.lengthOf(0);
-    expect(list[7].text.trim()).to.be.equal('Text 1234 "aa"');
-    expect(list[8].name).to.be.equal('div');
-    expect(list[8].children).to.have.lengthOf(4);
-    expect(list[8].children[0].name).is.equal('div');
-    expect(list[8].children[0].innerText).is.equal('a');
-    expect(list[8].children[1].name).is.equal('br');
-    expect(list[8].children[2].name).is.equal('span');
-    expect(list[8].children[2].innerText).is.equal('b');
-    expect(list[8].children[3].name).is.equal('div');
-    expect(list[8].children[3].children).to.have.lengthOf(2);
-    expect(list[8].children[3].children[0].innerText).is.equal('a');
-    expect(list[8].children[3].children[1].innerText).is.equal('b');
-
-    // expect(list[6].getAttribute("dyn").trim()).to.be.equal("${a.op() + '3'}");
-    console.log(JSON.stringify(doc.toJson()));
-
+    expect(list[6].text.trim()).to.be.equal('Text 1234 "aa"');
+    expect(list[7].name).to.be.equal('div');
+    expect(list[7].children).to.have.lengthOf(4);
+    expect(list[7].children[0].name).is.equal('div');
+    expect(list[7].children[0].innerText).is.equal('a');
+    expect(list[7].children[1].name).is.equal('br');
+    expect(list[7].children[2].name).is.equal('span');
+    expect(list[7].children[2].innerText).is.equal('b');
+    expect(list[7].children[3].name).is.equal('div');
+    expect(list[7].children[3].children).to.have.lengthOf(2);
+    expect(list[7].children[3].children[0].innerText).is.equal('a');
+    expect(list[7].children[3].children[1].innerText).is.equal('b');
+    expect(list[9]).is.instanceof(htmlParser.TemplateScript)
+    expect(list[9].count).is.eq('(a == 1)?1:0');
+    expect(list[9].children[1].name).is.eq('div');
+    expect(list[9].children[1].getAttribute("att")).is.eq("val");
+    expect(list[9].children[1].getAttribute("dyn")).is.eq("${a.op() + '3'}");
+    attr = list[9].children[1].getAttributeObject("dyn").toJson().dyn;
+    expect(attr[0].s).is.eq("a.op() + '3'");
+    expect(list[9].children[1].children[0].text).is.eq("Div of id 1234");
+    
+    expect(list[11]).is.instanceof(htmlParser.TemplateScript)
+    expect(list[11].listVariable).is.eq('list');
+    expect(list[11].iterateVariable).is.eq('a');
+    expect(list[11].indexVariable).is.eq('i');
+    expect(list[11].children[0].text.trim()).is.eq('test');
   });
 });

@@ -40,7 +40,7 @@ const _eqIgnoreCase = (s1, s2) => s1.toUpperCase() == s2.toUpperCase();
 
 const _validateJS = (js) => {
   try {
-    esprima.parse(js.replace('"', '\\"'));
+    esprima.parse(js.replace(/"/g, '\\"'));
     return true;
   } catch (e) {
     return false;
@@ -133,6 +133,9 @@ class Attribute {
   get value() {
     return this._value;
   }
+  get stringValue() {
+    return _str((this._value || []).map(i => _.isString(i) ? i : `\${${i.s}}`));
+  }
   set value(attributeValue) {
     let deliminitator = '"';
     let value = attributeValue;
@@ -142,7 +145,7 @@ class Attribute {
         deliminitator = value.charAt(0);
         value = value.substring(1, value.length - 1);
       }
-      value = deliminitator == '"' ? value.replace('\\"', '"') : value.replace("\\'", "'");
+      value = deliminitator == '"' ? value.replace(/\\"/g, '"') : value.replace(/\\'/g, "'");
     }
     //parse inner scripts
     this._value = [];
@@ -155,7 +158,7 @@ class Attribute {
       }
       //script
       this._value.push({s:m[1]});
-      index = m.index + m[1].length;
+      index = m.index + m[1].length + 3;
     }
     if (index < value.length) {
       this._value.push(value.substring(index, value.length));
@@ -173,6 +176,7 @@ class Attribute {
   toJson() {
     const result = {};
     result[this.name] = this._value;
+    return result;
   }
 }
 
@@ -348,7 +352,7 @@ class Element extends Node {
     this._attributes[a.name] = a;
   }
   getAttribute(name) {
-    return _.has(this._attributes, name) ? this._attributes[name].value : null;
+    return _.has(this._attributes, name) ? this._attributes[name].stringValue : null;
   }
   getAttributeObject(n) {
     return this._attributes[n];
@@ -415,26 +419,38 @@ class Element extends Node {
 class TemplateScript extends Element {
   constructor(){
     super();
-    this._cont = null;
+    this._count = null;
     this._listVariable = null;
     this._iterateVariable = null;
     this._indexVariable = null;
   }
   set count(c) {
-    this._cont = c;
+    this._count = c;
+  }
+  get count() {
+    return this._count;
   }
   set listVariable(c) {
     this._listVariable = c;
   }
+  get listVariable() {
+    return this._listVariable;
+  }
   set iterateVariable(c) {
     this._iterateVariable = c;
+  }
+  get iterateVariable() {
+    return this._iterateVariable;
   }
   set indexVariable(c) {
     this._indexVariable = c;
   }
+  get indexVariable() {
+    return this._indexVariable;
+  }
   toJson(){
     return _clearObj({
-      xc: this._condition,
+      xc: this._count,
       xl: this._listVariable,
       xv: this._iterateVariable,
       xi: this._indexVariable,
@@ -731,7 +747,7 @@ class HTMLParser {
             let endNoAspas = (!aspas && c == ' ') ||
               (!aspas && ((c == '/' && this._charArray[this._currentIndex + 1] == '>') || c == '>'));
             if (endNoAspas || (aspas && c == s && this.previous(2) != '\\')) {
-              let val = _str(currentAttributeValue).substring(0, currentAttributeValue.length - 1);
+              let val = _str(currentAttributeValue).substring(0, currentAttributeValue.length);
               if (endNoAspas) {
                 this._currentIndex--;
               }
