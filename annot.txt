@@ -1,25 +1,8 @@
-
-
-toJson tem que ser json mesmo, e nao string
 entender pra que serve hiddenattributes e tempatributes
 
 parser
-    remove xmd?
     remove id for every element?
     iterator data-hxiter?
-    pensar em estrutura separada para?
-        iterator
-        if
-        components
-        hidden
-        modal attrib
-        lembrar dos escopos
-    fazer parser recursivo com promise
-    arrumar a bagunca dos delimitadores
-    ver os quot
-    ver os _x_text_with_attributes
-    ver o setHiddenAttributeOnChildren
-    ver quando precisa do tohtml e quando nao precisa (so do tojson)
     eliminar o chord
     template fn tem que ser elementos novos
     mutation 
@@ -37,9 +20,7 @@ ideias:
             o que deve acontecer se um jquery alterar o elemento? altera-se a estrutura?
         ===ver o que acontece hoje quando ha uma mutation...
     assim é possivel mudar a maneira que os updates sao feito. Pode-se usar o json em vcs do browser dom
-    ao criar novos if e for registrar num global
-    ver se precisa ser com callbacks. Se nao for, deixar recursivo apenas. 
-        Talvez so precise para as tag script
+        ao criar novos if e for registrar num global
 
     text com script serao textnodes guardados a parte com o seu escopo
     attributes com script sera guardados a parte com o seu escopo
