@@ -285,9 +285,6 @@ class Element extends Node {
         return list;
       }));
   }
-  findChildrenByName(name) {
-    return this.getElements().filter(e => e instanceof Element && _eqIgnoreCase(e.name, name));
-  }
   getAllElements() {
     return _.flatten(this.getElements().map(e => {
       let list = [e];
@@ -301,11 +298,11 @@ class Element extends Node {
   getElementsWithAttribute(name) {
     return _.flatten(this.getElements().filter(e => e instanceof Element)
       .map(e => {
-        let list = [];
+        let list = [e.getElementsWithAttribute(name)];
         if (e.getAttribute(name) != null) {
           list.push(e);
         }
-        list.push(e.getElementsWithAttribute(name));
+        return list;
       }));
   }
   addElement(name) {
@@ -415,6 +412,31 @@ class Element extends Node {
       }
     });
   }
+  findAllChildren(tagName) {
+    return _.flatten(this.children
+      .filter(c => c instanceof Element)
+      .map(c => {
+        const result = c.findAllChildren(tagName);
+        if(c.tagName.toLowerCase() == tagName.toLowerCase()){
+          result.push(c);
+        }
+        return result;
+      }));
+  }
+  findDeepestChild(tagName) {
+    const e = _.first(this.getElementsByName(tagName));
+    if(e){
+        return e.findDeepestChild(tagName) || e;
+    }
+    return null;
+  }
+  findDeepestChildWithAttribute(attributeName) {
+    const e = _.first(this.getElementsWithAttribute(attributeName));
+    if (e) {
+        return e.findDeepestChildWithAttribute(attributeName) || e;
+    }
+    return null;
+}
 }
 
 class TemplateScript extends Element {
@@ -627,7 +649,7 @@ class HTMLParser {
     return this.readTill("\n").toLowerCase();
   }
   isIfTemplateScript() {
-    let line = this.getFullCurrentLine().trim();
+    let line = this.fullCurrentLine.trim();
     let matcher = /^\$if\s{0,}\((.*?)\)\s{0,}\{$/g.exec(line);
     if (matcher) {
       return matcher[1];
@@ -640,7 +662,7 @@ class HTMLParser {
     return null;
   }
   isForTemplateScript() {
-    let line = this.getFullCurrentLine().trim();
+    let line = this.fullCurrentLine.trim();
     let matcher = /^\$for\s{0,}\((.*?)\)\s{0,}\{$/.exec(line);
     let variables = null;
     if (matcher) {
@@ -660,7 +682,7 @@ class HTMLParser {
     return null;
   }
   isEndOfTemplateScript() {
-    return this.getFullCurrentLine().trim() == "}";
+    return this.fullCurrentLine.trim() == "}";
   }
   readScriptElementContent() {
     let tagName = this._currentParent.name;
@@ -751,6 +773,7 @@ class HTMLParser {
               let val = _str(currentAttributeValue).substring(0, currentAttributeValue.length);
               if (endNoAspas) {
                 this._currentIndex--;
+                val = val.substring(0, val.length-1);
               }
               element.setAttribute(attName, val);
               if (attName == "data-xbind") {
@@ -941,7 +964,7 @@ class HTMLParser {
     this._currentLine.push(c);
     return c;
   }
-  getFullCurrentLine() {
+  get fullCurrentLine() {
     let localIndex = this._currentIndex;
     let line = [];
     let c;
@@ -950,16 +973,11 @@ class HTMLParser {
     }
     return _str(line);
   }
-  getBoundObjects() {
+  get boundObjects() {
     return this._boundObjects;
   }
-  getBoundModals() {
+  get boundModals() {
     return this._boundModals;
-  }
-  hasHtmlElement(content) {
-    this._isSearchingForHtmlElementOnly = true;
-    this.parse(content);
-    return this._foundHtml;
   }
 }
 

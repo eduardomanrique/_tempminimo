@@ -71,6 +71,11 @@ describe('Test html parser', function () {
           <div><div>a</div><br><span>b</span><div><span>a</span><span>b</span></div></div>
           $if(a == 1){
             <div dyn="\${a.op() + '3'}" att="val">Div of id 1234</div>
+            <div>
+            $for(x in xx with xxx){
+              xxxx
+            }    
+            </div>
           }
           $for(a in list with i){
             test
@@ -124,11 +129,42 @@ describe('Test html parser', function () {
     attr = list[9].children[1].getAttributeObject("dyn").toJson().dyn;
     expect(attr[0].s).is.eq("a.op() + '3'");
     expect(list[9].children[1].children[0].text).is.eq("Div of id 1234");
-    
+    expect(list[9].children[3].name).is.eq("div");
+    expect(list[9].children[3].children[1]).instanceOf(htmlParser.TemplateScript)
+    expect(list[9].children[3].children[1].listVariable).is.eq('xx');
+    expect(list[9].children[3].children[1].iterateVariable).is.eq('x');
+    expect(list[9].children[3].children[1].indexVariable).is.eq('xxx');
+    expect(list[9].children[3].children[1].children[0].text.trim()).is.eq('xxxx');
+
     expect(list[11]).is.instanceof(htmlParser.TemplateScript)
     expect(list[11].listVariable).is.eq('list');
     expect(list[11].iterateVariable).is.eq('a');
     expect(list[11].indexVariable).is.eq('i');
     expect(list[11].children[0].text.trim()).is.eq('test');
+  });
+
+
+  it('Test find elements', () => {
+    let parser = new htmlParser.HTMLParser();
+    let doc = parser.parse(`
+      <html>
+        <head>
+          <script>console.log("1");</script>
+        </head>
+        <body>
+          <div id=a>
+            <span id=b att=x>
+              <div id=c>
+              </div>
+            </span>
+          </div>
+        </body>
+      </html>
+    `);
+    expect(doc.getElementsByName('div')).to.have.lengthOf(2);
+    expect(doc.getElementsByName('span')).to.have.lengthOf(1);
+    expect(doc.findDeepestChild('div').getAttribute("id")).is.eq('c');
+    expect(doc.findDeepestChild('span').getAttribute("id")).is.eq('b');
+    expect(doc.findDeepestChildWithAttribute('att').getAttribute("id")).is.eq('b');
   });
 });

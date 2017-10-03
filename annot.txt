@@ -57,3 +57,33 @@ steps
     url event e o template é o mesmo (ou ambas nao usam template?) - 
         limpar o target element
         recarregar o json e o script da pagina no target element do template
+
+
+test com inner iterator
+
+get htmx
+    find js pair
+    set as valid resource
+    parse html
+        get all bound modals data-xbind
+        get all bound variables data-xmodal
+        get all scripts global -> global
+        get all imported -> jsonly
+    compile components parse html -> coloca no json as infos dos components
+    instrument controller
+        html struct json
+        promise for imports e modals e binds das variaveis
+        expor public functions
+        declare undeclared bound variables
+
+get js only
+    set as valid resource
+    instrument controller
+        promise for imports
+        expor public functions
+
+get global
+    set as valid resource
+    instrument global controller
+        promise for imports
+        expor public functions

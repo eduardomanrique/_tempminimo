@@ -26,11 +26,11 @@ module.exports = {
   loadComponents: loadComponents
 }
 
-const _createComponentVO = (resName, path, create, htmx) => {
+const _createComponentVO = (resName, path, isHtmx) => {
   return {
     resourceName: resName,
     varPath: path,
-    htmxStyle: htmx
+    htmxStyle: isHtmx
   }
 }
 
