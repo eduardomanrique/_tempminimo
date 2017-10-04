@@ -8,8 +8,10 @@ const _basePagesPath = './pages';
 const _baseResPath = './res';
 const _htmxStrLength = ".htmx".length();
 let _cached;
-let componentsScript;
-let componentsInfo;
+let _componentsScript;
+let _componentsInfo;
+let _componentsCtx;
+let _componentsHtmxSources;
 
 const _restart = () => new Promise(() => 
     _cached = {
@@ -19,13 +21,20 @@ const _restart = () => new Promise(() =>
         templateMap: {},
         allResources: {},
         importableResourceInfo: {},
-        resourceInfoMap = {}
+        resourceInfoMap = {},
+        listByComponent = {}
     });
 
 const compileResources = (destDir, defaultTemplateName) => 
-    components.loadComponents().then(componentsInfo => {
-        componentsScript = componentsInfo.scripts;
-        componentsInfo = componentsInfo.info;
+    components.loadComponents().then(_componentsInfo => {
+        _componentsScript = _componentsInfo.scripts;
+        _componentsInfo = _componentsInfo.info;
+        _componentsHtmxSources = _componentsInfo.htmxSources
+        eval(`(()=>{
+        var X = {generatedId: function(){return 'ID${parseInt(Math.random() * 999999)}';}, _addExecuteWhenReady: function(){}};
+        ${_componentsScript}
+        _componentsCtx.components = components;
+        })();`);
         return resources.copy(_baseResPath, destDir)
             .then(resources.copy(baseResPath, `${destDir}/res`))
             .then(_restart)
@@ -36,7 +45,7 @@ const compileResources = (destDir, defaultTemplateName) =>
             .then(_startWatchService)
             .then(_collectAllResources)
             .then(_reloadCommonResources)
-    });
+    }).catch((e) => console.log(`Error: ${e.message}`));
 
 class ImportableResourceInfo {
     constructor(path, template) {
@@ -94,16 +103,18 @@ const _loadFileAndCache = (resInfo, compiledPage) =>
 
 const _reloadHtmxFiles = () => 
     resources.getResources("./pages", r => r.endsWith(".htmx"))
-        .then(values => values.forEach(htmxFile => {
-            let path = htmxFile.path.substring(_basePagesPath.length, htmxFile.path.length - _htmxStrLength);
-            const resInfo = _getResourceInfo(path);
-            //load html main window
-            resources.readResource(resInfo.jsRealPath).then(jsFile => {
-                let compiledPage = _compilePage(resInfo, htmxFile.data, jsFile.data);
-                _loadFileAndCache(resInfo, compiledPage);
-                _cached.importableResourceInfo[path] = new ImportableResourceInfo(path, htmxResInfo.templateName);
-            });
-        }));
+        .then(values => values.forEach(_reloadHtmxFile));
+
+const _reloadHtmxFile = htmxFile => {
+    let path = htmxFile.path.substring(_basePagesPath.length, htmxFile.path.length - _htmxStrLength);
+    const resInfo = _getResourceInfo(path);
+    //load html main window
+    resources.readResource(resInfo.jsRealPath).then(jsFile => {
+        let compiledPage = _compilePage(resInfo, htmxFile.data, jsFile.data);
+        _loadFileAndCache(resInfo, compiledPage);
+        _cached.importableResourceInfo[path] = new ImportableResourceInfo(path, htmxResInfo.templateName);
+    });
+}
 
 const _reloadTemplate = (templateName) => {
     // if null prepare the blank html template? ler annot
@@ -219,87 +230,15 @@ const _compilePage = (resInfo, htmxData, jsData) => {
     return _instrumentController(htmlStruct, jsData, boundVars, boundModals);
 }
 
-const _buildComponent = (comp, doc, boundVars, boundModals) => {
-    const componentName = comp.varPath;
-    let element;
-    while ((element = doc.findDeepestChild(comp.resourceName))) {
-        // get declared properties in doc tag - config
-        const infoProperties = {};
-        const htmxBoundVars = null;
-        if (comp.htmxStyle) {
-            htmxBoundVars = childInfoHtmxFormat(componentName, element, infoProperties);
-        } else {
-            childInfoOldFormat(componentName, element, infoProperties);
-        }
-        // get declared properties in doc tag - finish
-        // generate html
-        const newHTML = getHtml(componentName, infoProperties);
-if (infoProperties.containsKey("xid")) {
-newHTML = "<div _s_xid_='" + infoProperties.get("xid") + "'></div>" + newHTML + "<div _e_xid_='"
-+ infoProperties.get("xid") + "'></div>";
-}
 
-// change xbody
-newHTML = XStringUtil.replaceFirst(newHTML, "{xbody}", "<_temp_x_body/>");
-
-// parse new html
-XHTMLParser parser = new XHTMLParser();
-XHTMLDocument newDoc = parser.parse(newHTML);
-if (comp.htmxStyle) {
-configBinds(newDoc, htmxBoundVars);
-}
-String id = generateId();
-newDoc.setHiddenAttributeOnChildren("xcompId", id);
-newDoc.setHiddenAttributeOnChildren("xcompName", comp.resourceName);
-infoProperties.put("xcompId", id);
-infoProperties = removeHTML(infoProperties);
-
-List<XElement> findBody = newDoc.getElementsByName("_temp_x_body");
-if (!findBody.isEmpty()) {
-if (element.getChildren().isEmpty()) {
-findBody.get(0).remove();
-} else {
-XNode node = element.getChildren().get(0);
-findBody.get(0).replaceWith(node);
-for (int i = 1; i < element.getChildren().size(); i++) {
-XNode child = element.getChildren().get(i);
-node.addAfter(child);
-node = child;
-}
-}
-}
-if (boundVars != null) {
-if (comp.htmxStyle) {
-for (String var : htmxBoundVars.values()) {
-boundVars.add(var.split("\\.")[0]);
-}
-}
-boundVars.addAll(parser.getBoundObjects());
-}
-if (boundModals != null) {
-boundModals.putAll(parser.getBoundModals());
-}
-requiredList.addAll(newDoc.getRequiredResourcesList());
-List<XNode> list = newDoc.getChildren();
-XNode newNode = list.get(0);
-element.replaceWith(newNode);
-for (int i = 1; i < list.size(); i++) {
-XNode auxNode = list.get(i);
-newNode.addAfter(auxNode);
-newNode = auxNode;
-}
-List<Map<String, Object>> listByComponent = components.get(comp.resourceName);
-if (listByComponent == null) {
-listByComponent = new ArrayList<Map<String, Object>>();
-components.put(comp.resourceName, listByComponent);
+const _prepareHTML = (doc, boundVars, boundModals) => {
+    _componentsInfo.forEach(comp => components.buildComponentOnPage(comp, doc, boundVars, boundModals));
+    
 }
 
 listByComponent.add(infoProperties);
 }
-}
 
-const _prepareHTML = (doc, boundVars, boundModals) => {
-    componentsInfo.forEach(comp => _buildComponent(comp, doc, boundVars, boundModals));
     prepareIterators(doc, iteratorsList, isModal);
     prepareLabels(doc);
     XElement recValues = new XElement("xrs", doc);

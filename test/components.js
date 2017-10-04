@@ -80,3 +80,7 @@ describe('Test component', function() {
   });
 
 });
+
+    //_childInfoHtmxFormat
+		//_prepareDefinedAttributes: element.innerHTML()?
+		//buildComponentOnpage

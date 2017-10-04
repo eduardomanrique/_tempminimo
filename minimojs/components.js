@@ -19,12 +19,7 @@ const loadComponents = () =>
         });
         return result;
       }))
-    .then(_loadComponents)
-
-
-module.exports = {
-  loadComponents: loadComponents
-}
+    .then(_loadComponents);
 
 const _createComponentVO = (resName, path, isHtmx) => {
   return {
@@ -111,3 +106,118 @@ const _createHtmxComponent = (compJs, varPath, compName) =>
        var generateId = X.generateId;
      }
    };`
+
+const _prepareDefinedAttributes = (element, definedAttributes, boundVars) => {
+  const result = {};
+  _.mapObject(definedAttributes, (key, val) => {
+      if (_.isObject(val) && !_.isArray(val)) {
+          result[key] = element.findAllChildren(key).map(child => _prepareDefinedAttributes(child, val, boundVars));
+      } else {
+          const value = element.getAttribute(key);
+          const attType = val;
+          if (attType == components.types.bind || attType == components.types.mandatory.bind) {
+              //bind dont go to client. It is rendered on compile time
+              boundVars[key] = value;
+          } else if (attType == components.types.innerHTML || attType == components.types.mandatory.innerHTML) {
+              result[key] = element.innerHTML();
+          } else {
+              //attribute
+              result[key] = value;
+          }
+      }
+  });
+  return result;
+}
+const _childInfoHtmxFormat = (componentName, element) => {
+    const boundVars = {}
+    return [_prepareDefinedAttributes(element, _componentsCtx.defineAttributes(components.types), boundVars), boundVars];
+}
+const _removeHTML = (infoProperties) => {
+  map = {};
+  _.mapObject(infoProperties, (key, value) => {
+      if (key != 'innerHTML') {
+        map[key] = _.isObject(value) && !_.isArray(value) ? _removeHTML(value) : value;
+      }
+  });
+  return map;
+}
+const _getElement = (element, name) => {
+  const found = newDoc.getElementsByName("_temp_x_body");
+  if (!_.isEmpty(findBody)) {
+      return findBody[0];
+  }
+  return null;
+}
+const buildComponentOnPage = (comp, doc, boundVars, boundModals) => {
+  const componentName = comp.varPath;
+  let element;
+  while ((element = doc.findDeepestChild(comp.resourceName))) {
+    // get declared properties in doc tag - config
+    const [htmxBoundVars, infoProperties] = childInfoHtmxFormat(componentName, element, infoProperties, boundVars);
+    // get declared properties in doc tag - finish
+    // generate html
+    const newHTML = _componentsHtmxSources[componentName].replace(/\{xbody}/, "<_temp_x_body/>");
+    const parser = new XHTMLParser();
+    const newDoc = parser.parse(newHTML);
+    _configBinds(newDoc, htmxBoundVars);
+    const id = generateId();
+    newDoc.setHiddenAttributeOnChildren("xcompId", id);
+    newDoc.setHiddenAttributeOnChildren("xcompName", comp.resourceName);
+    infoProperties['xcompId'] = id;
+    infoProperties = _removeHTML(infoProperties);
+    const tempBody = _getElement(newDoc, "_temp_x_body");
+    if (tempBody) {
+      if (_.isEmpty(element.children)) {
+        tempBody.remove();
+      } else {
+        let node = element.children[0];
+        tempBody.replaceWith(node);
+        _.rest(element).forEach(child => {
+          node.addAfter(child);
+          node = child;
+        });
+      }
+    }
+    if (boundVars) {
+      _.values(htmxBoundVars).forEach(v => boundVars.push(v.split('.')[0]));
+      parser.boundObjects.forEach(boundVars.push);
+    }
+    if (boundModals) {
+      parser.boundModals.forEach(boundModals.push);
+    }
+    newDoc.requiredResourcesList.forEach(doc.requiredResourcesList.push)
+    let newNode = newDoc.children[0];
+    element.replaceWith(newNode);
+    _.rest(newDoc.children).forEach(node => {
+      newNode.addAfter(node);
+      newNode = node;
+    });
+    adicionar o infoProperties no elemento raiz do component pra aparecer quando fizer o toJson
+  }
+}
+const Types = {
+    string: Symbol.for("minimojs.type.string"),
+    number: Symbol.for("minimojs.type.number"),
+    bool: Symbol.for("minimojs.type.bool"),
+    boundVariable: Symbol.for("minimojs.type.boundVariable"),
+    innerHTML: Symbol.for("minimojs.type.innerHTML"),
+    bind: Symbol.for("minimojs.type.bind"),
+    script: Symbol.for("minimojs.type.script"),
+    any: Symbol.for("minimojs.type.any"),
+    mandatory: {
+      string: Symbol.for("minimojs.type.mandatory.string"),
+      number: Symbol.for("minimojs.type.mandatory.number"),
+      bool: Symbol.for("minimojs.type.mandatory.bool"),
+      boundVariable: Symbol.for("minimojs.type.mandatory.boundVariable"),
+      innerHTML: Symbol.for("minimojs.type.mandatory.innerHTML"),
+      bind: Symbol.for("minimojs.type.mandatory.bind"),
+      script: Symbol.for("minimojs.type.mandatory.script"),
+      any: Symbol.for("minimojs.type.mandatory.any")
+    }
+}
+
+module.exports = {
+  loadComponents: loadComponents,
+  types: Types,
+  buildComponentOnPage: buildComponentOnPage
+}
