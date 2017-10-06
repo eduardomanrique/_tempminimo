@@ -13,7 +13,9 @@ let _componentsInfo;
 let _componentsCtx;
 let _componentsHtmxSources;
 
-const _restart = () => new Promise(() => 
+const _getId = () => parseInt(Math.random() * 999999);
+
+const _restart = () => new Promise(() =>
     _cached = {
         modalPathsDeclared: {},
         appcacheResources: new Set(),
@@ -25,13 +27,13 @@ const _restart = () => new Promise(() =>
         listByComponent = {}
     });
 
-const compileResources = (destDir, defaultTemplateName) => 
+const compileResources = (destDir, defaultTemplateName) =>
     components.loadComponents().then(_componentsInfo => {
         _componentsScript = _componentsInfo.scripts;
         _componentsInfo = _componentsInfo.info;
         _componentsHtmxSources = _componentsInfo.htmxSources
         eval(`(()=>{
-        var X = {generatedId: function(){return 'ID${parseInt(Math.random() * 999999)}';}, _addExecuteWhenReady: function(){}};
+        var X = {generatedId: function(){return 'ID${_genId()}';}, _addExecuteWhenReady: function(){}};
         ${_componentsScript}
         _componentsCtx.components = components;
         })();`);
@@ -52,15 +54,15 @@ class ImportableResourceInfo {
         this._path = path;
         this._templateName = template;
     }
-    get path(){
+    get path() {
         return this._path;
     }
-    get templateName(){
+    get templateName() {
         return this._templateName;
     }
 }
 class Resource {
-    constructor(){
+    constructor() {
         //ref to html (loader html)
         this.path = null;
         //ref to js with struct and controller
@@ -81,13 +83,15 @@ const _getResourceInfo = (path, isGlobal) => {
         let result = new Resource();
         result.jsOnly = path.endsWith(".js");
         let noExtensionPath = path.substring(0, path.lastIndexOf('.'));
-        result.global = isGlobal;    
+        result.global = isGlobal;
         let isDir = fs.lstatSync(noExtensionPath).isDirectory();
 
         result.relativeJsPath = `./pages${noExtensionPath}${isDir?'/index':''}.js`;
         result.jsRealPath = resources.getRealPath(result.relativeJsPath);
-        if(!resources.exists(result.relativeJsPath)){
-            _cached.resourceInfoMap[path] = {empty: true};
+        if (!resources.exists(result.relativeJsPath)) {
+            _cached.resourceInfoMap[path] = {
+                empty: true
+            };
             return null;
         }
         result.path = path;
@@ -98,12 +102,12 @@ const _getResourceInfo = (path, isGlobal) => {
     }
     return resInfo.empty ? null : resInfo;
 }
-const _loadFileAndCache = (resInfo, compiledPage) => 
+const _loadFileAndCache = (resInfo, compiledPage) =>
     resources.writeFile(`${baseDestPath}${resInfo.path}.js`, compiledPage);
 
-const _reloadHtmxFiles = () => 
+const _reloadHtmxFiles = () =>
     resources.getResources("./pages", r => r.endsWith(".htmx"))
-        .then(values => values.forEach(_reloadHtmxFile));
+    .then(values => values.forEach(_reloadHtmxFile));
 
 const _reloadHtmxFile = htmxFile => {
     let path = htmxFile.path.substring(_basePagesPath.length, htmxFile.path.length - _htmxStrLength);
@@ -116,68 +120,117 @@ const _reloadHtmxFile = htmxFile => {
     });
 }
 
-const _reloadTemplate = (templateName) => {
-    // if null prepare the blank html template? ler annot
-    // List<XElement> xbody = templateDoc.getElementsByName("xbody");
-    // for (XNode node : doc.getChildren()) {
-    //     xbody.get(0).addChild(node);
-    // }
-    // templateDoc.getRequiredResourcesList().addAll(doc.getRequiredResourcesList());
-    // doc = templateDoc;
-    //prepareTopElements()
-    // if (!context.devMode) {
-    //     doc.getHtmlElement().setAttribute("manifest", X.getContextPath() + "/x/_appcache");
-    // }
-    //prepareXBody()
+const _blankHtml = () => `<html><body></body></html>`;
 
-    // Map<String, Object> jsonDynAtt = new HashMap<String, Object>();
-    // Map<String, Map<String, Object>> jsonHiddenAtt = new HashMap<String, Map<String, Object>>();
-    // Map<String, String> jsonComp = new HashMap<String, String>();
+const _getTemplateData = (templateName) =>
+    resources.getResources(`./templates${templateName}`)
+    .then(values => _.isEmpty(values) ? _blankHtml() : _.first(values).data);
 
-    // html = XTemplates.replaceVars(doc.getHTML(jsonDynAtt, jsonHiddenAtt, jsonComp));
+const _prepareScripts = (doc, htmlEl) => {
+    let head = _.first(htmlEl.findChildrenByName("head"));
+    if (!head) {
+        head = doc.createElement("head");
+        htmlEl.insertChild(head, 0);
+    }
+    // params
+    let script = head.addElement("script");
+    script.setAttribute("type", "text/javascript");
+    script.setAttribute("src", `${context.contextPath}/x/scripts/x.js`);
 
-    // StringBuilder postString = new StringBuilder();
-
-    // postString.append("\n(function(){\n");
-    // postString.append("\n		var X = new _XClass();");
-
-    // //the main window should always register as it might have iterators, xscripts and dyn attribs
-    // postString.append("\n		X._registerObjects(").append(XJson.toJson(jsonDynAtt))
-    //         .append(",");
-    // postString.append("\n			").append(XJson.toJson(jsonHiddenAtt)).append(",");
-    // postString.append("\n			").append(XJson.toJson(iteratorList)).append(",");
-    // postString.append("\n			").append(XJson.toJson(jsonComp)).append(",");
-    // postString.append("\n			").append(XJson.toJson(components)).append(");");
-
-    // if (!isSpaMainWindow) {
-    //     postString.append("\n		X._getJS('" + resInfo.getPath() + ".p.js', null, function(){");
-    //     postString.append("\n			console.log('X Loaded');");
-    //     postString.append("\n		})");
-    // } else {
-    //     postString.append("\n         var xbody = document.getElementsByTagName('xbody')[0];");
-
-    //     postString.append("\n         X$._xbodyNode = xbody;");
-    //     postString.append("\n         X$._isSpa = true;");
-    //     postString.append("\n         X$._xbodyNode.xsetModal = function(child){");
-    //     postString.append("\n             X$._xbodyNode.appendChild(child);");
-    //     postString.append("\n         };");
-
-    //     postString.append("\n         var controller = new function(){var __xbinds__ = null; this._x_eval = function(f){return eval(f)};};");
-    //     postString.append("\n         X._setEvalFn(controller._x_eval);");
-    //     postString.append("\n         document.body.setAttribute('data-x_ctx', 'true');");
-    //     postString.append("\n         X.setController(controller, function(){console.log('X started (spa)');});");
-    //     postString.append("\n         X.setSpaModalNode(X$._xbodyNode);");
-    // }
-    // postString.append("\n})();");
-
-    // html = html.replace("{xpostscript}", postString.toString());
-    // tempBoundVars.put(resInfo.getPath() + ".js", boundVars);
-    // tempBoundModals.put(resInfo.getPath() + ".js", boundModals);
-    // strResponse = html;
+    doc.requiredResourcesList.forEach(e => {
+        let source = e.getAttribute("src").trim();
+        source = source.startsWith("/") ? source : `/${source}`;
+        if (source.toLowerCase().endsWith(".js")) {
+            script = head.addElement("script");
+            script.setAttribute("type", "text/javascript");
+            script.setAttribute("src", `${context.contextPath}/res${source}`);
+        } else if (source.toLowerCase().endsWith("css")) {
+            const linkEl = head.addElement("link");
+            linkEl.setAttribute("href", `${context.contextPath}/res${source}`);
+            if (e.getAttribute("rel")) {
+                linkEl.setAttribute("rel", e.getAttribute("rel"));
+            }
+            linkEl.setAttribute("rel", "stylesheet");
+            if (e.getAttribute("media")) {
+                linkEl.setAttribute("media", e.getAttribute("media"));
+            }
+        }
+    });
 }
 
+const _prepareTopElements = (doc) => {
+    const htmlList = doc.findChildrenByName("html");
+    if (_.isEmpty(htmlList) || htmlList.length > 1) {
+        throw new Error("Invalid page. There must be one (and only one) html element in a html page");
+    }
+    const htmlEl = htmlList[0];
+    _prepareScripts(doc, htmlEl);
+
+    const bodyList = htmlEl.findChildrenByName("body");
+    if (_.isEmpty(bodyList) || bodyList.length > 1) {
+        throw new Error("Invalid page. There must be one (and only one) body element in a html page");
+    }
+    body.addText("\n\n");
+
+    const tempLoadDiv = doc.createElement("div");
+    tempLoadDiv.setAttribute("id", "_xtemploaddiv_");
+    tempLoadDiv.setAttribute("style",
+        "position:absolute;top:0px;left:0px;height: 100%;width:100%;z-index: 99999;background-color: white;");
+    const imgLoad = tempLoadDiv.addElement("img");
+    imgLoad.setAttribute("style",
+        "position:absolute;top:0;left:0;right:0;bottom:0;margin:auto;");
+    imgLoad.setAttribute("height", "42");
+    imgLoad.setAttribute("width", "42");
+    imgLoad.setAttribute("src", `${context.contextPath}/x/loader.gif`);
+    body.insertChild(tempLoadDiv, 0);
+}
+
+const _reloadTemplate = (templateName) => _getTemplateData(templateName)
+    .then(data => {
+        const templateDoc = new htmlParser.HTMLParser().parse(data);
+        const boundVars = templateDoc.boundVars;
+        const boundModals = templateDoc.boundModals;
+        _prepareHTML(templateDoc, boundVars, boundModals);
+        const xbody = _.first(templateDoc.getElementsByName("xbody"));
+        _prepareTopElements(templateDoc);
+        if (!context.devMode) {
+            doc.htmlElement.setAttribute("manifest", `${context.contextPath}/x/_appcache`);
+        }
+        if (_.isEmpty(doc.findChildrenByName('xbody'))) {
+            throw new Error('Template should have {xbody}');
+        }
+        let postString = `
+            (function(){
+        		var X = new _XClass();
+                X.createHtml(${templateDoc.toJson()});
+                X$._xbodyNode = document.getElementsByTagName('xbody')[0];
+                X$._xbodyNode.xsetModal = function(child){
+                    X$._xbodyNode.appendChild(child);
+                };
+                var controller = new function(){
+                    var __xbinds__ = null; 
+                    this._x_eval = function(f){
+                        return eval(f);
+                    };
+                };
+                X._setEvalFn(controller._x_eval);
+                document.body.setAttribute('data-x_ctx', 'true');
+                X.setController(controller, function(){
+                    console.log('X started (spa)');
+                });
+                X.setSpaModalNode(X$._xbodyNode);
+            })();`;
+        const script = _.first(htmlEl.findChildrenByName("body")).addElement("script");
+        script.setAttribute("type", "text/javascript");
+        script.addText(postString);
+        escrever o html to string sem o body para ser o html que vai carregar
+        escrever o html struct para ser carregado
+        fazer o script acima carregar o htmx
+    });
+
+
 //add child element of this doc that can be cached with appcache
-const _addChildValidElements = (resInfo, doc) => {
+const _addChildValidElements = (doc) => {
     doc.getElementsByName("script").forEach(script => {
         const src = script.getAttribute("src");
         if (src && !src.startsWith("http://")) {
@@ -194,12 +247,12 @@ const _addChildValidElements = (resInfo, doc) => {
 
 const _compilePage = (resInfo, htmxData, jsData) => {
     console.log(`Loading htmx ${resInfo.path}`);
-    const doc = new htmlParser.HTMLParser().parse(htmxData, boundModals, boundVars);
+    const doc = new htmlParser.HTMLParser().parse(htmxData);
     resInfo.templateName = null;
     if (!doc.htmlElement) {
         //has template
         let templateInfo = doc.getElementsByName("template-info");
-        if(templateInfo.length > 0){
+        if (templateInfo.length > 0) {
             templateInfo.forEach(ti => {
                 resInfo.templateName = ti.getAttribute("path");
                 ti.remove();
@@ -211,11 +264,18 @@ const _compilePage = (resInfo, htmxData, jsData) => {
     //get all the bound modals in the page
     const boundModals = doc.boundModals;
 
-    _reloadTemplate(resInfo.templateName);//TODO
+    _reloadTemplate(resInfo.templateName);
 
     //place real html of components, prepare iterators and labels
     _prepareHTML(doc, boundVars, boundModals);
+    return _instrumentController(doc.toJson(), jsData, boundVars, boundModals);
+}
 
+const _prepareHTML = (doc, boundVars, boundModals) => {
+    const compInfo = {};
+    _componentsInfo.forEach(comp => components.buildComponentOnPage(comp, doc, boundVars, boundModals, compInfo));
+    const recValues = doc.addElement("xrs");
+    recValues.addChildList(doc.requiredResourcesList);
     doc.requiredResourcesList.forEach(requiredElement => {
         const src = requiredElement.getAttribute("src");
         if (src.startsWith("/")) {
@@ -223,25 +283,6 @@ const _compilePage = (resInfo, htmxData, jsData) => {
         }
         _cached.appcacheResources.add("/res/" + src);
     });
-    const htmlStruct = doc.toJson();
-
     _.values(boundModals).forEach(modal => _cached.appcacheResources.add(modal.path));
-    _addChildValidElements(resInfo, doc);
-    return _instrumentController(htmlStruct, jsData, boundVars, boundModals);
-}
-
-
-const _prepareHTML = (doc, boundVars, boundModals) => {
-    _componentsInfo.forEach(comp => components.buildComponentOnPage(comp, doc, boundVars, boundModals));
-    
-}
-
-listByComponent.add(infoProperties);
-}
-
-    prepareIterators(doc, iteratorsList, isModal);
-    prepareLabels(doc);
-    XElement recValues = new XElement("xrs", doc);
-    recValues.addChildList(doc.requiredResourcesList);
-    doc.addChild(recValues)
+    _addChildValidElements(doc);
 }

@@ -310,6 +310,11 @@ class Element extends Node {
     this.addChild(e);
     return e;
   }
+  addText(value) {
+    let e = new Text(value);
+    this.addChild(e);
+    return e;
+  }
   addChildList(list) {
     list.forEach(n => this.addChild(n));
   }
@@ -436,7 +441,7 @@ class Element extends Node {
         return e.findDeepestChildWithAttribute(attributeName) || e;
     }
     return null;
-}
+  }
 }
 
 class TemplateScript extends Element {
@@ -446,6 +451,13 @@ class TemplateScript extends Element {
     this._listVariable = null;
     this._iterateVariable = null;
     this._indexVariable = null;
+    this._id = null;
+  }
+  set id(c) {
+    this._id = c;
+  }
+  get id() {
+    return this._id;
   }
   set count(c) {
     this._count = c;
@@ -540,6 +552,9 @@ class HTMLDoc extends Element {
   }
   get htmlElement() {
     return this._htmlElement;
+  }
+  createElement(name) {
+    return new Element(name, this._root);
   }
 }
 

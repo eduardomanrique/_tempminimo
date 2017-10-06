@@ -148,7 +148,7 @@ const _getElement = (element, name) => {
   }
   return null;
 }
-const buildComponentOnPage = (comp, doc, boundVars, boundModals) => {
+const buildComponentOnPage = (comp, doc, boundVars, boundModals, componentsInfo) => {
   const componentName = comp.varPath;
   let element;
   while ((element = doc.findDeepestChild(comp.resourceName))) {
@@ -192,7 +192,7 @@ const buildComponentOnPage = (comp, doc, boundVars, boundModals) => {
       newNode.addAfter(node);
       newNode = node;
     });
-    adicionar o infoProperties no elemento raiz do component pra aparecer quando fizer o toJson
+    componentsInfo[id] = infoProperties;
   }
 }
 const Types = {
