@@ -5,6 +5,7 @@ const util = require('./util');
 const ctx = require('./context');
 const esprima = require('esprima');
 const esprimaUtil = require('./esprimaUtil');
+const types = require('../minimojs/component-types');
 
 let _componentsScript;
 let _componentsInfo;
@@ -131,10 +132,10 @@ const _prepareDefinedAttributes = (element, definedAttributes, boundVars) => {
       } else {
           const value = element.getAttribute(key);
           const attType = val;
-          if (attType == components.types.bind || attType == components.types.mandatory.bind) {
+          if (attType == types.bind || attType == types.mandatory.bind) {
               //bind dont go to client. It is rendered on compile time
               boundVars[key] = value;
-          } else if (attType == components.types.innerHTML || attType == components.types.mandatory.innerHTML) {
+          } else if (attType == types.innerHTML || attType == types.mandatory.innerHTML) {
               result[key] = element.innerHTML();
           } else {
               //attribute
@@ -148,7 +149,7 @@ const _childInfoHtmxFormat = (componentName, element) => {
     const boundVars = {}
     let _defAttrib;
     eval(`_defAttrib = new _componentsCtx.components.${componentName}.htmxContext(null, null).defineAttributes`);
-    return [_prepareDefinedAttributes(element, _defAttrib(Types), boundVars), boundVars];
+    return [_prepareDefinedAttributes(element, _defAttrib(types), boundVars), boundVars];
 }
 const _removeHTML = (infoProperties) => {
   map = {};

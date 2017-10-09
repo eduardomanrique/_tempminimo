@@ -11,6 +11,7 @@ const _childInfoHtmxFormat = require('../minimojs/components')._childInfoHtmxFor
 const loadComponents = require('../minimojs/components').loadComponents;
 const ctx = require('../minimojs/context');
 const _components = rewire('../minimojs/components');
+const htmlParser = require('../minimojs/htmlParser');
 
 ctx.contextPath = 'ctx';
 process.chdir(`${__dirname}/datadir`);
@@ -82,14 +83,14 @@ describe('Test component', function() {
   });
 	it('_childInfoHtmxFormat', () =>
 		startComponents().then(() => {
-			const doc = 
-			`<htmxstyle.actiontable list="tbList" id="tb">
-				<column title="">index</column>
-				<column title="Name">item.data.name</column>
-				<column title="Gender">item.data.gender.name</column>
-				<column title="Like movies?">item.likeMovies ? 'Yes' : 'No'</column>
-			</htmxstyle.actiontable>`;
-			const info = _childInfoHtmxFormat('htmxstyle.actiontable');
+			const doc = new htmlParser.HTMLParser().parse(
+				`<htmxstyle.actiontable list="tbList" id="tb">
+					<column title="">index</column>
+					<column title="Name">item.data.name</column>
+					<column title="Gender">item.data.gender.name</column>
+					<column title="Like movies?">item.likeMovies ? 'Yes' : 'No'</column>
+				</htmxstyle.actiontable>`);
+			const info = _childInfoHtmxFormat('htmxstyle.actiontable', _.first(doc.getElementsByName('htmxstyle.actiontable')));
 			console.log(JSON.stringify(info));
 		}))
 });
