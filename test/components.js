@@ -1,12 +1,16 @@
 require('./test');
 const chai = require('chai');
+const rewire = require('rewire');
 chai.use(require('chai-string'));
 require('chai').should();
 const expect = require('chai').expect;
 const _ = require('underscore');
 const assert = require('assert');
+const startComponents = require('../minimojs/components').startComponents;
+const _childInfoHtmxFormat = require('../minimojs/components')._childInfoHtmxFormat;
 const loadComponents = require('../minimojs/components').loadComponents;
 const ctx = require('../minimojs/context');
+const _components = rewire('../minimojs/components');
 
 ctx.contextPath = 'ctx';
 process.chdir(`${__dirname}/datadir`);
@@ -37,10 +41,9 @@ before(() =>
 
 describe('Test component', function() {
   it('Old type', () => {
-    expect(components.oldtype.old.getHtml()).is.equal('/ctx<input type="text">');
-	  // expect(components.oldtype.old.method1()).is.equal('method1');
-    // expect(components.oldtype.old.method2()).is.equal('method2');
-		// expect(_test.components.actiontable.getHtml()).is.equal('/ctx<input type="text">'););
+    expect(components.oldtype.getHtml()).is.equal('/ctx<input type="text">');
+	  // expect(components.oldtype.method1()).is.equal('method1');
+    // expect(components.oldtype.method2()).is.equal('method2');
   });
   it('Actiontable', () => {
 	  var listVal = [{
@@ -68,19 +71,29 @@ describe('Test component', function() {
         throw new Error('Error executing script component ' + this._compName + '. Script: ' + f + '. Cause: ' + e.message);
       }
     };
-    var instance = new components.actiontable.htmxContext(attrs, _evalFn);
-	  expect(instance._compName).is.equal('actiontable');
-	  expect(instance._compName).is.equal('actiontable');
+    var instance = new components.htmxstyle.actiontable.htmxContext(attrs, _evalFn);
+	  expect(instance._compName).is.equal('htmxstyle.actiontable');
 	  instance.list = instance._xcompEval(attrs.list);
 	  expect(instance.list).to.have.lengthOf(2);
 	  instance.remove(0);
 	  expect(instance.list).to.have.lengthOf(1);
 	  expect(instance.list[0].id).is.equal(2);
-    info.htmxSources["components['actiontable']"].should.startWith('<table');
+    info.htmxSources["components['htmxstyle']['actiontable']"].should.startWith('<table');
   });
-
+	it('_childInfoHtmxFormat', () =>
+		startComponents().then(() => {
+			const doc = 
+			`<htmxstyle.actiontable list="tbList" id="tb">
+				<column title="">index</column>
+				<column title="Name">item.data.name</column>
+				<column title="Gender">item.data.gender.name</column>
+				<column title="Like movies?">item.likeMovies ? 'Yes' : 'No'</column>
+			</htmxstyle.actiontable>`;
+			const info = _childInfoHtmxFormat('htmxstyle.actiontable');
+			console.log(JSON.stringify(info));
+		}))
 });
 
-    //_childInfoHtmxFormat
+    //
 		//_prepareDefinedAttributes: element.innerHTML()?
 		//buildComponentOnpage

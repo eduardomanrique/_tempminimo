@@ -1,5 +1,5 @@
-const compiler = require('../minimojs/compiler');
-const _compiler = rewire('../minimojs/compiler');
+//const compiler = require('../minimojs/compiler');
+//const _compiler = rewire('../minimojs/compiler');
 
 describe('Test html parser', function () {
     it('Get resource info', () => {

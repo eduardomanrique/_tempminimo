@@ -6,6 +6,22 @@ const ctx = require('./context');
 const esprima = require('esprima');
 const esprimaUtil = require('./esprimaUtil');
 
+let _componentsScript;
+let _componentsInfo;
+let _componentsCtx = {};
+let _componentsHtmxSources;
+
+const startComponents = () => loadComponents().then(_componentsInfo => {
+  _componentsScript = _componentsInfo.scripts;
+  _componentsInfo = _componentsInfo.info;
+  _componentsHtmxSources = _componentsInfo.htmxSources
+  eval(`(()=>{
+  var X = {generatedId: function(){return 'ID${parseInt(Math.random() * 999999)}';}, _addExecuteWhenReady: function(){}};
+  ${_componentsScript}
+  _componentsCtx.components = components;
+  })();`);
+});
+
 const loadComponents = () =>
   resources.getResources("./components", r => (r.endsWith(".js") || r.endsWith(".htmx")) && !r.match(/[^/]+$/)[0].startsWith("."))
     .then(values =>
@@ -130,7 +146,9 @@ const _prepareDefinedAttributes = (element, definedAttributes, boundVars) => {
 }
 const _childInfoHtmxFormat = (componentName, element) => {
     const boundVars = {}
-    return [_prepareDefinedAttributes(element, _componentsCtx.defineAttributes(components.types), boundVars), boundVars];
+    let _defAttrib;
+    eval(`_defAttrib = new _componentsCtx.components.${componentName}.htmxContext(null, null).defineAttributes`);
+    return [_prepareDefinedAttributes(element, _defAttrib(Types), boundVars), boundVars];
 }
 const _removeHTML = (infoProperties) => {
   map = {};
@@ -153,7 +171,7 @@ const buildComponentOnPage = (comp, doc, boundVars, boundModals, componentsInfo)
   let element;
   while ((element = doc.findDeepestChild(comp.resourceName))) {
     // get declared properties in doc tag - config
-    const [htmxBoundVars, infoProperties] = childInfoHtmxFormat(componentName, element, infoProperties, boundVars);
+    const [infoProperties, htmxBoundVars] = _childInfoHtmxFormat(componentName, element);
     // get declared properties in doc tag - finish
     // generate html
     const newHTML = _componentsHtmxSources[componentName].replace(/\{xbody}/, "<_temp_x_body/>");
@@ -195,29 +213,10 @@ const buildComponentOnPage = (comp, doc, boundVars, boundModals, componentsInfo)
     componentsInfo[id] = infoProperties;
   }
 }
-const Types = {
-    string: Symbol.for("minimojs.type.string"),
-    number: Symbol.for("minimojs.type.number"),
-    bool: Symbol.for("minimojs.type.bool"),
-    boundVariable: Symbol.for("minimojs.type.boundVariable"),
-    innerHTML: Symbol.for("minimojs.type.innerHTML"),
-    bind: Symbol.for("minimojs.type.bind"),
-    script: Symbol.for("minimojs.type.script"),
-    any: Symbol.for("minimojs.type.any"),
-    mandatory: {
-      string: Symbol.for("minimojs.type.mandatory.string"),
-      number: Symbol.for("minimojs.type.mandatory.number"),
-      bool: Symbol.for("minimojs.type.mandatory.bool"),
-      boundVariable: Symbol.for("minimojs.type.mandatory.boundVariable"),
-      innerHTML: Symbol.for("minimojs.type.mandatory.innerHTML"),
-      bind: Symbol.for("minimojs.type.mandatory.bind"),
-      script: Symbol.for("minimojs.type.mandatory.script"),
-      any: Symbol.for("minimojs.type.mandatory.any")
-    }
-}
 
 module.exports = {
   loadComponents: loadComponents,
-  types: Types,
-  buildComponentOnPage: buildComponentOnPage
+  buildComponentOnPage: buildComponentOnPage,
+  startComponents: startComponents,
+  _childInfoHtmxFormat: _childInfoHtmxFormat
 }

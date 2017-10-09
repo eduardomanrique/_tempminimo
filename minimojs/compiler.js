@@ -8,12 +8,6 @@ const _basePagesPath = './pages';
 const _baseResPath = './res';
 const _htmxStrLength = ".htmx".length();
 let _cached;
-let _componentsScript;
-let _componentsInfo;
-let _componentsCtx;
-let _componentsHtmxSources;
-
-const _getId = () => parseInt(Math.random() * 999999);
 
 const _restart = () => new Promise(() =>
     _cached = {
@@ -28,16 +22,8 @@ const _restart = () => new Promise(() =>
     });
 
 const compileResources = (destDir, defaultTemplateName) =>
-    components.loadComponents().then(_componentsInfo => {
-        _componentsScript = _componentsInfo.scripts;
-        _componentsInfo = _componentsInfo.info;
-        _componentsHtmxSources = _componentsInfo.htmxSources
-        eval(`(()=>{
-        var X = {generatedId: function(){return 'ID${_genId()}';}, _addExecuteWhenReady: function(){}};
-        ${_componentsScript}
-        _componentsCtx.components = components;
-        })();`);
-        return resources.copy(_baseResPath, destDir)
+    components.startComponents().then(() =>
+        resources.copy(_baseResPath, destDir)
             .then(resources.copy(baseResPath, `${destDir}/res`))
             .then(_restart)
             .then(_reloadHtmxFiles)
@@ -47,7 +33,7 @@ const compileResources = (destDir, defaultTemplateName) =>
             .then(_startWatchService)
             .then(_collectAllResources)
             .then(_reloadCommonResources)
-    }).catch((e) => console.log(`Error: ${e.message}`));
+    ).catch((e) => console.log(`Error: ${e.message}`));
 
 class ImportableResourceInfo {
     constructor(path, template) {
@@ -185,6 +171,20 @@ const _prepareTopElements = (doc) => {
     body.insertChild(tempLoadDiv, 0);
 }
 
+const _printScripts = (element) => element.children.forEach(e => {
+    if (e.name == 'script'){
+        const tag = `<script>${e.childre.map(c => c.text).join('')}</script>`;
+        e.remove();
+        return tag;
+    }
+    return '';
+});
+
+const _printHtmlWithoutBody = (doc) => `
+    <html ${!context.devMode ? `manifest="${context.contextPath}/x/_appcache"` : ''}>
+        <head>${_printScripts(_.first(doc.htmlElement.getElementsByName('head')))}</head>
+    </html>`;
+
 const _reloadTemplate = (templateName) => _getTemplateData(templateName)
     .then(data => {
         const templateDoc = new htmlParser.HTMLParser().parse(data);
@@ -193,39 +193,39 @@ const _reloadTemplate = (templateName) => _getTemplateData(templateName)
         _prepareHTML(templateDoc, boundVars, boundModals);
         const xbody = _.first(templateDoc.getElementsByName("xbody"));
         _prepareTopElements(templateDoc);
-        if (!context.devMode) {
-            doc.htmlElement.setAttribute("manifest", `${context.contextPath}/x/_appcache`);
-        }
         if (_.isEmpty(doc.findChildrenByName('xbody'))) {
             throw new Error('Template should have {xbody}');
         }
-        let postString = `
+        const html = _printHtmlWithoutBody(templateDoc);
+        const postString = `
             (function(){
         		var X = new _XClass();
-                X.createHtml(${templateDoc.toJson()});
-                X$._xbodyNode = document.getElementsByTagName('xbody')[0];
-                X$._xbodyNode.xsetModal = function(child){
-                    X$._xbodyNode.appendChild(child);
-                };
-                var controller = new function(){
-                    var __xbinds__ = null; 
-                    this._x_eval = function(f){
-                        return eval(f);
-                    };
-                };
-                X._setEvalFn(controller._x_eval);
-                document.body.setAttribute('data-x_ctx', 'true');
-                X.setController(controller, function(){
-                    console.log('X started (spa)');
+                X.createHtml(${templateDoc.toJson()})
+                    .then(function(){
+                        X$._xbodyNode = document.getElementsByTagName('xbody')[0];
+                        X$._xbodyNode.xsetModal = function(child){
+                            X$._xbodyNode.appendChild(child);
+                        };
+                        var controller = new function(){
+                            var __xbinds__ = null; 
+                            this._x_eval = function(f){
+                                return eval(f);
+                            };
+                        };
+                        X._setEvalFn(controller._x_eval);
+                        document.body.setAttribute('data-x_ctx', 'true');
+                        X.setController(controller, function(){
+                            console.log('X started (spa)');
+                        });
+                        X.setSpaModalNode(X$._xbodyNode);
+                    })
+                    .then(X.getHtmlForUrl())
+                    .then(X.createHtml);
                 });
-                X.setSpaModalNode(X$._xbodyNode);
             })();`;
         const script = _.first(htmlEl.findChildrenByName("body")).addElement("script");
         script.setAttribute("type", "text/javascript");
         script.addText(postString);
-        escrever o html to string sem o body para ser o html que vai carregar
-        escrever o html struct para ser carregado
-        fazer o script acima carregar o htmx
     });
 
 
