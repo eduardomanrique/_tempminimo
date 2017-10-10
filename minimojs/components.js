@@ -5,7 +5,8 @@ const util = require('./util');
 const ctx = require('./context');
 const esprima = require('esprima');
 const esprimaUtil = require('./esprimaUtil');
-const types = require('../minimojs/component-types');
+const types = require('../minimojs/component-types').types;
+const isComponentType = require('../minimojs/component-types').isComponentType;
 
 let _componentsScript;
 let _componentsInfo;
@@ -126,8 +127,8 @@ const _createHtmxComponent = (compJs, varPath, compName) =>
 
 const _prepareDefinedAttributes = (element, definedAttributes, boundVars) => {
   const result = {};
-  _.mapObject(definedAttributes, (key, val) => {
-      if (_.isObject(val) && !_.isArray(val)) {
+  _.mapObject(definedAttributes, (val, key) => {
+      if (!isComponentType(val)) {
           result[key] = element.findAllChildren(key).map(child => _prepareDefinedAttributes(child, val, boundVars));
       } else {
           const value = element.getAttribute(key);
@@ -136,10 +137,13 @@ const _prepareDefinedAttributes = (element, definedAttributes, boundVars) => {
               //bind dont go to client. It is rendered on compile time
               boundVars[key] = value;
           } else if (attType == types.innerHTML || attType == types.mandatory.innerHTML) {
-              result[key] = element.innerHTML();
+              result[key] = element.children.map(c => c.toJson())
           } else {
               //attribute
-              result[key] = value;
+              if(!value && !attType.hasDefaultValue() && attType.isMandatory()){
+                throw new Error(`Attribute ${key} of type ${attType.toString()} is mandatory!`);
+              }
+              result[key] = !value ? (attType.hasDefaultValue() ? attType.getDefaultValue() : null) : attType.convert(value);
           }
       }
   });
@@ -153,7 +157,7 @@ const _childInfoHtmxFormat = (componentName, element) => {
 }
 const _removeHTML = (infoProperties) => {
   map = {};
-  _.mapObject(infoProperties, (key, value) => {
+  _.mapObject(infoProperties, (value, key) => {
       if (key != 'innerHTML') {
         map[key] = _.isObject(value) && !_.isArray(value) ? _removeHTML(value) : value;
       }

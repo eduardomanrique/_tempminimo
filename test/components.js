@@ -73,25 +73,37 @@ describe('Test component', function() {
       }
     };
     var instance = new components.htmxstyle.actiontable.htmxContext(attrs, _evalFn);
-	  expect(instance._compName).is.equal('htmxstyle.actiontable');
+	  instance._compName.should.equal('htmxstyle.actiontable');
 	  instance.list = instance._xcompEval(attrs.list);
-	  expect(instance.list).to.have.lengthOf(2);
+	  instance.list.should.have.lengthOf(2);
 	  instance.remove(0);
-	  expect(instance.list).to.have.lengthOf(1);
-	  expect(instance.list[0].id).is.equal(2);
+	  instance.list.should.have.lengthOf(1);
+	  instance.list[0].id.should.equal(2);
     info.htmxSources["components['htmxstyle']['actiontable']"].should.startWith('<table');
   });
 	it('_childInfoHtmxFormat', () =>
 		startComponents().then(() => {
 			const doc = new htmlParser.HTMLParser().parse(
-				`<htmxstyle.actiontable list="tbList" id="tb">
-					<column title="">index</column>
-					<column title="Name">item.data.name</column>
+				`<htmxstyle.actiontable list="tbList" id="tb" v="bindV">
+					<column><b>index</b></column>
+					<column title="Name"><br>item.data.name</column>
 					<column title="Gender">item.data.gender.name</column>
 					<column title="Like movies?">item.likeMovies ? 'Yes' : 'No'</column>
 				</htmxstyle.actiontable>`);
-			const info = _childInfoHtmxFormat('htmxstyle.actiontable', _.first(doc.getElementsByName('htmxstyle.actiontable')));
-			console.log(JSON.stringify(info));
+			const [info, boundVars] = _childInfoHtmxFormat('htmxstyle.actiontable', _.first(doc.getElementsByName('htmxstyle.actiontable')));
+			info.id.should.equal('tb');
+			info.column.should.have.lengthOf(4);
+			info.column[0].title.should.equal("None");
+			info.column[1].title.should.equal("Name");
+			info.column[2].title.should.equal("Gender");
+			info.column[3].title.should.equal("Like movies?");
+
+			info.column[0].content[0].n.should.equal("b");
+			info.column[0].content.should.have.lengthOf(1);
+			info.column[0].content[0].c.should.have.lengthOf(1);
+			info.column[0].content[0].c[0].should.equal("index");
+			
+			info.column[1].content.should.have.lengthOf(2);
 		}))
 });
 

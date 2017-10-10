@@ -422,7 +422,7 @@ class Element extends Node {
       .filter(c => c instanceof Element)
       .map(c => {
         const result = c.findAllChildren(tagName);
-        if(c.tagName.toLowerCase() == tagName.toLowerCase()){
+        if(c.name.toLowerCase() == tagName.toLowerCase()){
           result.push(c);
         }
         return result;

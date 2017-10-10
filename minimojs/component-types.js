@@ -8,7 +8,7 @@ function ComponentType(typeName, validator, mandatory, defaultValue) {
     this.hasDefaultValue = function(){
         return defaultValue != null;
     };
-    this.getDefaultVaule = function(){
+    this.getDefaultValue = function(){
         return defaultValue;
     };
     this.getTypeName = function(){
@@ -26,6 +26,9 @@ function ComponentType(typeName, validator, mandatory, defaultValue) {
         }
         return validator && validator.convert ? validator.convert(v) : v;
     };
+    this.toString = function(){
+        return name;
+    }
 }
 var _numeric = {
     validate: function(n) {
@@ -51,6 +54,7 @@ var _boundVariable = {
         return false;
     }
 }
+var _bind = _boundVariable;
 var _bool = {
     validate: function(v){
         return v.toLowerCase() == 'true' || v.toLowerCase() == 'false';
@@ -61,22 +65,27 @@ var _bool = {
 }
 
 module.exports = {
-    string: new ComponentType("string", _string, false),
-    number: new ComponentType("number", _numeric, false),
-    bool: new ComponentType("bool", _bool, false),
-    boundVariable: new ComponentType("boundVariable", _boundVariable, false),
-    innerHTML: new ComponentType("innerHTML", _string, false),
-    bind: new ComponentType("bind", null, false),
-    script: new ComponentType("script", null, false),
-    any: new ComponentType("any", null, false),
-    mandatory: {
-        string: new ComponentType("string", _string, true),
-        number: new ComponentType("number", _numeric, true),
-        bool: new ComponentType("bool", _bool, true),
-        boundVariable: new ComponentType("boundVariable", _boundVariable, true),
-        innerHTML: new ComponentType("innerHTML", _string, true),
-        bind: new ComponentType("bind", null, true),
-        script: new ComponentType("script", null, true),
-        any: new ComponentType("any", null, true)
+    isComponentType: function(v){
+        return v instanceof ComponentType;
+    },
+    types: {
+        string: new ComponentType("string", _string, false),
+        number: new ComponentType("number", _numeric, false),
+        bool: new ComponentType("bool", _bool, false),
+        boundVariable: new ComponentType("boundVariable", _boundVariable, false),
+        innerHTML: new ComponentType("innerHTML", _string, false),
+        bind: new ComponentType("bind", _bind, false),
+        script: new ComponentType("script", null, false),
+        any: new ComponentType("any", null, false),
+        mandatory: {
+            string: new ComponentType("string", _string, true),
+            number: new ComponentType("number", _numeric, true),
+            bool: new ComponentType("bool", _bool, true),
+            boundVariable: new ComponentType("boundVariable", _boundVariable, true),
+            innerHTML: new ComponentType("innerHTML", _string, true),
+            bind: new ComponentType("bind", _bind, true),
+            script: new ComponentType("script", null, true),
+            any: new ComponentType("any", null, true)
+        }
     }
 };

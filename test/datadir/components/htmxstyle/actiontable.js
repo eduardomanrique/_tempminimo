@@ -3,10 +3,11 @@ function defineAttributes(types){
   return {
     "id": types.mandatory.string,
     "column": {
-      "title": types.string.defaultValue(''),
+      "title": types.string.defaultValue('None'),
       "content": types.mandatory.innerHTML
     },
-    "list": types.boundVariable
+    "list": types.boundVariable,
+    "v": types.bind
   }
 }
 

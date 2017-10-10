@@ -1,4 +1,4 @@
-const types = require('../minimojs/component-types');
+const types = require('../minimojs/component-types').types;
 const expect = require('chai').expect;
 const assert = require('assert');
 
@@ -31,8 +31,8 @@ describe('Test component types', function () {
         expect(types.string.equivalent(types.mandatory.bind)).is.eq(false);
         expect(types.string.equivalent(types.mandatory.any)).is.eq(false);
 
-        expect(types.string.defaultValue('a').getDefaultVaule()).is.eq('a');
-        expect(types.mandatory.string.defaultValue('a').getDefaultVaule()).is.eq('a');
+        expect(types.string.defaultValue('a').getDefaultValue()).is.eq('a');
+        expect(types.mandatory.string.defaultValue('a').getDefaultValue()).is.eq('a');
 
         expect(types.string.convert('a')).is.eq('a');
     });
@@ -68,8 +68,8 @@ describe('Test component types', function () {
         expect(types.number.equivalent(types.mandatory.bind)).is.eq(false);
         expect(types.number.equivalent(types.mandatory.any)).is.eq(false);
 
-        expect(types.number.defaultValue(1.1).getDefaultVaule()).is.eq(1.1);
-        expect(types.mandatory.number.defaultValue(2).getDefaultVaule()).is.eq(2);
+        expect(types.number.defaultValue(1.1).getDefaultValue()).is.eq(1.1);
+        expect(types.mandatory.number.defaultValue(2).getDefaultValue()).is.eq(2);
 
         expect(types.number.convert('2.2')).is.eq(2.2);
     });
@@ -189,18 +189,41 @@ describe('Test component types', function () {
 
     it('Test bind', () => {
         expect(types.bind.isMandatory()).is.eq(false);
-        expect(types.bind.defaultValue('a').isMandatory()).is.eq(false);
-        expect(types.bind.defaultValue('a').equivalent(types.bind)).is.eq(true);
+        expect(types.bind.defaultValue('_a').isMandatory()).is.eq(false);
+        expect(types.bind.defaultValue('a.b').equivalent(types.bind)).is.eq(true);
         expect(types.bind.hasDefaultValue()).is.eq(false);
-        expect(types.bind.defaultValue('c').hasDefaultValue()).is.eq(true);
+        expect(types.bind.defaultValue('$').hasDefaultValue()).is.eq(true);
         expect(types.mandatory.bind.isMandatory()).is.eq(true);
-        expect(types.mandatory.bind.defaultValue('d').isMandatory()).is.eq(true);
-        expect(types.mandatory.bind.defaultValue('c').equivalent(types.bind)).is.eq(true);
+        expect(types.mandatory.bind.defaultValue('a.a.c').isMandatory()).is.eq(true);
+        expect(types.mandatory.bind.defaultValue('aa.test').equivalent(types.bind)).is.eq(true);
         expect(types.mandatory.bind.hasDefaultValue()).is.eq(false);
-        expect(types.mandatory.bind.defaultValue('d').hasDefaultValue()).is.eq(true);
+        expect(types.mandatory.bind.defaultValue('asdf').hasDefaultValue()).is.eq(true);
+
+        try{
+            types.mandatory.bind.defaultValue('1');
+            assert(false, 'Line should not be called');
+        }catch(e){
+            expect(e.message).is.eq('Invalid value 1 for bind');
+        }
+        try{
+            types.mandatory.bind.defaultValue('a a');
+            assert(false, 'Line should not be called');
+        }catch(e){
+            expect(e.message).is.eq('Invalid value a a for bind');
+        }
+        try{
+            types.mandatory.bind.defaultValue('a .a.');
+            assert(false, 'Line should not be called');
+        }catch(e){
+            expect(e.message).is.eq('Invalid value a .a. for bind');
+        }
 
         expect(types.bind.equivalent(types.mandatory.bind)).is.eq(true);
+        expect(types.bind.equivalent(types.innerHTML)).is.eq(false);
+        expect(types.bind.equivalent(types.script)).is.eq(false);
         expect(types.bind.equivalent(types.any)).is.eq(false);
+        expect(types.bind.equivalent(types.mandatory.innerHTML)).is.eq(false);
+        expect(types.bind.equivalent(types.mandatory.script)).is.eq(false);
         expect(types.bind.equivalent(types.mandatory.any)).is.eq(false);
     });
 
