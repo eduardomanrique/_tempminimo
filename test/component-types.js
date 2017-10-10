@@ -20,14 +20,12 @@ describe('Test component types', function () {
         expect(types.string.equivalent(types.bool)).is.eq(false);
         expect(types.string.equivalent(types.boundVariable)).is.eq(false);
         expect(types.string.equivalent(types.innerHTML)).is.eq(false);
-        expect(types.string.equivalent(types.script)).is.eq(false);
         expect(types.string.equivalent(types.bind)).is.eq(false);
         expect(types.string.equivalent(types.any)).is.eq(false);
         expect(types.string.equivalent(types.mandatory.number)).is.eq(false);
         expect(types.string.equivalent(types.mandatory.bool)).is.eq(false);
         expect(types.string.equivalent(types.mandatory.boundVariable)).is.eq(false);
         expect(types.string.equivalent(types.mandatory.innerHTML)).is.eq(false);
-        expect(types.string.equivalent(types.mandatory.script)).is.eq(false);
         expect(types.string.equivalent(types.mandatory.bind)).is.eq(false);
         expect(types.string.equivalent(types.mandatory.any)).is.eq(false);
 
@@ -58,13 +56,11 @@ describe('Test component types', function () {
         expect(types.number.equivalent(types.bool)).is.eq(false);
         expect(types.number.equivalent(types.boundVariable)).is.eq(false);
         expect(types.number.equivalent(types.innerHTML)).is.eq(false);
-        expect(types.number.equivalent(types.script)).is.eq(false);
         expect(types.number.equivalent(types.bind)).is.eq(false);
         expect(types.number.equivalent(types.any)).is.eq(false);
         expect(types.number.equivalent(types.mandatory.bool)).is.eq(false);
         expect(types.number.equivalent(types.mandatory.boundVariable)).is.eq(false);
         expect(types.number.equivalent(types.mandatory.innerHTML)).is.eq(false);
-        expect(types.number.equivalent(types.mandatory.script)).is.eq(false);
         expect(types.number.equivalent(types.mandatory.bind)).is.eq(false);
         expect(types.number.equivalent(types.mandatory.any)).is.eq(false);
 
@@ -95,12 +91,10 @@ describe('Test component types', function () {
         expect(types.bool.equivalent(types.mandatory.bool)).is.eq(true);
         expect(types.bool.equivalent(types.boundVariable)).is.eq(false);
         expect(types.bool.equivalent(types.innerHTML)).is.eq(false);
-        expect(types.bool.equivalent(types.script)).is.eq(false);
         expect(types.bool.equivalent(types.bind)).is.eq(false);
         expect(types.bool.equivalent(types.any)).is.eq(false);
         expect(types.bool.equivalent(types.mandatory.boundVariable)).is.eq(false);
         expect(types.bool.equivalent(types.mandatory.innerHTML)).is.eq(false);
-        expect(types.bool.equivalent(types.mandatory.script)).is.eq(false);
         expect(types.bool.equivalent(types.mandatory.bind)).is.eq(false);
         expect(types.bool.equivalent(types.mandatory.any)).is.eq(false);
     });
@@ -138,11 +132,9 @@ describe('Test component types', function () {
 
         expect(types.boundVariable.equivalent(types.mandatory.boundVariable)).is.eq(true);
         expect(types.boundVariable.equivalent(types.innerHTML)).is.eq(false);
-        expect(types.boundVariable.equivalent(types.script)).is.eq(false);
         expect(types.boundVariable.equivalent(types.bind)).is.eq(false);
         expect(types.boundVariable.equivalent(types.any)).is.eq(false);
         expect(types.boundVariable.equivalent(types.mandatory.innerHTML)).is.eq(false);
-        expect(types.boundVariable.equivalent(types.mandatory.script)).is.eq(false);
         expect(types.boundVariable.equivalent(types.mandatory.bind)).is.eq(false);
         expect(types.boundVariable.equivalent(types.mandatory.any)).is.eq(false);
     });
@@ -160,31 +152,10 @@ describe('Test component types', function () {
         expect(types.mandatory.innerHTML.defaultValue('asdf1234').hasDefaultValue()).is.eq(true);
 
         expect(types.innerHTML.equivalent(types.mandatory.innerHTML)).is.eq(true);
-        expect(types.innerHTML.equivalent(types.script)).is.eq(false);
         expect(types.innerHTML.equivalent(types.bind)).is.eq(false);
         expect(types.innerHTML.equivalent(types.any)).is.eq(false);
-        expect(types.innerHTML.equivalent(types.mandatory.script)).is.eq(false);
         expect(types.innerHTML.equivalent(types.mandatory.bind)).is.eq(false);
         expect(types.innerHTML.equivalent(types.mandatory.any)).is.eq(false);
-    });
-
-    it('Test script', () => {
-        expect(types.script.isMandatory()).is.eq(false);
-        expect(types.script.defaultValue('1').isMandatory()).is.eq(false);
-        expect(types.script.defaultValue('a').equivalent(types.script)).is.eq(true);
-        expect(types.script.hasDefaultValue()).is.eq(false);
-        expect(types.script.defaultValue('1').hasDefaultValue()).is.eq(true);
-        expect(types.mandatory.script.isMandatory()).is.eq(true);
-        expect(types.mandatory.script.defaultValue('1').isMandatory()).is.eq(true);
-        expect(types.mandatory.script.defaultValue('c').equivalent(types.script)).is.eq(true);
-        expect(types.mandatory.script.hasDefaultValue()).is.eq(false);
-        expect(types.mandatory.script.defaultValue('1').hasDefaultValue()).is.eq(true);
-
-        expect(types.script.equivalent(types.mandatory.script)).is.eq(true);
-        expect(types.script.equivalent(types.bind)).is.eq(false);
-        expect(types.script.equivalent(types.any)).is.eq(false);
-        expect(types.script.equivalent(types.mandatory.bind)).is.eq(false);
-        expect(types.script.equivalent(types.mandatory.any)).is.eq(false);
     });
 
     it('Test bind', () => {
@@ -220,10 +191,8 @@ describe('Test component types', function () {
 
         expect(types.bind.equivalent(types.mandatory.bind)).is.eq(true);
         expect(types.bind.equivalent(types.innerHTML)).is.eq(false);
-        expect(types.bind.equivalent(types.script)).is.eq(false);
         expect(types.bind.equivalent(types.any)).is.eq(false);
         expect(types.bind.equivalent(types.mandatory.innerHTML)).is.eq(false);
-        expect(types.bind.equivalent(types.mandatory.script)).is.eq(false);
         expect(types.bind.equivalent(types.mandatory.any)).is.eq(false);
     });
 

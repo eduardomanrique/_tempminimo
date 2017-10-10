@@ -75,7 +75,6 @@ module.exports = {
         boundVariable: new ComponentType("boundVariable", _boundVariable, false),
         innerHTML: new ComponentType("innerHTML", _string, false),
         bind: new ComponentType("bind", _bind, false),
-        script: new ComponentType("script", null, false),
         any: new ComponentType("any", null, false),
         mandatory: {
             string: new ComponentType("string", _string, true),
@@ -84,7 +83,6 @@ module.exports = {
             boundVariable: new ComponentType("boundVariable", _boundVariable, true),
             innerHTML: new ComponentType("innerHTML", _string, true),
             bind: new ComponentType("bind", _bind, true),
-            script: new ComponentType("script", null, true),
             any: new ComponentType("any", null, true)
         }
     }

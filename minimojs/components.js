@@ -227,12 +227,12 @@ const buildComponentOnPage = (comp, element, doc, boundVars, boundModals) => {
 }
 
 const _findDeepestComponent = (doc) => {
-  const _findDeepest = (e, currentFound, comp, compList) => {
+  const _findDeepest = (e, currentFoundComponent, comp, compList) => {
     const deepest = e.findDeepestChild(comp.resourceName);
     if(_.isEmpty(compList)){
-      return [deepest||e, currentFound]
+      return [deepest||e, currentFoundComponent]
     }
-    return _findDeepest(deepest || e, deepest ? comp : currentFound, _.first(compList), _.rest(compList));
+    return _findDeepest(deepest || e, deepest ? comp : currentFoundComponent, _.first(compList), _.rest(compList));
   }
   return _findDeepest(doc, null, _.first(_componentsInfo), _.rest(_componentsInfo));
 }
@@ -247,10 +247,11 @@ const buildComponentsOnPage = (doc, boundVars, boundModals) => {
     }
   }
 }
-
+//TODO no browser, criar os getters (tipados) para as propriedades que nao sejam boundvariable, ou bind (tudo script)
 module.exports = {
   loadComponents: loadComponents,
   buildComponentsOnPage: buildComponentsOnPage,
   startComponents: startComponents,
-  _childInfoHtmxFormat: _childInfoHtmxFormat
+  _childInfoHtmxFormat: _childInfoHtmxFormat,
+  _findDeepestComponent: _findDeepestComponent
 }
