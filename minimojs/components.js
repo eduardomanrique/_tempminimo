@@ -182,55 +182,71 @@ const _configBinds = (doc, htmxBoundVars) =>
       }
   });
   
-const buildComponentOnPage = (comp, doc, boundVars, boundModals) => {
+const buildComponentOnPage = (comp, element, doc, boundVars, boundModals) => {
   const componentName = comp.varPath;
-  let element;
-  while ((element = doc.findDeepestChild(comp.resourceName))) {
-    // get declared properties in doc tag - config
-    let [infoProperties, htmxBoundVars] = _childInfoHtmxFormat(componentName, element);
-    // get declared properties in doc tag - finish
-    // generate html
-    const newHTML = _componentsHtmxSources[componentName].replace(/\{xbody}/, "<_temp_x_body/>");
-    const parser = new htmlParser.HTMLParser();
-    const newDoc = parser.parse(newHTML);
-    _configBinds(newDoc, htmxBoundVars);
-    const id = _generateId();
-    newDoc.setHiddenAttributeOnChildren("xcompId", id);
-    newDoc.setHiddenAttributeOnChildren("xcompName", comp.resourceName);
-    infoProperties['xcompId'] = id;
-    infoProperties = _removeHTML(infoProperties);
-    const tempBody = _getElement(newDoc, "_temp_x_body");
-    if (tempBody) {
-      if (_.isEmpty(element.children)) {
-        tempBody.remove();
-      } else {
-        let node = element.children[0];
-        tempBody.replaceWith(node);
-        _.rest(element).forEach(child => {
-          node.addAfter(child);
-          node = child;
-        });
-      }
+  // get declared properties in doc tag - config
+  let [infoProperties, htmxBoundVars] = _childInfoHtmxFormat(componentName, element);
+  // get declared properties in doc tag - finish
+  // generate html
+  const newHTML = _componentsHtmxSources[componentName].replace(/\{xbody}/, "<_temp_x_body/>");
+  const parser = new htmlParser.HTMLParser();
+  const newDoc = parser.parse(newHTML);
+  _configBinds(newDoc, htmxBoundVars);
+  const id = _generateId();
+  newDoc.setHiddenAttributeOnChildren("xcompId", id);
+  newDoc.setHiddenAttributeOnChildren("xcompName", comp.resourceName);
+  infoProperties['xcompId'] = id;
+  infoProperties = _removeHTML(infoProperties);
+  const tempBody = _getElement(newDoc, "_temp_x_body");
+  if (tempBody) {
+    if (_.isEmpty(element.children)) {
+      tempBody.remove();
+    } else {
+      let node = element.children[0];
+      tempBody.replaceWith(node);
+      _.rest(element).forEach(child => {
+        node.addAfter(child);
+        node = child;
+      });
     }
-    if (boundVars) {
-      _.values(htmxBoundVars).forEach(v => boundVars.push(v.split('.')[0]));
-      parser.boundObjects.forEach(e => boundVars.push(e));
-    }
-    if (boundModals) {
-      parser.boundModals.forEach(e => boundModals.push(e));
-    }
-    newDoc.requiredResourcesList.forEach(doc.requiredResourcesList.push)
-    let newNode = newDoc.children[0];
-    element.replaceWith(newNode);
-    _.rest(newDoc.children).forEach(node => {
-      newNode.addAfter(node);
-      newNode = node;
-    });
   }
+  if (boundVars) {
+    _.values(htmxBoundVars).forEach(v => boundVars.push(v.split('.')[0]));
+    parser.boundObjects.forEach(e => boundVars.push(e));
+  }
+  if (boundModals) {
+    parser.boundModals.forEach(e => boundModals.push(e));
+  }
+  newDoc.requiredResourcesList.forEach(doc.requiredResourcesList.push)
+  let newNode = newDoc.children[0];
+  element.replaceWith(newNode);
+  _.rest(newDoc.children).forEach(node => {
+    newNode.addAfter(node);
+    newNode = node;
+  });
 }
 
-const buildComponentsOnPage = (doc, boundVars, boundModals) => 
-  _componentsInfo.forEach(c => buildComponentOnPage(c, doc, boundVars, boundModals))
+const _findDeepestComponent = (doc) => {
+  const _findDeepest = (e, currentFound, comp, compList) => {
+    const deepest = e.findDeepestChild(comp.resourceName);
+    if(_.isEmpty(compList)){
+      return [deepest||e, currentFound]
+    }
+    return _findDeepest(deepest || e, deepest ? comp : currentFound, _.first(compList), _.rest(compList));
+  }
+  return _findDeepest(doc, null, _.first(_componentsInfo), _.rest(_componentsInfo));
+}
+
+const buildComponentsOnPage = (doc, boundVars, boundModals) => {
+  while(true){
+    const [element, component] = _findDeepestComponent(doc);
+    if(component){
+      buildComponentOnPage(component, element, doc, boundVars, boundModals);
+    }else{
+      break;
+    }
+  }
+}
 
 module.exports = {
   loadComponents: loadComponents,

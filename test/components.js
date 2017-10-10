@@ -114,12 +114,13 @@ describe('Test component', function() {
 				`<html>
 					<head></head>
 					<body>
-						<b><htmxstyle.checkbox id="cb" bind="obj.val" label="Label"/></b>
+						<b><htmxstyle.checkbox id="cb\${obj.id}" bind="obj.val" label="Label"/></b>
 						<htmxstyle.actiontable list="tbList" id="tb" v="bindV">
 							<column><b>index</b></column>
 							<column title="Name"><br>item.data.name</column>
 							<column title="Gender">item.data.gender.name</column>
 							<column title="Like movies?">item.likeMovies ? 'Yes' : 'No'</column>
+							<column><htmxstyle.checkbox id="cb_\${index}" bind="obj.val" label="Label"/></column>
 						</htmxstyle.actiontable>
 					</body>
 				</html>`);
