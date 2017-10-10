@@ -483,6 +483,9 @@ class TemplateScript extends Element {
   get indexVariable() {
     return this._indexVariable;
   }
+  get name(){
+    return "";
+  }
   toJson(){
     return _clearObj({
       xc: this._count,
@@ -559,7 +562,7 @@ class HTMLDoc extends Element {
 }
 
 class HTMLParser {
-  constructor(boundModals = {}, boundVars = []) {
+  constructor(boundModals = [], boundVars = []) {
     this._textNodes = [];
     this._doc = new HTMLDoc();
     this._currentParent = this._doc;
@@ -911,7 +914,7 @@ class HTMLParser {
     this._currentIndex++;
   }
   closeElement() {
-    this._currentParent = current.parent;
+    this._currentParent = this._current.parent;
     this._current.close();
     this._current = null;
   }

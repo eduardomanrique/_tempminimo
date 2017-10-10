@@ -8,6 +8,7 @@ const _ = require('underscore');
 const assert = require('assert');
 const startComponents = require('../minimojs/components').startComponents;
 const _childInfoHtmxFormat = require('../minimojs/components')._childInfoHtmxFormat;
+const buildComponentsOnPage = require('../minimojs/components').buildComponentsOnPage;
 const loadComponents = require('../minimojs/components').loadComponents;
 const ctx = require('../minimojs/context');
 const _components = rewire('../minimojs/components');
@@ -90,7 +91,7 @@ describe('Test component', function() {
 					<column title="Gender">item.data.gender.name</column>
 					<column title="Like movies?">item.likeMovies ? 'Yes' : 'No'</column>
 				</htmxstyle.actiontable>`);
-			const [info, boundVars] = _childInfoHtmxFormat('htmxstyle.actiontable', _.first(doc.getElementsByName('htmxstyle.actiontable')));
+			const [info, boundVars] = _childInfoHtmxFormat('components.htmxstyle.actiontable', _.first(doc.getElementsByName('htmxstyle.actiontable')));
 			info.id.should.equal('tb');
 			info.column.should.have.lengthOf(4);
 			info.column[0].title.should.equal("None");
@@ -104,9 +105,27 @@ describe('Test component', function() {
 			info.column[0].content[0].c[0].should.equal("index");
 			
 			info.column[1].content.should.have.lengthOf(2);
+
+			boundVars.v.should.equal('bindV');
+		}));
+	it('buildComponentOnpage', () =>
+		startComponents().then(() => {
+			const doc = new htmlParser.HTMLParser().parse(
+				`<html>
+					<head></head>
+					<body>
+						<b><htmxstyle.checkbox id="cb" bind="obj.val" label="Label"/></b>
+						<htmxstyle.actiontable list="tbList" id="tb" v="bindV">
+							<column><b>index</b></column>
+							<column title="Name"><br>item.data.name</column>
+							<column title="Gender">item.data.gender.name</column>
+							<column title="Like movies?">item.likeMovies ? 'Yes' : 'No'</column>
+						</htmxstyle.actiontable>
+					</body>
+				</html>`);
+			const boundVars = [];
+			const boundModals = [];
+			buildComponentsOnPage(doc, boundVars, boundModals);
+			console.log(JSON.stringify(doc.toJson()));
 		}))
 });
-
-    //
-		//_prepareDefinedAttributes: element.innerHTML()?
-		//buildComponentOnpage

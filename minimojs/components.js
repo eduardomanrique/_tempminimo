@@ -5,6 +5,7 @@ const util = require('./util');
 const ctx = require('./context');
 const esprima = require('esprima');
 const esprimaUtil = require('./esprimaUtil');
+const htmlParser = require('../minimojs/htmlParser');
 const types = require('../minimojs/component-types').types;
 const isComponentType = require('../minimojs/component-types').isComponentType;
 
@@ -13,10 +14,12 @@ let _componentsInfo;
 let _componentsCtx = {};
 let _componentsHtmxSources;
 
-const startComponents = () => loadComponents().then(_componentsInfo => {
-  _componentsScript = _componentsInfo.scripts;
-  _componentsInfo = _componentsInfo.info;
-  _componentsHtmxSources = _componentsInfo.htmxSources
+const _generateId = (prefix) => (prefix || "id_") + parseInt(Math.random() * 999999);
+
+const startComponents = () => loadComponents().then(componentsInfo => {
+  _componentsScript = componentsInfo.scripts;
+  _componentsInfo = componentsInfo.info;
+  _componentsHtmxSources = componentsInfo.htmxSources
   eval(`(()=>{
   var X = {generatedId: function(){return 'ID${parseInt(Math.random() * 999999)}';}, _addExecuteWhenReady: function(){}};
   ${_componentsScript}
@@ -62,7 +65,7 @@ const _loadComponents = (groupedResources) => {
     let varPath = 'components';
     js.push(_.initial(compParts).map(p => {
       varPath += p;
-      return `${varPath}={};`;
+      return `${varPath}=${varPath}||{};`;
     }).join(''));
 
     const compName = parts.join('.');
@@ -152,7 +155,7 @@ const _prepareDefinedAttributes = (element, definedAttributes, boundVars) => {
 const _childInfoHtmxFormat = (componentName, element) => {
     const boundVars = {}
     let _defAttrib;
-    eval(`_defAttrib = new _componentsCtx.components.${componentName}.htmxContext(null, null).defineAttributes`);
+    eval(`_defAttrib = new _componentsCtx.${componentName}.htmxContext(null, null).defineAttributes`);
     return [_prepareDefinedAttributes(element, _defAttrib(types), boundVars), boundVars];
 }
 const _removeHTML = (infoProperties) => {
@@ -165,25 +168,33 @@ const _removeHTML = (infoProperties) => {
   return map;
 }
 const _getElement = (element, name) => {
-  const found = newDoc.getElementsByName("_temp_x_body");
-  if (!_.isEmpty(findBody)) {
-      return findBody[0];
+  const found = element.getElementsByName("_temp_x_body");
+  if (!_.isEmpty(found)) {
+      return found[0];
   }
   return null;
 }
-const buildComponentOnPage = (comp, doc, boundVars, boundModals, componentsInfo) => {
+const _configBinds = (doc, htmxBoundVars) =>
+  doc.getElementsWithAttribute("data-xbind").forEach(e => {
+      const val = e.getAttribute("data-xbind");
+      if (htmxBoundVars[val]) {
+          e.setAttribute("data-xbind", htmxBoundVars[val]);
+      }
+  });
+  
+const buildComponentOnPage = (comp, doc, boundVars, boundModals) => {
   const componentName = comp.varPath;
   let element;
   while ((element = doc.findDeepestChild(comp.resourceName))) {
     // get declared properties in doc tag - config
-    const [infoProperties, htmxBoundVars] = _childInfoHtmxFormat(componentName, element);
+    let [infoProperties, htmxBoundVars] = _childInfoHtmxFormat(componentName, element);
     // get declared properties in doc tag - finish
     // generate html
     const newHTML = _componentsHtmxSources[componentName].replace(/\{xbody}/, "<_temp_x_body/>");
-    const parser = new XHTMLParser();
+    const parser = new htmlParser.HTMLParser();
     const newDoc = parser.parse(newHTML);
     _configBinds(newDoc, htmxBoundVars);
-    const id = generateId();
+    const id = _generateId();
     newDoc.setHiddenAttributeOnChildren("xcompId", id);
     newDoc.setHiddenAttributeOnChildren("xcompName", comp.resourceName);
     infoProperties['xcompId'] = id;
@@ -203,10 +214,10 @@ const buildComponentOnPage = (comp, doc, boundVars, boundModals, componentsInfo)
     }
     if (boundVars) {
       _.values(htmxBoundVars).forEach(v => boundVars.push(v.split('.')[0]));
-      parser.boundObjects.forEach(boundVars.push);
+      parser.boundObjects.forEach(e => boundVars.push(e));
     }
     if (boundModals) {
-      parser.boundModals.forEach(boundModals.push);
+      parser.boundModals.forEach(e => boundModals.push(e));
     }
     newDoc.requiredResourcesList.forEach(doc.requiredResourcesList.push)
     let newNode = newDoc.children[0];
@@ -215,13 +226,15 @@ const buildComponentOnPage = (comp, doc, boundVars, boundModals, componentsInfo)
       newNode.addAfter(node);
       newNode = node;
     });
-    componentsInfo[id] = infoProperties;
   }
 }
 
+const buildComponentsOnPage = (doc, boundVars, boundModals) => 
+  _componentsInfo.forEach(c => buildComponentOnPage(c, doc, boundVars, boundModals))
+
 module.exports = {
   loadComponents: loadComponents,
-  buildComponentOnPage: buildComponentOnPage,
+  buildComponentsOnPage: buildComponentsOnPage,
   startComponents: startComponents,
   _childInfoHtmxFormat: _childInfoHtmxFormat
 }
