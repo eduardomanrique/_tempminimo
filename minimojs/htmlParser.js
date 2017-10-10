@@ -248,6 +248,9 @@ class TextScript extends Node {
     super();
     this._script = script;
   }
+  get script(){
+    return this._script;
+  }
   toJson(){
     return _clearObj({
       x: this._script,
@@ -642,6 +645,8 @@ class HTMLParser {
           this._inTextScript = false;
           this._currentParent.addChild(new TextScript(_str(this._currentText).substring(2)));
           this._currentText = [];
+          this.advance();
+          continue;
         }
         const currentChar = this.read();
         this._currentText.push(currentChar);
@@ -824,7 +829,7 @@ class HTMLParser {
         currentAttributeValue.push(s);
       }
     }
-    if (_.keys(modalBindMap).length == 0) {
+    if (!_.isEmpty(modalBindMap)) {
       let elementId = element.getAttribute("id");
       if (!elementId) {
         elementId = _generateId("xmd_");

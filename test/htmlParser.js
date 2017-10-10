@@ -80,6 +80,7 @@ describe('Test html parser', function () {
           $for(a in list with i){
             test
           }
+          \${obj.label}
         </body>
       </html>
     `);
@@ -89,58 +90,82 @@ describe('Test html parser', function () {
     let body = doc.htmlElement.getElements().filter(e => e.name == 'body');
     expect(body).to.have.lengthOf(1);
     let list = body[0].children;
-    expect(list[1]).to.be.instanceOf(htmlParser.Comment);
-    expect(list[3]).to.be.instanceOf(htmlParser.Element);
-    expect(list[3].name).to.be.equal('div');
-    expect(list[3].innerText).to.be.equal('Div of id 1234');
-    expect(list[3].getAttribute("id")).to.be.equal('1234');
-    expect(list[3].getAttribute("att")).to.be.equal('val');
-    expect(list[3].getAttribute("a")).to.be.equal('A');
-    expect(list[3].getAttribute("b")).to.be.equal('BB');
-    expect(list[3].getAttribute("c")).to.be.equal('C');
-    expect(list[3].getAttribute("d")).to.be.equal('DD');
-    expect(list[3].getAttribute("f")).to.be.equal(' A ${a("a")} B ${1+b} C ');
-    let attr = list[3].getAttributeObject("f").toJson().f;
+    let currIndex = 0;
+    let node;
+    const discardEmptyText = () => {
+      while((node = list[currIndex++]) && node instanceof htmlParser.Text && node.text.trim() == '');
+    };
+    discardEmptyText();
+    expect(node).to.be.instanceOf(htmlParser.Comment);
+
+    discardEmptyText();
+    expect(node).to.be.instanceOf(htmlParser.Element);
+    expect(node.name).to.be.equal('div');
+    expect(node.innerText).to.be.equal('Div of id 1234');
+    expect(node.getAttribute("id")).to.be.equal('1234');
+    expect(node.getAttribute("att")).to.be.equal('val');
+    expect(node.getAttribute("a")).to.be.equal('A');
+    expect(node.getAttribute("b")).to.be.equal('BB');
+    expect(node.getAttribute("c")).to.be.equal('C');
+    expect(node.getAttribute("d")).to.be.equal('DD');
+    expect(node.getAttribute("f")).to.be.equal(' A ${a("a")} B ${1+b} C ');
+    let attr = node.getAttributeObject("f").toJson().f;
     expect(attr).to.have.lengthOf(5);
     expect(attr[0]).to.be.equal(' A ');
     expect(attr[1].s).to.be.equal('a("a")');
     expect(attr[2]).to.be.equal(' B ');
     expect(attr[3].s).to.be.equal('1+b');
     expect(attr[4]).to.be.equal(' C ');
-    expect(list[5].name).to.be.equal('br');
-    expect(list[5].children).to.have.lengthOf(0);
-    expect(list[6].text.trim()).to.be.equal('Text 1234 "aa"');
-    expect(list[7].name).to.be.equal('div');
-    expect(list[7].children).to.have.lengthOf(4);
-    expect(list[7].children[0].name).is.equal('div');
-    expect(list[7].children[0].innerText).is.equal('a');
-    expect(list[7].children[1].name).is.equal('br');
-    expect(list[7].children[2].name).is.equal('span');
-    expect(list[7].children[2].innerText).is.equal('b');
-    expect(list[7].children[3].name).is.equal('div');
-    expect(list[7].children[3].children).to.have.lengthOf(2);
-    expect(list[7].children[3].children[0].innerText).is.equal('a');
-    expect(list[7].children[3].children[1].innerText).is.equal('b');
-    expect(list[9]).is.instanceof(htmlParser.TemplateScript)
-    expect(list[9].count).is.eq('(a == 1)?1:0');
-    expect(list[9].children[1].name).is.eq('div');
-    expect(list[9].children[1].getAttribute("att")).is.eq("val");
-    expect(list[9].children[1].getAttribute("dyn")).is.eq("${a.op() + '3'}");
-    attr = list[9].children[1].getAttributeObject("dyn").toJson().dyn;
-    expect(attr[0].s).is.eq("a.op() + '3'");
-    expect(list[9].children[1].children[0].text).is.eq("Div of id 1234");
-    expect(list[9].children[3].name).is.eq("div");
-    expect(list[9].children[3].children[1]).instanceOf(htmlParser.TemplateScript)
-    expect(list[9].children[3].children[1].listVariable).is.eq('xx');
-    expect(list[9].children[3].children[1].iterateVariable).is.eq('x');
-    expect(list[9].children[3].children[1].indexVariable).is.eq('xxx');
-    expect(list[9].children[3].children[1].children[0].text.trim()).is.eq('xxxx');
 
-    expect(list[11]).is.instanceof(htmlParser.TemplateScript)
-    expect(list[11].listVariable).is.eq('list');
-    expect(list[11].iterateVariable).is.eq('a');
-    expect(list[11].indexVariable).is.eq('i');
-    expect(list[11].children[0].text.trim()).is.eq('test');
+    discardEmptyText();
+    expect(node.name).to.be.equal('br');
+    expect(node.children).to.have.lengthOf(0);
+
+    discardEmptyText();
+    expect(node.text.trim()).to.be.equal('Text 1234 "aa"');
+
+    discardEmptyText();
+    expect(node.name).to.be.equal('div');
+    expect(node.children).to.have.lengthOf(4);
+    expect(node.children[0].name).is.equal('div');
+    expect(node.children[0].innerText).is.equal('a');
+    expect(node.children[1].name).is.equal('br');
+    expect(node.children[2].name).is.equal('span');
+    expect(node.children[2].innerText).is.equal('b');
+    expect(node.children[3].name).is.equal('div');
+    expect(node.children[3].children).to.have.lengthOf(2);
+    expect(node.children[3].children[0].innerText).is.equal('a');
+    expect(node.children[3].children[1].innerText).is.equal('b');
+
+    discardEmptyText();
+    expect(node).is.instanceof(htmlParser.TemplateScript)
+    expect(node.count).is.eq('(a == 1)?1:0');
+    expect(node.children[1].name).is.eq('div');
+    expect(node.children[1].getAttribute("att")).is.eq("val");
+    expect(node.children[1].getAttribute("dyn")).is.eq("${a.op() + '3'}");
+    attr = node.children[1].getAttributeObject("dyn").toJson().dyn;
+    expect(attr[0].s).is.eq("a.op() + '3'");
+    expect(node.children[1].children[0].text).is.eq("Div of id 1234");
+    expect(node.children[3].name).is.eq("div");
+    expect(node.children[3].children[1]).instanceOf(htmlParser.TemplateScript)
+    expect(node.children[3].children[1].listVariable).is.eq('xx');
+    expect(node.children[3].children[1].iterateVariable).is.eq('x');
+    expect(node.children[3].children[1].indexVariable).is.eq('xxx');
+    expect(node.children[3].children[1].children[0].text.trim()).is.eq('xxxx');
+
+    discardEmptyText();
+    expect(node).is.instanceof(htmlParser.TemplateScript)
+    expect(node.listVariable).is.eq('list');
+    expect(node.iterateVariable).is.eq('a');
+    expect(node.indexVariable).is.eq('i');
+    expect(node.children[0].text.trim()).is.eq('test');
+    
+    discardEmptyText();
+    expect(node).is.instanceOf(htmlParser.TextScript);
+    expect(node.script).is.eq('obj.label');
+
+    discardEmptyText();
+    assert(!node, 'Node should be empty');
   });
 
 
