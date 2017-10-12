@@ -17,12 +17,15 @@ let _componentsHtmxSources;
 const _generateId = (prefix) => (prefix || "id_") + parseInt(Math.random() * 999999);
 
 const __setUpGetterForAttributes = `var __setUpGetterForAttributes = function(obj, evaluator, __instanceProperties, _attrs) {
+  function _createProperty(obj, k, a){
+    Object.defineProperty(obj, k, { get: function () {
+      return a.map(i => typeof(i) == 'string' ? i : evaluator(i.s)).join('');
+    }});
+  }
   for(var k in __instanceProperties) {
     if(__instanceProperties[k] != __types.types.boundVariable && __instanceProperties[k] != __types.types.mandatory.boundVariable){
       if(__types.isComponentType(__instanceProperties[k])){
-        Object.defineProperty(obj, k, { get: function () {
-          return _attrs[k].map(i => typeof(i) == 'string' ? i : evaluator(i.s)).join('');
-        }});
+        _createProperty(obj, k, _attrs[k])
       }else{
         obj[k] = obj[k] || [];
         _attrs[k].forEach(v => {

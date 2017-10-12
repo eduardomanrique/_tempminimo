@@ -1,8 +1,4 @@
 entender pra que serve hiddenattributes e tempatributes
-findDeepestChild em buildcomponents nao vai funcionar sempre. 
-    Tem que fazer um findDeepestChild passando o nome de todos os componentes e encontrar o mais profundo de todos
-todas as properties de um component na verdade sao um script. Nao tem mais o tipo script
-    inclusive vai ter um tipo html, que retorna um dom
 
 eliminar o chord
 mutation 

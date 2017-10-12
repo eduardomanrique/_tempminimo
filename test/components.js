@@ -62,7 +62,7 @@ describe('Test component', function () {
 			name: 'Two'
 		}];
 		let attrs = {
-			id: "at",
+			id: ["at", {s: "1+1"}],
 			column: [{
 				"title": "t1",
 				"content": "<b>${v.id}"
@@ -87,6 +87,7 @@ describe('Test component', function () {
 		instance.remove(0);
 		instance.list.should.have.lengthOf(1);
 		instance.list[0].id.should.equal(2);
+		instance.id.should.equal('at2')
 		info.htmxSources["components['htmxstyle']['actiontable']"].should.startWith('<table');
 	});
 	it('_childInfoHtmxFormat', () =>
@@ -164,8 +165,17 @@ describe('Test component', function () {
 			const boundVars = [];
 			const boundModals = [];
 			buildComponentsOnPage(doc, boundVars, boundModals);
-			console.log(JSON.stringify(doc.toJson()));
-			//TODO falta colocar o context, e deixar tudo como script
-			//checkbox must have bind=obj.val after compiled
+
+			const json = doc.toJson();
+			const wrapper = json.c[0].c[1].c[0];
+			wrapper.cn.should.equal('htmxstyle.wrapper');
+			wrapper.c[0].n.should.equal('div');
+			wrapper.c[0].a.test[0].should.equal('1');
+
+			wrapper.c[0].a.test[0].should.equal('1');
+			wrapper.c[0].c[1].n.should.equal('div');
+			wrapper.c[0].c[1].c[0].c[0].cn.should.equal('htmxstyle.checkbox');
+
+			wrapper.c[0].c[1].c[1].cn.should.equal('htmxstyle.actiontable');
 		}));
 });
