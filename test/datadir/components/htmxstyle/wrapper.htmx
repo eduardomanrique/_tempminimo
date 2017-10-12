@@ -1,0 +1,1 @@
+<div test="1">Wrapper: <div test="2">{xbody}</div></div>

@@ -1,13 +1,13 @@
 const logger = require('./logging');
 const _ = require('underscore');
 const resources = require('./resources');
-const util = require('./util');
 const ctx = require('./context');
 const esprima = require('esprima');
 const esprimaUtil = require('./esprimaUtil');
 const htmlParser = require('../minimojs/htmlParser');
 const types = require('../minimojs/component-types').types;
 const isComponentType = require('../minimojs/component-types').isComponentType;
+const util = require('../minimojs/util');
 
 let _componentsScript;
 let _componentsInfo;
@@ -115,7 +115,7 @@ const _createOldTypeComponent = (compJS, varPath) =>
       try{ this.onVisible = onVisible; }catch(e){};
     };`;
 
-const _createHtmxComponent = (compJs, varPath, compName) =>
+const _createHtmxComponent = (compJs = "", varPath, compName) =>
   `${varPath} = new function(){
      this.htmxContext = function(_attrs, _evalFn){
        var selfcomp = this;
@@ -132,21 +132,24 @@ const _prepareDefinedAttributes = (element, definedAttributes, boundVars) => {
   const result = {};
   _.mapObject(definedAttributes, (val, key) => {
       if (!isComponentType(val)) {
-          result[key] = element.findAllChildren(key).map(child => _prepareDefinedAttributes(child, val, boundVars));
+          result[key] = element.findAllChildren(key).map(child => {
+            child.remove();
+            return _prepareDefinedAttributes(child, val, boundVars);
+          });
       } else {
-          const value = element.getAttribute(key);
           const attType = val;
           if (attType == types.bind || attType == types.mandatory.bind) {
               //bind dont go to client. It is rendered on compile time
-              boundVars[key] = value;
-          } else if (attType == types.innerHTML || attType == types.mandatory.innerHTML) {
+              boundVars[key] = element.getAttribute(key.toLowerCase());
+          } else if (attType == types.html || attType == types.mandatory.html) {
               result[key] = element.children.map(c => c.toJson())
           } else {
+              const attributeValue = element.getAttributeJsonFormat(key.toLowerCase());
               //attribute
-              if(!value && !attType.hasDefaultValue() && attType.isMandatory()){
+              if(!attributeValue && !attType.hasDefaultValue() && attType.isMandatory()){
                 throw new Error(`Attribute ${key} of type ${attType.toString()} is mandatory!`);
               }
-              result[key] = !value ? (attType.hasDefaultValue() ? attType.getDefaultValue() : null) : attType.convert(value);
+              result[key] = !attributeValue ? (attType.hasDefaultValue() ? [attType.getDefaultValue()] : null) : attributeValue.value;
           }
       }
   });
@@ -156,60 +159,43 @@ const _childInfoHtmxFormat = (componentName, element) => {
     const boundVars = {}
     let _defAttrib;
     eval(`_defAttrib = new _componentsCtx.${componentName}.htmxContext(null, null).defineAttributes`);
-    return [_prepareDefinedAttributes(element, _defAttrib(types), boundVars), boundVars];
+    return [_defAttrib ? _prepareDefinedAttributes(element, _defAttrib(types), boundVars) : {}, boundVars];
 }
-const _removeHTML = (infoProperties) => {
+const _removeHTML = (instanceProperties) => {
   map = {};
-  _.mapObject(infoProperties, (value, key) => {
-      if (key != 'innerHTML') {
+  _.mapObject(instanceProperties, (value, key) => {
+      if (key != 'html') {
         map[key] = _.isObject(value) && !_.isArray(value) ? _removeHTML(value) : value;
       }
   });
   return map;
 }
 const _getElement = (element, name) => {
-  const found = element.getElementsByName("_temp_x_body");
+  const found = element.getElementsByName(name);
   if (!_.isEmpty(found)) {
       return found[0];
   }
   return null;
 }
-const _configBinds = (doc, htmxBoundVars) =>
-  doc.getElementsWithAttribute("data-xbind").forEach(e => {
-      const val = e.getAttribute("data-xbind");
+const _configComponentBinds = (componentDoc, htmxBoundVars) =>
+  componentDoc.getElementsWithAttribute("bind").forEach(e => {
+      const val = e.getAttribute("bind");
       if (htmxBoundVars[val]) {
-          e.setAttribute("data-xbind", htmxBoundVars[val]);
+          e.setAttribute("bind", htmxBoundVars[val]);
       }
   });
   
-const buildComponentOnPage = (comp, element, doc, boundVars, boundModals) => {
-  const componentName = comp.varPath;
+const buildComponentOnPage = (compInfo, element, doc, boundVars, boundModals) => {
+  const componentName = compInfo.varPath;
   // get declared properties in doc tag - config
-  let [infoProperties, htmxBoundVars] = _childInfoHtmxFormat(componentName, element);
+  let [instanceProperties, htmxBoundVars] = _childInfoHtmxFormat(componentName, element);
   // get declared properties in doc tag - finish
   // generate html
   const newHTML = _componentsHtmxSources[componentName].replace(/\{xbody}/, "<_temp_x_body/>");
   const parser = new htmlParser.HTMLParser();
-  const newDoc = parser.parse(newHTML);
-  _configBinds(newDoc, htmxBoundVars);
-  const id = _generateId();
-  newDoc.setHiddenAttributeOnChildren("xcompId", id);
-  newDoc.setHiddenAttributeOnChildren("xcompName", comp.resourceName);
-  infoProperties['xcompId'] = id;
-  infoProperties = _removeHTML(infoProperties);
-  const tempBody = _getElement(newDoc, "_temp_x_body");
-  if (tempBody) {
-    if (_.isEmpty(element.children)) {
-      tempBody.remove();
-    } else {
-      let node = element.children[0];
-      tempBody.replaceWith(node);
-      _.rest(element).forEach(child => {
-        node.addAfter(child);
-        node = child;
-      });
-    }
-  }
+  const componentDoc = parser.parse(newHTML);
+  _configComponentBinds(componentDoc, htmxBoundVars);
+  
   if (boundVars) {
     _.values(htmxBoundVars).forEach(v => boundVars.push(v.split('.')[0]));
     parser.boundObjects.forEach(e => boundVars.push(e));
@@ -217,36 +203,57 @@ const buildComponentOnPage = (comp, element, doc, boundVars, boundModals) => {
   if (boundModals) {
     parser.boundModals.forEach(e => boundModals.push(e));
   }
-  newDoc.requiredResourcesList.forEach(doc.requiredResourcesList.push)
-  let newNode = newDoc.children[0];
-  element.replaceWith(newNode);
-  _.rest(newDoc.children).forEach(node => {
-    newNode.addAfter(node);
-    newNode = node;
-  });
+  componentDoc.requiredResourcesList.forEach(doc.requiredResourcesList.push);
+
+  const compWrapper = new ComponentWrapper(compInfo, _removeHTML(instanceProperties), componentDoc.children);
+  const tempBody = _getElement(compWrapper, "_temp_x_body");
+  if (tempBody) {
+    const insertPoint = tempBody.parent;
+    tempBody.remove();
+    element.children.forEach(e => insertPoint.addChild(e));
+  }
+  element.replaceWith(compWrapper);
 }
 
 const _findDeepestComponent = (doc) => {
   const _findDeepest = (e, currentFoundComponent, comp, compList) => {
     const deepest = e.findDeepestChild(comp.resourceName);
     if(_.isEmpty(compList)){
-      return [deepest||e, currentFoundComponent]
+      return currentFoundComponent ? util.optionOf([deepest||e, currentFoundComponent]) : util.emptyOption();
     }
     return _findDeepest(deepest || e, deepest ? comp : currentFoundComponent, _.first(compList), _.rest(compList));
   }
-  return _findDeepest(doc, null, _.first(_componentsInfo), _.rest(_componentsInfo));
+  return _.isEmpty(_componentsInfo) ? util.emptyOption() : _findDeepest(doc, null, _.first(_componentsInfo), _.rest(_componentsInfo));
 }
 
-const buildComponentsOnPage = (doc, boundVars, boundModals) => {
-  while(true){
-    const [element, component] = _findDeepestComponent(doc);
-    if(component){
-      buildComponentOnPage(component, element, doc, boundVars, boundModals);
-    }else{
-      break;
-    }
+const buildComponentsOnPage = (doc, boundVars, boundModals) => 
+  _findDeepestComponent(doc).ifPresent(([element, component]) => {
+    buildComponentOnPage(component, element, doc, boundVars, boundModals);
+    buildComponentsOnPage(doc, boundVars, boundModals);
+  });
+
+  //not supposed to be parsed, just created in compile time
+class ComponentWrapper extends htmlParser.Element {
+  constructor(comp, instanceProperties, childList){
+    super();
+    this.addChildList(childList);
+    this._id = _generateId();
+    this._compInfo = comp;
+    this._instanceProperties = _.isEmpty(instanceProperties) ? undefined : instanceProperties;
+  }
+  get name() {
+    return "";
+  }
+  toJson(){
+    return {
+      ci: this._id,
+      cn: this._compInfo.resourceName,
+      ip: this._instanceProperties,
+      c: this.childrenToJson()
+    };
   }
 }
+
 //TODO no browser, criar os getters (tipados) para as propriedades que nao sejam boundvariable, ou bind (tudo script)
 module.exports = {
   loadComponents: loadComponents,

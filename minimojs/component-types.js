@@ -73,7 +73,7 @@ module.exports = {
         number: new ComponentType("number", _numeric, false),
         bool: new ComponentType("bool", _bool, false),
         boundVariable: new ComponentType("boundVariable", _boundVariable, false),
-        innerHTML: new ComponentType("innerHTML", _string, false),
+        html: new ComponentType("html", _string, false),
         bind: new ComponentType("bind", _bind, false),
         any: new ComponentType("any", null, false),
         mandatory: {
@@ -81,7 +81,7 @@ module.exports = {
             number: new ComponentType("number", _numeric, true),
             bool: new ComponentType("bool", _bool, true),
             boundVariable: new ComponentType("boundVariable", _boundVariable, true),
-            innerHTML: new ComponentType("innerHTML", _string, true),
+            html: new ComponentType("html", _string, true),
             bind: new ComponentType("bind", _bind, true),
             any: new ComponentType("any", null, true)
         }

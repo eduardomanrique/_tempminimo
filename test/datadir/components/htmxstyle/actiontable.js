@@ -4,7 +4,7 @@ function defineAttributes(types){
     "id": types.mandatory.string,
     "column": {
       "title": types.string.defaultValue('None'),
-      "content": types.mandatory.innerHTML
+      "content": types.mandatory.html
     },
     "list": types.boundVariable,
     "v": types.bind

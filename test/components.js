@@ -89,17 +89,18 @@ describe('Test component', function () {
 			const doc = new htmlParser.HTMLParser().parse(
 				`<htmxstyle.actiontable list="tbList" id="tb" v="bindV">
 					<column><b>index</b></column>
-					<column title="Name"><br>item.data.name</column>
+					<column title="Name \${index}"><br>item.data.name</column>
 					<column title="Gender">item.data.gender.name</column>
 					<column title="Like movies?">item.likeMovies ? 'Yes' : 'No'</column>
 				</htmxstyle.actiontable>`);
 			const [info, boundVars] = _childInfoHtmxFormat('components.htmxstyle.actiontable', _.first(doc.getElementsByName('htmxstyle.actiontable')));
-			info.id.should.equal('tb');
+			info.id[0].should.equal('tb');
 			info.column.should.have.lengthOf(4);
-			info.column[0].title.should.equal("None");
-			info.column[1].title.should.equal("Name");
-			info.column[2].title.should.equal("Gender");
-			info.column[3].title.should.equal("Like movies?");
+			info.column[0].title[0].should.equal("None");
+			info.column[1].title[0].should.equal("Name ");
+			info.column[1].title[1].s.should.equal("index");
+			info.column[2].title[0].should.equal("Gender");
+			info.column[3].title[0].should.equal("Like movies?");
 
 			info.column[0].content[0].n.should.equal("b");
 			info.column[0].content.should.have.lengthOf(1);
@@ -109,28 +110,6 @@ describe('Test component', function () {
 			info.column[1].content.should.have.lengthOf(2);
 
 			boundVars.v.should.equal('bindV');
-		}));
-	it('buildComponentOnpage', () =>
-		startComponents().then(() => {
-			const doc = new htmlParser.HTMLParser().parse(
-				`<html>
-					<head></head>
-					<body>
-						<b><htmxstyle.checkbox id="cb" bind="obj.val" label="Label"/></b>
-						<htmxstyle.actiontable list="tbList" id="tb" v="bindV">
-							<column><b>index</b></column>
-							<column title="Name"><br>item.data.name</column>
-							<column title="Gender">item.data.gender.name</column>
-							<column title="Like movies?">item.likeMovies ? 'Yes' : 'No'</column>
-							<column><htmxstyle.checkbox id="cb_\${index}" bind="obj.val" label="Label"/></column>
-						</htmxstyle.actiontable>
-					</body>
-				</html>`);
-			const boundVars = [];
-			const boundModals = [];
-			buildComponentsOnPage(doc, boundVars, boundModals);
-			console.log(JSON.stringify(doc.toJson()));
-			//TODO falta colocar o context, e deixar tudo como script
 		}));
 	it('_findDeepestComponent', () =>
 		startComponents().then(() => {
@@ -154,9 +133,34 @@ describe('Test component', function () {
 					</body>
 				</html>`);
 
-			const [element, component] = _findDeepestComponent(doc);
+			const [element, component] = _findDeepestComponent(doc).value;
 			element.name.should.equal('htmxstyle.checkbox');
 			element.getAttribute('label').should.equal('OK');
 			component.resourceName.should.equal('htmxstyle.checkbox');
+		}));
+	it('buildComponentOnpage', () =>
+		startComponents().then(() => {
+			const doc = new htmlParser.HTMLParser().parse(
+				`<html>
+					<head></head>
+					<body>
+						<htmxstyle.wrapper>
+							<b><htmxstyle.checkbox id="cb" varToBind="obj.val" label="Label"/></b>
+							<htmxstyle.actiontable list="tbList" id="tb" v="bindV">
+								<column><b>index</b></column>
+								<column title="Name"><br>item.data.name</column>
+								<column title="Gender">item.data.gender.name</column>
+								<column title="Like movies?">item.likeMovies ? 'Yes' : 'No'</column>
+								<column><htmxstyle.checkbox id="cb_\${index}" varToBind="obj.val" label="Label"/></column>
+							</htmxstyle.actiontable>
+						</htmxstyle.wrapper>
+					</body>
+				</html>`);
+			const boundVars = [];
+			const boundModals = [];
+			buildComponentsOnPage(doc, boundVars, boundModals);
+			console.log(JSON.stringify(doc.toJson()));
+			//TODO falta colocar o context, e deixar tudo como script
+			//checkbox must have bind=obj.val after compiled
 		}));
 });

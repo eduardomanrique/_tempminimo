@@ -109,7 +109,7 @@ describe('Test html parser', function () {
     expect(node.getAttribute("c")).to.be.equal('C');
     expect(node.getAttribute("d")).to.be.equal('DD');
     expect(node.getAttribute("f")).to.be.equal(' A ${a("a")} B ${1+b} C ');
-    let attr = node.getAttributeObject("f").toJson().f;
+    let attr = node.getAttributeJsonFormat("f").toJson().f;
     expect(attr).to.have.lengthOf(5);
     expect(attr[0]).to.be.equal(' A ');
     expect(attr[1].s).to.be.equal('a("a")');
@@ -143,7 +143,7 @@ describe('Test html parser', function () {
     expect(node.children[1].name).is.eq('div');
     expect(node.children[1].getAttribute("att")).is.eq("val");
     expect(node.children[1].getAttribute("dyn")).is.eq("${a.op() + '3'}");
-    attr = node.children[1].getAttributeObject("dyn").toJson().dyn;
+    attr = node.children[1].getAttributeJsonFormat("dyn").toJson().dyn;
     expect(attr[0].s).is.eq("a.op() + '3'");
     expect(node.children[1].children[0].text).is.eq("Div of id 1234");
     expect(node.children[3].name).is.eq("div");

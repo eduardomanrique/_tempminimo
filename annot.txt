@@ -3,22 +3,17 @@ findDeepestChild em buildcomponents nao vai funcionar sempre.
     Tem que fazer um findDeepestChild passando o nome de todos os componentes e encontrar o mais profundo de todos
 todas as properties de um component na verdade sao um script. Nao tem mais o tipo script
     inclusive vai ter um tipo html, que retorna um dom
-parser
-    remove id for every element?
-    iterator data-hxiter?
-    eliminar o chord
-    template fn tem que ser elementos novos
-    mutation 
-        href novos - capturar o link e disparar o url change event
+
+eliminar o chord
+mutation 
+    href novos - capturar o link e disparar o url change event
 
 html creator
     recursivo?
         se for recursivo, fazer com promise
 
 ideias:
-    retornar uma estrutura (json) do html 
-    ao construir os elementos no browser, salvar cada elemento numa property da estrutura
-    alterar a estrutura dinamicamente quando se inserir mais nos (via ifs e for)
+    alterar a estrutura dinamicamente quando se inserir mais nodes (via ifs e for) - virtual node
         manter o que é a estrutura original
             o que deve acontecer se um jquery alterar o elemento? altera-se a estrutura?
         ===ver o que acontece hoje quando ha uma mutation...
@@ -29,27 +24,21 @@ ideias:
     attributes com script sera guardados a parte com o seu escopo
     template scripts serao 2 textnodes (inicio e fim) vazios para ser o ponto de insercao. Serao guardados a parte
     _outxdynattr_ removidos
-
-    no parser o {webctx} precisa ja ser alterado
 =======
 
 appcache
     usar fallback para templates - testar
     para cada item que tem template e foi referenciado no cache, tem um item de fallback apontando para seu template
 
-html creator
-    recursivo?
-        se for recursivo, fazer com promise
-
-
 html
     sempre (com ou sem template) sera renderizado um html vazio.
         se for um com template
-            chama via rest (cached) o json do template
-            incluir os elementos dentro do head
-            incluir os elementos dentro do body
-        chama via rest o json da paginda
-        renderiza no ponto de insercao
+            renderiza os scripts e css link
+            renderiza no body um script com o json do template e controi o html
+                incluir os elementos dentro do head faltantes
+                incluir os elementos dentro do body e scripts
+        chama via rest o json da paginda pegando da url qual pagina é
+            renderiza no ponto de insercao
 
 steps
     url no browser ou no evento the change url onde o template da pagina é diferente da pagina atual ou se a pagina tem htmlelement

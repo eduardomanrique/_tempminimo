@@ -87,7 +87,7 @@ class Node {
   get parent() {
     return this._parent;
   }
-  set parent(parent){
+  set parent(parent) {
     this._parent = parent;
   }
   addChar(c) {
@@ -158,7 +158,9 @@ class Attribute {
         this._value.push(value.substring(index, m.index));
       }
       //script
-      this._value.push({s:m[1]});
+      this._value.push({
+        s: m[1]
+      });
       index = m.index + m[1].length + 3;
     }
     if (index < value.length) {
@@ -229,29 +231,28 @@ class Text extends Node {
   toJson() {
     return this._getNonNullText();
   }
-  close() { }
+  close() {}
 }
 
 class Comment extends Text {
   constructor(text) {
     super(text);
   }
-  close() {
-  }
+  close() {}
   toJson() {
     return "";
   }
 }
 
 class TextScript extends Node {
-  constructor(script){
+  constructor(script) {
     super();
     this._script = script;
   }
-  get script(){
+  get script() {
     return this._script;
   }
-  toJson(){
+  toJson() {
     return _clearObj({
       x: this._script,
       h: this._hiddenAttributes
@@ -360,7 +361,7 @@ class Element extends Node {
   getAttribute(name) {
     return _.has(this._attributes, name) ? this._attributes[name].stringValue : null;
   }
-  getAttributeObject(n) {
+  getAttributeJsonFormat(n) {
     return this._attributes[n];
   }
   get name() {
@@ -373,11 +374,14 @@ class Element extends Node {
   close() {
     this._isClosed = true;
   }
+  childrenToJson() {
+    return this.children.filter(n => !_isEmptyText(n)).map(n => n.toJson()).filter(c => !_.isEmpty(c));
+  }
   toJson() {
     return _clearObj({
-      n:this._name,
+      n: this._name,
       a: _.extend({}, ..._.values(this.getAttributes()).map(a => a.toJson())),
-      c: this.children.filter(n => !_isEmptyText(n)).map(n => n.toJson()).filter(c => !_.isEmpty(c)),
+      c: this.childrenToJson(),
       h: this._hiddenAttributes
     });
   }
@@ -425,7 +429,7 @@ class Element extends Node {
       .filter(c => c instanceof Element)
       .map(c => {
         const result = c.findAllChildren(tagName);
-        if(c.name.toLowerCase() == tagName.toLowerCase()){
+        if (c.name.toLowerCase() == tagName.toLowerCase()) {
           result.push(c);
         }
         return result;
@@ -433,22 +437,22 @@ class Element extends Node {
   }
   findDeepestChild(tagName) {
     const e = _.first(this.getElementsByName(tagName));
-    if(e){
-        return e.findDeepestChild(tagName) || e;
+    if (e) {
+      return e.findDeepestChild(tagName) || e;
     }
     return null;
   }
   findDeepestChildWithAttribute(attributeName) {
     const e = _.first(this.getElementsWithAttribute(attributeName));
     if (e) {
-        return e.findDeepestChildWithAttribute(attributeName) || e;
+      return e.findDeepestChildWithAttribute(attributeName) || e;
     }
     return null;
   }
 }
 
 class TemplateScript extends Element {
-  constructor(){
+  constructor() {
     super();
     this._count = null;
     this._listVariable = null;
@@ -486,10 +490,10 @@ class TemplateScript extends Element {
   get indexVariable() {
     return this._indexVariable;
   }
-  get name(){
+  get name() {
     return "";
   }
-  toJson(){
+  toJson() {
     return _clearObj({
       xc: this._count,
       xl: this._listVariable,
@@ -509,7 +513,7 @@ class HTMLDoc extends Element {
   }
   _prepareHTMLElement() {
     if (!_.isEmpty(this._requiredResourcesList)) {
-      if(this._htmlElement) {
+      if (this._htmlElement) {
         this._bodyElement = _.find(this._htmlElement.getElements(), ce => _eqIgnoreCase(ce.name, "body"));
         this._headElement = _.find(this._htmlElement.getElements(), ce => _eqIgnoreCase(ce.name, "head"));
         if (!this._headElement) {
@@ -661,9 +665,9 @@ class HTMLParser {
     }
     return doc;
   }
-  closeCurrentText(){
+  closeCurrentText() {
     const textValue = _str(this._currentText);
-    if(textValue.length > 0){
+    if (textValue.length > 0) {
       this._currentParent.addChild(new Text(textValue));
     }
     this._currentText = [];
@@ -751,7 +755,7 @@ class HTMLParser {
     //read attributes
     let currentAttributeValue = [];
     const checkEmptyAttribute = () => {
-      if (_str(currentAttributeValue).trim().length > 0) 
+      if (_str(currentAttributeValue).trim().length > 0)
         element.setAttribute(_str(currentAttributeValue).trim(), null);
       currentAttributeValue = [];
     };
@@ -796,10 +800,10 @@ class HTMLParser {
               let val = _str(currentAttributeValue).substring(0, currentAttributeValue.length);
               if (endNoAspas) {
                 this._currentIndex--;
-                val = val.substring(0, val.length-1);
+                val = val.substring(0, val.length - 1);
               }
               element.setAttribute(attName, val);
-              if (attName == "data-xbind") {
+              if (attName == "bind") {
                 let bind = val.trim();
                 let varName = bind.split(".")[0];
                 if (varName != "window" && varName != "xuser") {
@@ -825,7 +829,7 @@ class HTMLParser {
         } else {
           element.setAttribute(attName, null);
         }
-      }else{
+      } else {
         currentAttributeValue.push(s);
       }
     }
@@ -951,7 +955,7 @@ class HTMLParser {
     this._currentParent.addChild(comment);
     comment.close();
   }
-  inCDATA(){
+  inCDATA() {
     const sb = [];
     while (true) {
       if (this.nextIs("]]>")) {

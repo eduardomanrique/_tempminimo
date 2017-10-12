@@ -1,1 +1,1 @@
-${this.label}<input type="checkbox" data-xbind="bind" id="cb_${this.id}">
+${this.label}<input type="checkbox" bind="varToBind" id="cb_${this.id}">
