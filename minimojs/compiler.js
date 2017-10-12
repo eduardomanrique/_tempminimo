@@ -1,8 +1,8 @@
-const resources = require('../minimojs/resources');
-const htmlParser = require('../minimojs/htmlParser');
-const components = require('../minimojs/components');
+const resources = require('./resources');
+const htmlParser = require('./htmlParser');
+const components = require('./components');
 
-const context = require('../minimojs/context');
+const context = require('./context');
 const fs = require('fs');
 const _basePagesPath = './pages';
 const _baseResPath = './res';

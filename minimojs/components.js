@@ -4,10 +4,10 @@ const resources = require('./resources');
 const ctx = require('./context');
 const esprima = require('esprima');
 const esprimaUtil = require('./esprimaUtil');
-const htmlParser = require('../minimojs/htmlParser');
-const types = require('../minimojs/component-types').types;
-const isComponentType = require('../minimojs/component-types').isComponentType;
-const util = require('../minimojs/util');
+const htmlParser = require('./htmlParser');
+const types = require('./component-types').types;
+const isComponentType = require('./component-types').isComponentType;
+const util = require('./util');
 
 let _componentsScript;
 let _componentsInfo;
@@ -16,16 +16,46 @@ let _componentsHtmxSources;
 
 const _generateId = (prefix) => (prefix || "id_") + parseInt(Math.random() * 999999);
 
+const __setUpGetterForAttributes = `var __setUpGetterForAttributes = function(obj, evaluator, __instanceProperties, _attrs) {
+  for(var k in __instanceProperties) {
+    if(__instanceProperties[k] != __types.types.boundVariable && __instanceProperties[k] != __types.types.mandatory.boundVariable){
+      if(__types.isComponentType(__instanceProperties[k])){
+        Object.defineProperty(obj, k, { get: function () {
+          return _attrs[k].map(i => typeof(i) == 'string' ? i : evaluator(i.s)).join('');
+        }});
+      }else{
+        obj[k] = obj[k] || [];
+        _attrs[k].forEach(v => {
+          var objk = {};
+          obj[k].push(objk)
+          __setUpGetterForAttributes(objk, evaluator, __instanceProperties[k], v)
+        });
+      }
+    }
+  }
+}`;
+
 const startComponents = () => loadComponents().then(componentsInfo => {
   _componentsScript = componentsInfo.scripts;
   _componentsInfo = componentsInfo.info;
   _componentsHtmxSources = componentsInfo.htmxSources
-  eval(`(()=>{
-  var X = {generatedId: function(){return 'ID${parseInt(Math.random() * 999999)}';}, _addExecuteWhenReady: function(){}};
-  ${_componentsScript}
-  _componentsCtx.components = components;
-  })();`);
+  return util.readModuleFile('./component-types.js').then((componentTypes) => {
+    const script = `(function(){
+      var __types = (function(){
+        var module = {};
+        ${componentTypes}
+        return module.exports;
+      })();
+      ${__setUpGetterForAttributes}
+      var X = {generatedId: function(){return 'ID${parseInt(Math.random() * 999999)}';}, _addExecuteWhenReady: function(){}};
+      ${_componentsScript}
+      _componentsCtx.components = components;
+      })();`;
+      eval(script);
+  });
 });
+
+
 
 const loadComponents = () =>
   resources.getResources("./components", r => (r.endsWith(".js") || r.endsWith(".htmx")) && !r.match(/[^/]+$/)[0].startsWith("."))
@@ -119,11 +149,18 @@ const _createHtmxComponent = (compJs = "", varPath, compName) =>
   `${varPath} = new function(){
      this.htmxContext = function(_attrs, _evalFn){
        var selfcomp = this;
-       this._attrs = _attrs;
        this._compName = '${compName}';
        this._xcompEval = _evalFn;
        ${compJs};
        ${_exposeFunctions(compJs)};
+       var __defineAttributes;
+       try{
+         __defineAttributes = defineAttributes;
+       }catch(e){__defineAttributes=function(){}}
+       var __instanceProperties = __defineAttributes(__types.types);
+       if(_attrs && __instanceProperties){
+        __setUpGetterForAttributes(selfcomp, _evalFn, __instanceProperties, _attrs);
+       }
        var generateId = X.generateId;
      }
    };`
@@ -260,5 +297,6 @@ module.exports = {
   buildComponentsOnPage: buildComponentsOnPage,
   startComponents: startComponents,
   _childInfoHtmxFormat: _childInfoHtmxFormat,
-  _findDeepestComponent: _findDeepestComponent
+  _findDeepestComponent: _findDeepestComponent,
+  setUpGetterForAttributes: __setUpGetterForAttributes
 }

@@ -1,6 +1,6 @@
 const _ = require('underscore');
 const esprima = require('esprima');
-const context = require('../minimojs/context');
+const context = require('./context');
 
 const _prepareXScriptsValues = (value) => {
   let last = value;

@@ -10,10 +10,12 @@ const startComponents = require('../minimojs/components').startComponents;
 const _childInfoHtmxFormat = require('../minimojs/components')._childInfoHtmxFormat;
 const _findDeepestComponent = require('../minimojs/components')._findDeepestComponent;
 const buildComponentsOnPage = require('../minimojs/components').buildComponentsOnPage;
+const setUpGetterForAttributes = require('../minimojs/components').setUpGetterForAttributes
 const loadComponents = require('../minimojs/components').loadComponents;
 const ctx = require('../minimojs/context');
 const _components = rewire('../minimojs/components');
 const htmlParser = require('../minimojs/htmlParser');
+const util = require('../minimojs/util');
 
 ctx.contextPath = 'ctx';
 process.chdir(`${__dirname}/datadir`);
@@ -25,22 +27,25 @@ let _setComponents = (c, i) => {
 	info = i;
 }
 
-before(() =>
-	loadComponents()
-	.then(c => {
+before(() => loadComponents().then(c => util.readModuleFile('../minimojs/component-types.js').then((componentTypes) => {
 		var _test = {};
-		try {
+		try{
 			eval(`
-            var X = {generatedId: function(){return '123'}, _addExecuteWhenReady: function(){}};
-            ${c.scripts}
-            _test.components = components;
-          `);
+				var __types = (function(){
+					var module = {};
+					${componentTypes}
+					return module.exports;
+				})();
+				${setUpGetterForAttributes}
+        var X = {generatedId: function(){return '123'}, _addExecuteWhenReady: function(){}};
+        ${c.scripts}
+        _test.components = components;`);
 		} catch (e) {
 			console.log(`Error: ${e.message}`);
 		}
 		_setComponents(_test.components, c);
-	})
-);
+	})));
+
 
 describe('Test component', function () {
 	it('Old type', () => {
