@@ -93,4 +93,6 @@ describe('Get resources', function() {
       });
     })
   );
+  it('Exists', () => resources.exists("./res/dir1/fdir1.html").then(assert));
+  it('Doesnt Exist', () => resources.exists("./res/dir1/xasdf.html").then(exists => assert(!exists)));
 });

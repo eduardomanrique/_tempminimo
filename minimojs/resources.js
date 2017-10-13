@@ -52,7 +52,10 @@ const copy = (source, dest) =>
 
 const getRealPath = (path) => `${process.cwd()}${path.startsWith('.') ? path.substring(1) : path}`;
 
-const exists = (path) => pathLib.existsSync(path);
+const exists = (path) => new Promise((resolve) => 
+  fs.lstat(path, (err, stats) => {
+    resolve(!err || err.code != 'ENOENT');
+  }));
 
 module.exports = {
   getResourcePaths: getResourcePaths,

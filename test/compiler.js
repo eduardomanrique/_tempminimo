@@ -1,8 +1,8 @@
-//const compiler = require('../minimojs/compiler');
+const compiler = require('../minimojs/compiler');
 
 describe('Test html parser', function () {
-    // it('Get resource info', compiler._restart)
-    //     .then(() => compiler._getResourceInfo('/test1.htmx', false))
+  it('Get resource info', () => compiler._restart()
+    .then(() => compiler._getResourceInfo('/test1.htmx', false)));
 
 
         //get resource empty

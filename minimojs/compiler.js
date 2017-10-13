@@ -7,10 +7,10 @@ const context = require('./context');
 const fs = require('fs');
 const _basePagesPath = './pages';
 const _baseResPath = './res';
-const _htmxStrLength = ".htmx".length();
+const _htmxStrLength = ".htmx".length;
 let _cached;
 
-const _restart = () => new Promise(() =>
+const _restart = () => new Promise((resolve) => {
     _cached = {
         modalPathsDeclared: {},
         appcacheResources: new Set(),
@@ -20,7 +20,9 @@ const _restart = () => new Promise(() =>
         importableResourceInfo: {},
         resourceInfoMap: {},
         listByComponent: {}
-    });
+    };
+    resolve();
+});
 
 const compileResources = (destDir, defaultTemplateName) =>
     components.startComponents().then(() =>
@@ -66,24 +68,37 @@ class Resource {
 
 const _getResourceInfo = (path, isGlobal) => {
     if (!_cached.resourceInfoMap[path]) {
-        const noExtensionPath = path.substring(0, path.lastIndexOf('.'));
-        const isDir = fs.lstatSync(noExtensionPath).isDirectory();
-        const relativeJsPath = `./pages${noExtensionPath}${isDir?'/index':''}.js`;
-        if (!resources.exists(relativeJsPath)) {
-            _cached.resourceInfoMap[path] = util.emptyOption();
-        }else{
-            const resource = new Resource();
-            resource.jsOnly = path.endsWith(".js");
-            resource.path = path;
-            resource.jsPath = `${noExtensionPath}${isDir?'/index':''}.js`;
-            resource.global = isGlobal;
-            resource.relativeJsPath = relativeJsPath;
-            resource.jsRealPath = resources.getRealPath(resource.relativeJsPath);
-    
-            _cached.resourceInfoMap[path] = util.optionOf(resource);
-            _cached.appcacheResources.add(path);
-            _cached.appcacheResources.add(resource.jsPath);
-        }
+        return new Promise((resolve) => {
+            const noExtensionPath = path.substring(0, path.lastIndexOf('.'));
+            fs.lstat(`./pages${noExtensionPath}`, (err, stats) => {
+                if(!err || err.code == 'ENOENT'){
+                    const isDir = (err && err.code == 'ENOENT') || stats.isDirectory();
+                    const relativeJsPath = `./pages${noExtensionPath}${isDir?'/index':''}.js`;
+                    resources.exists(relativeJsPath).then(exists => {
+                        if (!exists) {
+                            _cached.resourceInfoMap[path] = util.emptyOption();
+                        }else{
+                            const resource = new Resource();
+                            resource.jsOnly = path.endsWith(".js");
+                            resource.path = path;
+                            resource.jsPath = `${noExtensionPath}${isDir?'/index':''}.js`;
+                            resource.global = isGlobal;
+                            resource.relativeJsPath = relativeJsPath;
+                            resource.jsRealPath = resources.getRealPath(resource.relativeJsPath);
+                    
+                            _cached.resourceInfoMap[path] = util.optionOf(resource);
+                            _cached.appcacheResources.add(path);
+                            _cached.appcacheResources.add(resource.jsPath);
+                        }
+                        resolve();
+                    });
+                    
+                }else{
+                    console.log(`Error checking path: ${path}, error: ${err.code} ${stats}`);
+                    resolve();
+                }
+            });
+        })
     }
     return _cached.resourceInfoMap[path];
 }
