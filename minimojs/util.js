@@ -25,6 +25,16 @@ class Option {
             fn(this._val);
         }
     }
+    then(ifPresentFn) {
+        return new Promise((resolve, reject) => {
+            if(this._val){
+                ifPresentFn(this._val);
+                resolve(this._val);
+            }else{
+                resolve();
+            }
+        });
+    }
     get value() {
         return this._val;
     }

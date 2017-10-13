@@ -1,6 +1,7 @@
 const resources = require('./resources');
 const htmlParser = require('./htmlParser');
 const components = require('./components');
+const util = require('./util');
 
 const context = require('./context');
 const fs = require('fs');
@@ -17,8 +18,8 @@ const _restart = () => new Promise(() =>
         templateMap: {},
         allResources: {},
         importableResourceInfo: {},
-        resourceInfoMap = {},
-        listByComponent = {}
+        resourceInfoMap: {},
+        listByComponent: {}
     });
 
 const compileResources = (destDir, defaultTemplateName) =>
@@ -64,29 +65,27 @@ class Resource {
 }
 
 const _getResourceInfo = (path, isGlobal) => {
-    let resInfo = _cached.resourceInfoMap[path];
-    if (!resInfo) {
-        let result = new Resource();
-        result.jsOnly = path.endsWith(".js");
-        let noExtensionPath = path.substring(0, path.lastIndexOf('.'));
-        result.global = isGlobal;
-        let isDir = fs.lstatSync(noExtensionPath).isDirectory();
-
-        result.relativeJsPath = `./pages${noExtensionPath}${isDir?'/index':''}.js`;
-        result.jsRealPath = resources.getRealPath(result.relativeJsPath);
-        if (!resources.exists(result.relativeJsPath)) {
-            _cached.resourceInfoMap[path] = {
-                empty: true
-            };
-            return null;
+    if (!_cached.resourceInfoMap[path]) {
+        const noExtensionPath = path.substring(0, path.lastIndexOf('.'));
+        const isDir = fs.lstatSync(noExtensionPath).isDirectory();
+        const relativeJsPath = `./pages${noExtensionPath}${isDir?'/index':''}.js`;
+        if (!resources.exists(relativeJsPath)) {
+            _cached.resourceInfoMap[path] = util.emptyOption();
+        }else{
+            const resource = new Resource();
+            resource.jsOnly = path.endsWith(".js");
+            resource.path = path;
+            resource.jsPath = `${noExtensionPath}${isDir?'/index':''}.js`;
+            resource.global = isGlobal;
+            resource.relativeJsPath = relativeJsPath;
+            resource.jsRealPath = resources.getRealPath(resource.relativeJsPath);
+    
+            _cached.resourceInfoMap[path] = util.optionOf(resource);
+            _cached.appcacheResources.add(path);
+            _cached.appcacheResources.add(resource.jsPath);
         }
-        result.path = path;
-        result.jsPath = `${noExtensionPath}${isDir?'/index':''}.js`;
-        _cached.resourceInfoMap[path] = result;
-        _cached.appcacheResources.add(path);
-        _cached.appcacheResources.add(result.jsPath);
     }
-    return resInfo.empty ? null : resInfo;
+    return _cached.resourceInfoMap[path];
 }
 const _loadFileAndCache = (resInfo, compiledPage) =>
     resources.writeFile(`${baseDestPath}${resInfo.path}.js`, compiledPage);
@@ -99,6 +98,7 @@ const _reloadHtmxFile = htmxFile => {
     let path = htmxFile.path.substring(_basePagesPath.length, htmxFile.path.length - _htmxStrLength);
     const resInfo = _getResourceInfo(path);
     //load html main window
+    // resInfo
     resources.readResource(resInfo.jsRealPath).then(jsFile => {
         let compiledPage = _compilePage(resInfo, htmxFile.data, jsFile.data);
         _loadFileAndCache(resInfo, compiledPage);
@@ -285,4 +285,9 @@ const _prepareHTML = (doc, boundVars, boundModals) => {
     });
     _.values(boundModals).forEach(modal => _cached.appcacheResources.add(modal.path));
     _addChildValidElements(doc);
+}
+
+module.exports = {
+    _restart: _restart,
+    _getResourceInfo: _getResourceInfo
 }
