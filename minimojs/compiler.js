@@ -27,15 +27,15 @@ const _restart = () => new Promise((resolve) => {
 const compileResources = (destDir, defaultTemplateName) =>
     components.startComponents().then(() =>
         resources.copy(_baseResPath, destDir)
-            .then(resources.copy(baseResPath, `${destDir}/res`))
-            .then(_restart)
-            .then(_reloadHtmxFiles)
-            .then(_reloadJsFiles)
-            .then(_reloadGlobalImported)
-            .then(_generateAppCacheFile)
-            .then(_startWatchService)
-            .then(_collectAllResources)
-            .then(_reloadCommonResources)
+        .then(resources.copy(baseResPath, `${destDir}/res`))
+        .then(_restart)
+        .then(_reloadHtmxFiles)
+        .then(_reloadJsFiles)
+        .then(_reloadGlobalImported)
+        .then(_generateAppCacheFile)
+        .then(_startWatchService)
+        .then(_collectAllResources)
+        .then(_reloadCommonResources)
     ).catch((e) => console.log(`Error: ${e.message}`));
 
 class ImportableResourceInfo {
@@ -60,6 +60,7 @@ class Resource {
         this.jsRealPath = null;
         //relative path to generated js file
         this.relativeJsPath = null;
+        this.relativePath = null;
         this.templateName = null;
         this.global = null;
         this.jsOnly = false;
@@ -67,40 +68,55 @@ class Resource {
 }
 
 const _getResourceInfo = (path, isGlobal) => {
-    if (!_cached.resourceInfoMap[path]) {
-        return new Promise((resolve) => {
-            const noExtensionPath = path.substring(0, path.lastIndexOf('.'));
-            fs.lstat(`./pages${noExtensionPath}`, (err, stats) => {
-                if(!err || err.code == 'ENOENT'){
-                    const isDir = (err && err.code == 'ENOENT') || stats.isDirectory();
-                    const relativeJsPath = `./pages${noExtensionPath}${isDir?'/index':''}.js`;
-                    resources.exists(relativeJsPath).then(exists => {
-                        if (!exists) {
-                            _cached.resourceInfoMap[path] = util.emptyOption();
-                        }else{
-                            const resource = new Resource();
-                            resource.jsOnly = path.endsWith(".js");
-                            resource.path = path;
-                            resource.jsPath = `${noExtensionPath}${isDir?'/index':''}.js`;
-                            resource.global = isGlobal;
-                            resource.relativeJsPath = relativeJsPath;
-                            resource.jsRealPath = resources.getRealPath(resource.relativeJsPath);
-                    
-                            _cached.resourceInfoMap[path] = util.optionOf(resource);
-                            _cached.appcacheResources.add(path);
-                            _cached.appcacheResources.add(resource.jsPath);
-                        }
-                        resolve();
-                    });
-                    
-                }else{
-                    console.log(`Error checking path: ${path}, error: ${err.code} ${stats}`);
-                    resolve();
+    return new Promise((resolve) => {
+        if (!_cached.resourceInfoMap[path]) {
+            const relativePath = `./pages${path}`;
+            fs.lstat(relativePath, (err, stats) => {
+                if (!err || err.code == 'ENOENT') {
+                    const noExtensionPath = path.substring(0, path.lastIndexOf('.'));
+                    const _get = (stats) => {
+                        const isDir = stats.isDirectory();
+                        const relativeJsPath = `./pages${noExtensionPath}${isDir?'/index':''}.js`;
+                        resources.exists(relativeJsPath).then(exists => {
+                            if (!exists) {
+                                _cached.resourceInfoMap[path] = util.emptyOption();
+                            } else {
+                                const resource = new Resource();
+                                resource.jsOnly = path.endsWith(".js");
+                                resource.path = path;
+                                resource.jsPath = `${noExtensionPath}${isDir?'/index':''}.js`;
+                                resource.global = isGlobal;
+                                resource.relativeJsPath = relativeJsPath;
+                                resource.relativePath = relativePath;
+                                resource.jsRealPath = resources.getRealPath(resource.relativeJsPath);
+
+                                _cached.resourceInfoMap[path] = util.optionOf(resource);
+                                _cached.appcacheResources.add(path);
+                                _cached.appcacheResources.add(resource.jsPath);
+                            }
+                            resolve(_cached.resourceInfoMap[path]);
+                        });
+                    }
+                    if (err && err.code == 'ENOENT') {
+                        resources.exists(`./pages${noExtensionPath}`).then(stats => {
+                            if (stats) {
+                                _get(stats);
+                            } else {
+                                _cached.resourceInfoMap[path] = util.emptyOption();
+                                resolve(_cached.resourceInfoMap[path]);
+                            }
+                        });
+                    } else {
+                        _get(stats);
+                    }
+                } else {
+                    reject(err);
                 }
             });
-        })
-    }
-    return _cached.resourceInfoMap[path];
+        } else {
+            resolve(_cached.resourceInfoMap[path]);
+        }
+    });
 }
 const _loadFileAndCache = (resInfo, compiledPage) =>
     resources.writeFile(`${baseDestPath}${resInfo.path}.js`, compiledPage);
@@ -187,7 +203,7 @@ const _prepareTopElements = (doc) => {
 }
 
 const _printScripts = (element) => element.children.forEach(e => {
-    if (e.name == 'script'){
+    if (e.name == 'script') {
         const tag = `<script>${e.childre.map(c => c.text).join('')}</script>`;
         e.remove();
         return tag;

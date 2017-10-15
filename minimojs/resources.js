@@ -54,7 +54,7 @@ const getRealPath = (path) => `${process.cwd()}${path.startsWith('.') ? path.sub
 
 const exists = (path) => new Promise((resolve) => 
   fs.lstat(path, (err, stats) => {
-    resolve(!err || err.code != 'ENOENT');
+    resolve(!err ? stats : false);
   }));
 
 module.exports = {

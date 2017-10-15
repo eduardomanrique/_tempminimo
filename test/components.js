@@ -2,7 +2,7 @@ require('./test');
 const chai = require('chai');
 const rewire = require('rewire');
 chai.use(require('chai-string'));
-require('chai').should();
+chai.should();
 const expect = require('chai').expect;
 const _ = require('underscore');
 const assert = require('assert');
