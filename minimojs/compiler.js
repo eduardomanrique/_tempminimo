@@ -29,8 +29,7 @@ const compileResources = (destDir, defaultTemplateName) =>
         resources.copy(_baseResPath, destDir)
         .then(resources.copy(baseResPath, `${destDir}/res`))
         .then(_restart)
-        .then(_reloadHtmxFiles)
-        .then(_reloadJsFiles)
+        .then(_reloadFiles)
         .then(_reloadGlobalImported)
         .then(_generateAppCacheFile)
         .then(_startWatchService)
@@ -113,20 +112,18 @@ const _getResourceInfo = (path, isGlobal) => new Promise((resolve) => {
 const _loadFileAndCache = (resInfo, compiledPage) =>
     resources.writeFile(`${baseDestPath}${resInfo.path}.js`, compiledPage);
 
-const _reloadHtmxFiles = () =>
-    resources.getResources("./pages", r => r.endsWith(".htmx"))
-    .then(values => values.forEach(_reloadHtmxFile));
+const _reloadFiles = () =>
+    resources.getResources("./pages", r => r.endsWith(".htmx") || r.endsWith(".js"))
+        .then(values => _.groupBy(values, resource => resource.path.substring(0, resource.path.lastIndexOf('.'))))
+        .then(values => _.mapObject(values, _reloadFile));
 
-const _reloadHtmxFile = htmxFile => {
-    let path = htmxFile.path.substring(_basePagesPath.length, htmxFile.path.length - _htmxStrLength);
+const _reloadFile = (_resources, path) => {
     const resInfo = _getResourceInfo(path);
-    //load html main window
-    // resInfo
-    resources.readResource(resInfo.jsRealPath).then(jsFile => {
-        let compiledPage = _compilePage(resInfo, htmxFile.data, jsFile.data);
-        _loadFileAndCache(resInfo, compiledPage);
-        _cached.importableResourceInfo[path] = new ImportableResourceInfo(path, htmxResInfo.templateName);
-    });
+    const htmx = path.htmxPath.isPresent() ? (_resources[0].path.endsWith('.htmx') ? _resources[0].data : _resources[1].data) : '';
+    const js = path.jsPath.isPresent() ? (_resources[0].path.endsWith('.js') ? _resources[0].data : _resources[1].data) : '';
+    let compiledPage = _compilePage(resInfo, htmx, js);
+    _loadFileAndCache(resInfo, compiledPage);
+    _cached.importableResourceInfo[path] = new ImportableResourceInfo(path, htmxResInfo.templateName);
 }
 
 const _blankHtml = () => `<html><body></body></html>`;
@@ -287,7 +284,7 @@ const _compilePage = (resInfo, htmxData, jsData) => {
     //get all the bound modals in the page
     const boundModals = doc.boundModals;
 
-    _reloadTemplate(resInfo.templateName);
+    resInfo.templateName.ifPresent(_reloadTemplate);
 
     //place real html of components, prepare iterators and labels
     _prepareHTML(doc, boundVars, boundModals);

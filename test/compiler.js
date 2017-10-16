@@ -1,7 +1,6 @@
 require('./test');
 const compiler = require('../minimojs/compiler');
 const resources = require('../minimojs/resources');
-require('chai').should();
 const expect = require('chai').expect;
 
 describe('Test compiler', function () {
@@ -47,11 +46,25 @@ describe('Test compiler', function () {
                     resource.relativeHtmxPath.value.should.equal('./pages/dir2/htmxonly.htmx');
                 });
             })));
-    if('Reload htmx file', () => {
-            compiler.Resource = new compiler.Resource();
-            _compilePage
-        });
-    // _reloadHtmxFile com mock
+    it ('Compile page htmx and js no components no html element', () => {
+        const realPath = resources.getRealPath('/pages/dir1/test1.htmx');
+        const resInfo = new compiler.Resource('/dir1/test1', true, true, realPath.substring(0, realPath.lastIndexOf('.')), false);
+        return Promise.all([resources.readResource(resInfo.relativeHtmxPath.value), resources.readResource(resInfo.relativeJsPath.value)])
+            .then(([htmx, js]) => compiler._compilePage(resInfo, htmx.data, js.data))
+    });
+    it ('Compile page htmx and js not components with template info', () => {
+    });
+    it ('Compile page htmx and js with components no html element', () => {
+    });
+    it ('Compile page htmx and js with components with template info', () => {
+    });
+    it ('Compile page htmx only', () => {
+    });
+    it ('Compile page js only?', () => {
+    });
+    //_loadFileAndCache
+    // _reloadFile
+    //_reloadFiles
     //_reloadTemplate com mock?
     //_addChildValidElements ?
     //_compilePage com mock?
