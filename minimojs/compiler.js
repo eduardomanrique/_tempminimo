@@ -51,73 +51,65 @@ class ImportableResourceInfo {
     }
 }
 class Resource {
-    constructor() {
-        //ref to html (loader html)
-        this.path = null;
-        //ref to js with struct and controller
-        this.jsPath = null;
-        //disk path to generated js file
-        this.jsRealPath = null;
-        //relative path to generated js file
-        this.relativeJsPath = null;
-        this.relativePath = null;
-        this.templateName = null;
-        this.global = null;
-        this.jsOnly = false;
+    constructor(_path, _js, _htmx, _realPath, _global) {
+        this._jsPath = util.nullableOption(_js ? `${_path}.js`: null);
+        this._htmxPath = util.nullableOption(_htmx ? `${_path}.htmx`: null);
+        this._relativeJsPath = util.nullableOption(_js ? `./pages${_path}.js`: null);
+        this._relativeHtmxPath = util.nullableOption(_htmx ? `./pages${_path}.htmx`: null);
+        this._realJsPath = util.nullableOption(_js ? `${_realPath}.js`: null);
+        this._realHtmxPath = util.nullableOption(_htmx ? `${_realPath}.htmx`: null);
+        this._global = _global;
+        this._template = util.emptyOption();
+    }
+    get jsPath(){
+        return this._jsPath;
+    }
+    get htmxPath(){
+        return this._htmxPath;
+    }
+    get relativeJsPath(){
+        return this._relativeJsPath;
+    }
+    get relativeHtmxPath(){
+        return this._relativeHtmxPath;
+    }
+    get jsRealPath(){
+        return this._realJsPath;
+    }
+    get htmxRealPath(){
+        return this._realHtmxPath;
+    }
+    get templateName(){
+        return this._template;
+    }
+    set templateName(_template){
+        this._template = util.nullableOption(_template);
+    }
+    get isGlobal(){
+        return this._global;
     }
 }
 
-const _getResourceInfo = (path, isGlobal) => {
-    return new Promise((resolve) => {
-        if (!_cached.resourceInfoMap[path]) {
-            const relativePath = `./pages${path}`;
-            fs.lstat(relativePath, (err, stats) => {
-                if (!err || err.code == 'ENOENT') {
-                    const noExtensionPath = path.substring(0, path.lastIndexOf('.'));
-                    const _get = (stats) => {
-                        const isDir = stats.isDirectory();
-                        const relativeJsPath = `./pages${noExtensionPath}${isDir?'/index':''}.js`;
-                        resources.exists(relativeJsPath).then(exists => {
-                            if (!exists) {
-                                _cached.resourceInfoMap[path] = util.emptyOption();
-                            } else {
-                                const resource = new Resource();
-                                resource.jsOnly = path.endsWith(".js");
-                                resource.path = path;
-                                resource.jsPath = `${noExtensionPath}${isDir?'/index':''}.js`;
-                                resource.global = isGlobal;
-                                resource.relativeJsPath = relativeJsPath;
-                                resource.relativePath = relativePath;
-                                resource.jsRealPath = resources.getRealPath(resource.relativeJsPath);
-
-                                _cached.resourceInfoMap[path] = util.optionOf(resource);
-                                _cached.appcacheResources.add(path);
-                                _cached.appcacheResources.add(resource.jsPath);
-                            }
-                            resolve(_cached.resourceInfoMap[path]);
-                        });
-                    }
-                    if (err && err.code == 'ENOENT') {
-                        resources.exists(`./pages${noExtensionPath}`).then(stats => {
-                            if (stats) {
-                                _get(stats);
-                            } else {
-                                _cached.resourceInfoMap[path] = util.emptyOption();
-                                resolve(_cached.resourceInfoMap[path]);
-                            }
-                        });
-                    } else {
-                        _get(stats);
-                    }
+const _getResourceInfo = (path, isGlobal) => new Promise((resolve) => {
+    const noExtPath = path.substring(0, path.lastIndexOf('.'));
+    if (!_cached.resourceInfoMap[noExtPath]) {
+        return Promise.all([resources.exists(`./pages${noExtPath}.htmx`), resources.exists(`./pages${noExtPath}.js`)])
+            .then(([existsHtmx, existsJs]) => {
+                if (!existsHtmx && !existsJs) {
+                    _cached.resourceInfoMap[noExtPath] = util.emptyOption();
                 } else {
-                    reject(err);
+                    const realPath = resources.getRealPath(`/pages${existsHtmx ? `${noExtPath}.htmx` : `${noExtPath}.js`}`);
+                    const resource = new Resource(noExtPath, existsJs, existsHtmx, realPath.substring(0, realPath.lastIndexOf('.')), isGlobal);
+                    _cached.resourceInfoMap[noExtPath] = util.optionOf(resource);
+                    resource.jsPath.ifPresent(p => _cached.appcacheResources.add(p));
+                    resource.htmxPath.ifPresent(p => _cached.appcacheResources.add(p));
                 }
+                resolve(_cached.resourceInfoMap[noExtPath]);
             });
-        } else {
-            resolve(_cached.resourceInfoMap[path]);
-        }
-    });
-}
+    }else{
+        resolve(_cached.resourceInfoMap[noExtPath]);
+    }
+});
 const _loadFileAndCache = (resInfo, compiledPage) =>
     resources.writeFile(`${baseDestPath}${resInfo.path}.js`, compiledPage);
 
@@ -320,5 +312,7 @@ const _prepareHTML = (doc, boundVars, boundModals) => {
 
 module.exports = {
     _restart: _restart,
-    _getResourceInfo: _getResourceInfo
+    _getResourceInfo: _getResourceInfo,
+    Resource: Resource,
+    _compilePage: _compilePage
 }

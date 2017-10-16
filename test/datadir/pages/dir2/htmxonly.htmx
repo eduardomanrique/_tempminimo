@@ -1,0 +1,5 @@
+<h1>Test 1</h1>
+<h2>For unit tests</h2>
+Parameter: <input bind="param"><br>
+${showSomething()}
+<a href="{webctx}/test2.html">Test 2</a><br>
