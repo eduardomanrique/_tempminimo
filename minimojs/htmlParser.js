@@ -184,7 +184,7 @@ class Attribute {
 }
 
 class ModalBind {
-  constructor(varName, path, elementId = null, toggled = true){
+  constructor(varName, path, elementId = null, toggled = false){
     this._varName = varName;
     this._path = path;
     this._elementId = elementId;
@@ -810,7 +810,7 @@ class HTMLParser {
                   this._boundObjects.push(varName.split("[")[0]);
                 }
               } else if (attName.startsWith("data-xmodal") && attName != "data-xmodal-toggle") {
-                let varname;
+                let varName;
                 if (attName.startsWith("data-xmodal-")) { // has
                   // a
                   // bound
@@ -842,16 +842,16 @@ class HTMLParser {
       if (toggle) {
         let bind = modalBindMap[toggle];
         if (bind) {
-          bind.setToggle(true);
+          bind.toggled = true;
         }
       }
       _.values(modalBindMap).forEach(v => {
-        if (modalBindMap.size() == 1) {
-          v.setToggle(true);
+        if (_.size(modalBindMap) == 1) {
+          v.toggled = true;
         }
         v.elementId = elementId;
+        this._boundModals.push(v);
       });
-      _.extend(this._boundModals, modalBindMap);
     }
     this.prepareElementsWithSource(element);
   }

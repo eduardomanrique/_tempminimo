@@ -167,8 +167,6 @@ describe('Test html parser', function () {
     discardEmptyText();
     assert(!node, 'Node should be empty');
   });
-
-
   it('Test find elements', () => {
     let parser = new htmlParser.HTMLParser();
     let doc = parser.parse(`
@@ -191,5 +189,32 @@ describe('Test html parser', function () {
     expect(doc.findDeepestChild('div').getAttribute("id")).is.eq('c');
     expect(doc.findDeepestChild('span').getAttribute("id")).is.eq('b');
     expect(doc.findDeepestChildWithAttribute('att').getAttribute("id")).is.eq('b');
+  });
+
+  it('Test modal elements', () => {
+    let parser = new htmlParser.HTMLParser();
+    let doc = parser.parse(`
+      <html>
+        <head>
+          <script>console.log("1");</script>
+        </head>
+        <body>
+          <div id=modal data-xmodal-mod="/modal/modalPage"></div>
+          <div id=modal2 data-xmodal-mod1="/modal/modalPage1" data-xmodal-mod2="/modal/modalPage2" data-xmodal-toggle="mod2"></div>
+        </body>
+      </html>
+    `);
+    parser.boundModals.should.have.lengthOf(3);
+    parser.boundModals[0].varName.should.be.equal('mod');
+    parser.boundModals[0].toggled.should.be.true;
+    parser.boundModals[0].path.should.be.equal('/modal/modalPage');
+
+    parser.boundModals[1].varName.should.be.equal('mod1');
+    parser.boundModals[1].toggled.should.be.false;
+    parser.boundModals[1].path.should.be.equal('/modal/modalPage1');
+
+    parser.boundModals[2].varName.should.be.equal('mod2');
+    parser.boundModals[2].toggled.should.be.true;
+    parser.boundModals[2].path.should.be.equal('/modal/modalPage2');
   });
 });
