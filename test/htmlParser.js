@@ -199,8 +199,8 @@ describe('Test html parser', function () {
           <script>console.log("1");</script>
         </head>
         <body>
-          <div id=modal data-xmodal-mod="/modal/modalPage"></div>
-          <div id=modal2 data-xmodal-mod1="/modal/modalPage1" data-xmodal-mod2="/modal/modalPage2" data-xmodal-toggle="mod2"></div>
+          <div id=modal data-modal-mod="/modal/modalPage"></div>
+          <div id=modal2 data-modal-mod1="/modal/modalPage1" data-modal-mod2="/modal/modalPage2" data-modal-toggle="mod2"></div>
         </body>
       </html>
     `);

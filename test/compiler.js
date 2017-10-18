@@ -81,7 +81,6 @@ describe('Test compiler', function () {
         eval(`${prepared}; 
             binds = __binds__;
             setVars = function(){
-                console.log(i)
                 vars.i=i;
                 vars.i2=i2;
                 vars.modal1=modal1;
@@ -105,7 +104,32 @@ describe('Test compiler', function () {
             expect(vars.modal3).to.be.equal(instance);
         });
     });
-    //_instrumentController
+    it ('Test instrument controller', () => {
+        const parser = new htmlParser.HTMLParser();
+        const docJson = parser.parse(`<html>
+            <body>
+                <input bind="obj.test">
+                <div data-modal-mod="/modal/mod"></div>
+            </body>
+        </html>`).toJson();
+        const boundVars = parser.boundVars;
+        const boundModals = parser.boundModals;
+        const jsData = `var obj = {
+            test:1
+        };
+        var mod;
+        function onInit(){
+            console.log('onInit');
+        }
+        function onChange(){
+            console.log('onChange ' + obj.test);
+        }
+        `;
+        const realPath = resources.getRealPath('/pages/dir1/test1.htmx');
+        const resInfo = new compiler.Resource('/dir1/test1', true, true, realPath.substring(0, realPath.lastIndexOf('.')), false);
+        const controllerJs = compiler._instrumentController(docJson, jsData, false, resInfo, boundVars, boundModals);
+        console.log(controllerJs);
+    });
     it ('Compile page htmx and js no components no html element', () => {
         const realPath = resources.getRealPath('/pages/dir1/test1.htmx');
         const resInfo = new compiler.Resource('/dir1/test1', true, true, realPath.substring(0, realPath.lastIndexOf('.')), false);

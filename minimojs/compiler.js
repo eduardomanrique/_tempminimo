@@ -442,7 +442,7 @@ const _instrumentController = (htmlJson, jsData, isGlobal, resInfo, boundVars = 
 
         `:''}
         ${preparedJs}
-        ${esprimaUtil.getFirstLevelFunctions(esprima.parse(preparedJs)).map(fn => `this.${fn} = ${fn}`).join('')}
+        ${esprimaUtil.getFirstLevelFunctions(esprima.parse(preparedJs)).map(fn => `this.${fn} = ${fn}`).join(';')};
         this.resourceName = '${jsName}';
         ${resInfo.htmxPath.isPresent() && resInfo.relativeHtmxPath.value.endsWith(".modal.htmx") ?
             `this.isModal = true;
@@ -484,5 +484,6 @@ module.exports = {
     _getResourceInfo: _getResourceInfo,
     Resource: Resource,
     _compilePage: _compilePage,
-    _prepareInjections: _prepareInjections
+    _prepareInjections: _prepareInjections,
+    _instrumentController: _instrumentController
 }

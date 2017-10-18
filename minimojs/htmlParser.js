@@ -809,13 +809,13 @@ class HTMLParser {
                 if (varName != "window" && varName != "xuser") {
                   this._boundObjects.push(varName.split("[")[0]);
                 }
-              } else if (attName.startsWith("data-xmodal") && attName != "data-xmodal-toggle") {
+              } else if (attName.startsWith("data-modal") && attName != "data-modal-toggle") {
                 let varName;
-                if (attName.startsWith("data-xmodal-")) { // has
+                if (attName.startsWith("data-modal-")) { // has
                   // a
                   // bound
                   // var
-                  varName = attName.substring("data-xmodal-".length);
+                  varName = attName.substring("data-modal-".length);
                 } else {
                   varName = _generateId("xvmd_");
                 }
@@ -838,7 +838,7 @@ class HTMLParser {
         elementId = _generateId("xmd_");
         element.setAttribute("id", elementId);
       }
-      let toggle = element.getAttribute("data-xmodal-toggle");
+      let toggle = element.getAttribute("data-modal-toggle");
       if (toggle) {
         let bind = modalBindMap[toggle];
         if (bind) {
