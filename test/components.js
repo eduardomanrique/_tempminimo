@@ -144,7 +144,7 @@ describe('Test component', function () {
 			element.getAttribute('label').should.equal('OK');
 			component.resourceName.should.equal('htmxstyle.checkbox');
 		}));
-	it('buildComponentOnpage', () =>
+	it('buildComponentsOnpage', () =>
 		startComponents().then(() => {
 			const doc = new htmlParser.HTMLParser().parse(
 				`<html>

@@ -2,6 +2,8 @@ require('./test');
 const compiler = require('../minimojs/compiler');
 const resources = require('../minimojs/resources');
 const expect = require('chai').expect;
+const components = require('../minimojs/components');
+const htmlParser = require('../minimojs/htmlParser');
 
 describe('Test compiler', function () {
     it('Get resource info htmx/js OK', () => compiler._restart()
@@ -46,11 +48,70 @@ describe('Test compiler', function () {
                     resource.relativeHtmxPath.value.should.equal('./pages/dir2/htmxonly.htmx');
                 });
             })));
+    it ('Prepare injections', () => {
+        const js = `
+        //import:/import/i1
+        var i;
+        //import:/import/i2
+        var i2;
+        //modal:/modal/modal1,element,toggle
+        var modal1;
+        //modal:/modal/modal2,element
+        var modal2;
+        `;
+        const prepared = compiler._prepareInjections(js, [new htmlParser.ModalBind('modal3', '/modal/modal3', 'element3', true)]);
+        const imported = [];
+        const instance = {};
+        const modals = [];
+        const vars = {};
+        let setVars;
+        const X = {
+            CTX: '_CTX',
+            import: path => {
+                imported.push(path);
+                return new Promise((resolve) => resolve(instance))
+            },
+            bindService: name => services.push(name),
+            modalS: (path, toggle, elementId) => {
+                modals.push({t: toggle, p: path, e: elementId});
+                return new Promise((resolve) => resolve(instance));
+            }
+        }
+        var binds;
+        eval(`${prepared}; 
+            binds = __binds__;
+            setVars = function(){
+                console.log(i)
+                vars.i=i;
+                vars.i2=i2;
+                vars.modal1=modal1;
+                vars.modal2=modal2;
+                vars.modal3=modal3;
+            }`);
+        return Promise.all(binds).then(() => {
+            setVars();
+            instance.CTX.should.equal('_CTX');
+            imported.should.have.lengthOf(2);
+            imported.filter(i => i == '/import/i1.js').should.have.lengthOf(1);
+            imported.filter(i => i == '/import/i2.js').should.have.lengthOf(1);
+            modals.should.have.lengthOf(3);
+            modals.filter(i => i.t && i.p == '/modal/modal1' && i.e == 'element').should.have.lengthOf(1);
+            modals.filter(i => !i.t && i.p == '/modal/modal2' && i.e == 'element').should.have.lengthOf(1);
+            modals.filter(i => i.t && i.p == '/modal/modal3' && i.e == 'element3').should.have.lengthOf(1);
+            expect(vars.i).to.be.equal(instance);
+            expect(vars.i2).to.be.equal(instance);
+            expect(vars.modal1).to.be.equal(instance);
+            expect(vars.modal2).to.be.equal(instance);
+            expect(vars.modal3).to.be.equal(instance);
+        });
+    });
+    //_instrumentController
     it ('Compile page htmx and js no components no html element', () => {
         const realPath = resources.getRealPath('/pages/dir1/test1.htmx');
         const resInfo = new compiler.Resource('/dir1/test1', true, true, realPath.substring(0, realPath.lastIndexOf('.')), false);
-        return Promise.all([resources.readResource(resInfo.relativeHtmxPath.value), resources.readResource(resInfo.relativeJsPath.value)])
-            .then(([htmx, js]) => compiler._compilePage(resInfo, htmx.data, js.data))
+        return components.startComponents().then(() => 
+            Promise.all([resources.readResource(resInfo.relativeHtmxPath.value), resources.readResource(resInfo.relativeJsPath.value)])
+            .then(([htmx, js]) => compiler._compilePage(resInfo, htmx.data, js.data)));
     });
     it ('Compile page htmx and js not components with template info', () => {
     });

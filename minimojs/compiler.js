@@ -2,6 +2,9 @@ const resources = require('./resources');
 const htmlParser = require('./htmlParser');
 const components = require('./components');
 const util = require('./util');
+const _ = require('underscore');
+const esprima = require('esprima');
+const esprimaUtil = require('./esprimaUtil');
 
 const context = require('./context');
 const fs = require('fs');
@@ -51,6 +54,7 @@ class ImportableResourceInfo {
 }
 class Resource {
     constructor(_path, _js, _htmx, _realPath, _global) {
+        this._resourceName = _path.replace('/', '.');
         this._jsPath = util.nullableOption(_js ? `${_path}.js`: null);
         this._htmxPath = util.nullableOption(_htmx ? `${_path}.htmx`: null);
         this._relativeJsPath = util.nullableOption(_js ? `./pages${_path}.js`: null);
@@ -59,6 +63,9 @@ class Resource {
         this._realHtmxPath = util.nullableOption(_htmx ? `${_realPath}.htmx`: null);
         this._global = _global;
         this._template = util.emptyOption();
+    }
+    get resourceName() {
+        return this._resourceName;
     }
     get jsPath(){
         return this._jsPath;
@@ -224,7 +231,7 @@ const _reloadTemplate = (templateName) => _getTemplateData(templateName)
                     .then(function(){
                         X$._xbodyNode = document.getElementsByTagName('xbody')[0];
                         X$._xbodyNode.xsetModal = function(child){
-                            X$._xbodyNode.appendChild(child);
+                            X$._xbodyNode.pushChild(child);
                         };
                         var controller = new function(){
                             var __xbinds__ = null; 
@@ -288,12 +295,11 @@ const _compilePage = (resInfo, htmxData, jsData) => {
 
     //place real html of components, prepare iterators and labels
     _prepareHTML(doc, boundVars, boundModals);
-    return _instrumentController(doc.toJson(), jsData, boundVars, boundModals);
+    return _instrumentController(doc.toJson(), jsData, false, resInfo, boundVars, boundModals)
 }
 
 const _prepareHTML = (doc, boundVars, boundModals) => {
-    const compInfo = {};
-    _componentsInfo.forEach(comp => components.buildComponentOnPage(comp, doc, boundVars, boundModals, compInfo));
+    components.buildComponentsOnPage(doc, boundVars, boundModals);
     const recValues = doc.addElement("xrs");
     recValues.addChildList(doc.requiredResourcesList);
     doc.requiredResourcesList.forEach(requiredElement => {
@@ -307,9 +313,176 @@ const _prepareHTML = (doc, boundVars, boundModals) => {
     _addChildValidElements(doc);
 }
 
+const _checkAnnotationToVar = (name, lines, currentIndex) => {
+    if (lines[currentIndex].trim().startsWith(`//${name}:`)) {
+        return currentIndex < lines.length && lines[currentIndex + 1].trim().startsWith("var ");
+    }
+    return false;
+}
+
+const Annotation = {
+    service: "service",
+    importJs: "importJs",
+    modal: "modal"
+}
+
+const _checkAnnotation = (lines, i) => {
+    if (_checkAnnotationToVar("service", lines, i)) {
+        return Annotation.service;
+    } else if (_checkAnnotationToVar("import", lines, i)) {
+        return Annotation.importJs;
+    } else if (_checkAnnotationToVar("modal", lines, i)) {
+        return Annotation.modal;
+    }
+    return null;
+}
+
+const _parseVar = (fn, line, nextLine) => {
+    line = line.trim();
+    nextLine = nextLine.trim();
+    const index = nextLine.indexOf(";");
+    let newNextLine = null;
+    if (index > 0) {
+        newNextLine = nextLine.substring(index + 1);
+        nextLine = nextLine.substring(0, index);
+    }
+    const varName = nextLine.split(" ")[1];
+    return [varName, line.substring(fn.length).trim(), newNextLine];
+}
+
+const _prepareInjections = (js, boundModals) => {
+    const result = [];
+    const binds = [];
+    const lines = js.split("\n");
+    let hasBoundVar = false;
+    for(let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        let isAnnot = false;
+        const annotation = _checkAnnotation(lines, i);
+        if (annotation) {
+            if (annotation == Annotation.service) {
+                //prepares service injection from js annotations (//service:pathtoservice)
+                const nextLine = lines[++i];
+                const [varName, params, next] = _parseVar("//service:", line, nextLine);
+                binds.push(`${varName} = X.bindService('${params}');`);
+                result.push(`var ${varName};
+                `);
+                hasBoundVar = true;
+                if (next) {
+                    result.push(`${next}
+                    `);
+                }
+                isAnnot = true;
+            } else if (annotation == Annotation.importJs) {
+                //prepares import injection from js annotations (//import:pathtojs)
+                const nextLine = lines[++i];
+                const [varName, params, next] = _parseVar("//import:", line, nextLine);
+                binds.push(`X.import('${params}.js').then(function(o){o.CTX=X.CTX;${varName} = o;})`);
+                result.push(`var ${varName};
+                `);
+                hasBoundVar = true;
+                if (next) {
+                    result.push(`${next}
+                    `);
+                }
+                isAnnot = true;
+            } else if (annotation == Annotation.modal) {
+                //prepares modal injection from js annotation (//modal:path,parameters)
+                const nextLine = lines[++i];
+                const [varName, params, next] = _parseVar("//modal:", line, nextLine);
+                const paramArray = params.split(",");
+                const toggle = paramArray.length > 2 && paramArray[2].toLowerCase() == "toggle";
+                binds.push(`X.modalS('${paramArray[0].trim()}',${toggle},'${paramArray[1].trim()}').then(function(o){${varName} = o;})`);
+                result.push(`var ${varName};
+                `);
+                hasBoundVar = true;
+                if (next) {
+                    result.push(next + "\n");
+                }
+                isAnnot = true;
+            }
+        }
+        if (!isAnnot) {
+            result.push(`${line}
+            `);
+        }
+
+    }
+    boundModals.forEach(val => {
+        const toggle = val.toggled;
+        binds.push(`X.modalS('${val.path}', ${toggle},'${val.elementId}').then(function(o){${val.varName} = o;})`);
+        result.push(`var ${val.varName};
+        `);
+        hasBoundVar = true;
+    });
+    return `var __binds__ = ${hasBoundVar ? `[${binds.join(',')}]` : 'null'};
+        ${result.join('')}
+    `;
+}
+
+const _instrumentController = (htmlJson, jsData, isGlobal, resInfo, boundVars = [], boundModals = []) => {
+    const jsName = resInfo.resourceName;
+    const preparedJs = _prepareInjections(jsData, boundModals);
+    const boundVarDeclaration = [];
+    boundVars.forEach(boundVar => {
+        if (!boundVar.trim() == "" && !boundVar.trim().startsWith("${") && !boundVar.trim() == "this") {
+            boundVarDeclaration.push(`var ${boundVar};
+            `);
+        }
+    });
+    const controllerObject = `function(xInstance){
+        var X=xInstance;
+        var setInterval=X._interval;
+        var setTimeout=X._timeout;
+        var clearInterval=X._clearInterval;
+        var clearTimeout=X._clearTimeout;
+        
+        ${!_.isEmpty(boundVarDeclaration) ? `//undeclared vars
+        ${boundVarDeclaration.join('')}
+
+        `:''}
+        ${preparedJs}
+        ${esprimaUtil.getFirstLevelFunctions(esprima.parse(preparedJs)).map(fn => `this.${fn} = ${fn}`).join('')}
+        this.resourceName = '${jsName}';
+        ${resInfo.htmxPath.isPresent() && resInfo.relativeHtmxPath.value.endsWith(".modal.htmx") ?
+            `this.isModal = true;
+            _xthis=this;
+            function closeModal(){
+                X.closeMsg(_xthis._id_modal);
+            };
+            this.closeModal = closeModal;
+        `: ''}
+        ${isGlobal ? `window.${_parseGlovalVarName(jsName)} = this;
+        `: ''}
+        this._x_eval = function(f){
+            return eval(f)
+        };
+    }`;
+
+    if (isGlobal) {
+        return `
+        (function (){
+            var _load = function(){
+                var xInstance = new _XClass();
+                X$._onScript(${JSON.stringify(htmlStruct)}, ${controllerObject}, xInstance, function(){
+                    console.log("Global resource ${jsName} imported.")
+                }, null, '${jsName}');
+            };
+            if(window.addEventListener) {
+                window.addEventListener('load', _load, false);
+            } else if(window.attachEvent) {
+                window.attachEvent('onload', _load);
+            }
+        })();`;
+    } else {
+        return `X$.register(${htmlJson}, '${jsName}', ${controllerObject});`;
+    }
+}
+
 module.exports = {
     _restart: _restart,
     _getResourceInfo: _getResourceInfo,
     Resource: Resource,
-    _compilePage: _compilePage
+    _compilePage: _compilePage,
+    _prepareInjections: _prepareInjections
 }

@@ -225,7 +225,7 @@ const _configComponentBinds = (componentDoc, htmxBoundVars) =>
       }
   });
   
-const buildComponentOnPage = (compInfo, element, doc, boundVars, boundModals) => {
+const _buildComponentOnPage = (compInfo, element, doc, boundVars, boundModals) => {
   const componentName = compInfo.varPath;
   // get declared properties in doc tag - config
   let [instanceProperties, htmxBoundVars] = _childInfoHtmxFormat(componentName, element);
@@ -268,7 +268,7 @@ const _findDeepestComponent = (doc) => {
 
 const buildComponentsOnPage = (doc, boundVars, boundModals) => 
   _findDeepestComponent(doc).ifPresent(([element, component]) => {
-    buildComponentOnPage(component, element, doc, boundVars, boundModals);
+    _buildComponentOnPage(component, element, doc, boundVars, boundModals);
     buildComponentsOnPage(doc, boundVars, boundModals);
   });
 
@@ -301,5 +301,6 @@ module.exports = {
   startComponents: startComponents,
   _childInfoHtmxFormat: _childInfoHtmxFormat,
   _findDeepestComponent: _findDeepestComponent,
-  setUpGetterForAttributes: __setUpGetterForAttributes
+  setUpGetterForAttributes: __setUpGetterForAttributes,
+  forEachComponent: (fn) => _componentsInfo.forEach(fn)
 }

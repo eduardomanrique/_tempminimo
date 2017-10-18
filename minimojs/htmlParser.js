@@ -184,6 +184,12 @@ class Attribute {
 }
 
 class ModalBind {
+  constructor(varName, path, elementId = null, toggled = true){
+    this._varName = varName;
+    this._path = path;
+    this._elementId = elementId;
+    this._toggle = toggled;
+  }
   get elementId() {
     return this._elementId;
   }
@@ -193,14 +199,8 @@ class ModalBind {
   get varName() {
     return this._varName;
   }
-  set varName(varName) {
-    this._varName = varName;
-  }
   get path() {
     return this._path;
-  }
-  set path(path) {
-    this._path = path;
   }
   get toggled() {
     return this._toggle;
@@ -810,17 +810,16 @@ class HTMLParser {
                   this._boundObjects.push(varName.split("[")[0]);
                 }
               } else if (attName.startsWith("data-xmodal") && attName != "data-xmodal-toggle") {
-                let modalBind = new ModalBind();
+                let varname;
                 if (attName.startsWith("data-xmodal-")) { // has
                   // a
                   // bound
                   // var
-                  modalBind.setVarName(attName.substring("data-xmodal-".length));
+                  varName = attName.substring("data-xmodal-".length);
                 } else {
-                  modalBind.setVarName(_generateId("xvmd_"));
+                  varName = _generateId("xvmd_");
                 }
-                modalBind.setPath(element.getAttribute(attName).trim());
-                modalBindMap[modalBind.getVarName()] = modalBind;
+                modalBindMap[varName] = new ModalBind(varName, element.getAttribute(attName).trim());
               }
               currentAttributeValue = [];
               break;
@@ -850,7 +849,7 @@ class HTMLParser {
         if (modalBindMap.size() == 1) {
           v.setToggle(true);
         }
-        v.setElementId(elementId);
+        v.elementId = elementId;
       });
       _.extend(this._boundModals, modalBindMap);
     }

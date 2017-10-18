@@ -1,6 +1,9 @@
 entender pra que serve hiddenattributes e tempatributes
 
+X.import, X.modalS retorna promise
+tem que ser possivel importar via path.modal.js
 eliminar o chord
+X$._onScript e X$.register agora devem pegar compInfo do htmlstruct
 mutation 
     href novos - capturar o link e disparar o url change event
 
