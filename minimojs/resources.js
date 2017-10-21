@@ -4,18 +4,28 @@ const ncp = require('ncp');
 const _ = require('underscore');
 const logger = require('./logging');
 
-const getResourcePaths = (root, filter) =>
-   _.flatten(fs.readdirSync(root)
-    .map((path) => {
-      const completePath = `${root}/${path}`;
-      const isDir = fs.lstatSync(completePath).isDirectory();
-      if(isDir){
-        return getResourcePaths(completePath);
-      }else{
-        return completePath;
+const getResourcePaths = (root, filter) => {
+  _getResourcePaths = (rootPath) => new Promise((resolve, reject) => {
+    fs.readdir(rootPath, (err, files) => {
+      if(err) reject(err);
+      else{
+        resolve(Promise.all(files.map((path) => {
+          const completePath = `${rootPath}/${path}`;
+          const isDir = fs.lstatSync(completePath).isDirectory();
+          if(isDir){
+            return _getResourcePaths(completePath);
+          }else{
+            return completePath;
+          }
+        })));
       }
-    })
-  ).filter(filter || (() => true))
+    });
+  });
+  return _getResourcePaths(root).then(paths => _.flatten(paths).filter(filter || (() => true)));
+}
+
+  
+   
 
 const writeFile = (path, data) =>
   new Promise((resolve, reject) =>
@@ -38,7 +48,7 @@ const readResource = path =>
       }
     }));
 
-const getResources = (root, filter) => Promise.all(getResourcePaths(root, filter).map(readResource))
+const getResources = (root, filter) => getResourcePaths(root, filter).then(paths => Promise.all(paths.map(readResource)));
 
 const copy = (source, dest) => 
   new Promise((resolve, reject) => 

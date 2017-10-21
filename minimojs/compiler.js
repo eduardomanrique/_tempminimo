@@ -135,9 +135,7 @@ const _reloadFile = (_resources, path) => {
 
 const _blankHtml = () => `<html><body></body></html>`;
 
-const _getTemplateData = (templateName) =>
-    resources.getResources(`./templates${templateName}`)
-    .then(values => _.isEmpty(values) ? _blankHtml() : _.first(values).data);
+const _getTemplateData = (templateName) => resources.getResources(`./templates${templateName}`).then(values => _.isEmpty(values) ? _blankHtml() : _.first(values).data);
 
 const _prepareScripts = (doc, htmlEl) => {
     let head = _.first(htmlEl.findChildrenByName("head"));
@@ -273,7 +271,6 @@ const _addChildValidElements = (doc) => {
 }
 
 const _compilePage = (resInfo, htmxData, jsData) => {
-    console.log(`Loading htmx ${resInfo.path}`);
     const doc = new htmlParser.HTMLParser().parse(htmxData);
     resInfo.templateName = null;
     if (!doc.htmlElement) {
@@ -485,5 +482,6 @@ module.exports = {
     Resource: Resource,
     _compilePage: _compilePage,
     _prepareInjections: _prepareInjections,
-    _instrumentController: _instrumentController
+    _instrumentController: _instrumentController,
+    _reloadTemplate: _reloadTemplate
 }

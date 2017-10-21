@@ -8,8 +8,6 @@ const process = require('process');
 const htmlParser = require('../minimojs/htmlparser');
 const _htmlParser = rewire('../minimojs/htmlparser');
 
-
-
 describe('Test html parser', function () {
   it('Test private functions', () => {
     let textWitScript = _htmlParser.__get__('_prepareXScriptsValues')('Test 123 ${fn(1,2,"3") + "x"}, lorem');

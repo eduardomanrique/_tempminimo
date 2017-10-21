@@ -130,6 +130,9 @@ describe('Test compiler', function () {
         const controllerJs = compiler._instrumentController(docJson, jsData, false, resInfo, boundVars, boundModals);
         console.log(controllerJs);
     });
+    it ('Reload black template', () => {
+        compiler._reloadTemplate();
+    });
     it ('Compile page htmx and js no components no html element', () => {
         const realPath = resources.getRealPath('/pages/dir1/test1.htmx');
         const resInfo = new compiler.Resource('/dir1/test1', true, true, realPath.substring(0, realPath.lastIndexOf('.')), false);
@@ -138,6 +141,7 @@ describe('Test compiler', function () {
             .then(([htmx, js]) => compiler._compilePage(resInfo, htmx.data, js.data)));
     });
     it ('Compile page htmx and js not components with template info', () => {
+        
     });
     it ('Compile page htmx and js with components no html element', () => {
     });

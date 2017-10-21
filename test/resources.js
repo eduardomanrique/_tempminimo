@@ -28,7 +28,7 @@ describe('Get resources', function() {
   });
 
   it('List and get Groupped', () =>
-    Promise.all(resources.getResourcePaths("./res").map(resource => resources.readResource(resource)))
+    resources.getResourcePaths("./res").then(res => Promise.all(res.map(resource => resources.readResource(resource))))
     .then(values => _.groupBy(values, resource => resource.path.substring(0, resource.path.lastIndexOf('.'))))
     .then(values => {
       //console.log(`Groupped: ${JSON.stringify(values)}`);
@@ -40,8 +40,8 @@ describe('Get resources', function() {
 
 
   it('List and get groupped with filter', () =>
-    Promise.all(resources.getResourcePaths("./res", r => !r.endsWith(".html"))
-      .map(resource => resources.readResource(resource)))
+    resources.getResourcePaths("./res", r => !r.endsWith(".html")).then(res => 
+      Promise.all(res.map(resource => resources.readResource(resource))))
     .then(values => _.groupBy(values, resource => resource.path.substring(0, resource.path.lastIndexOf('.'))))
     .then(values => {
       expect(values['./res/dir1/fdir1']).not.to.be.null;

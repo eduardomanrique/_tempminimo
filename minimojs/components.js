@@ -62,8 +62,8 @@ const startComponents = () => loadComponents().then(componentsInfo => {
 
 const loadComponents = () =>
   resources.getResources("./components", r => (r.endsWith(".js") || r.endsWith(".htmx")) && !r.match(/[^/]+$/)[0].startsWith("."))
-    .then(values =>
-      _.mapObject(_.groupBy(values, resource => resource.path.substring(0, resource.path.lastIndexOf('.'))), (v, k) => {
+    .then(values => {
+      return _.mapObject(_.groupBy(values, resource => resource.path.substring(0, resource.path.lastIndexOf('.'))), (v, k) => {
         let result = {};
         v.forEach(item => {
           let ext = item.path.substring(item.path.lastIndexOf('.')+1);
@@ -72,7 +72,7 @@ const loadComponents = () =>
           }
         });
         return result;
-      }))
+      })})
     .then(_loadComponents);
 
 const _createComponentVO = (resName, path, isHtmx) => {
