@@ -135,10 +135,13 @@ const _reloadFile = (_resources, path) => {
 
 const _blankHtml = () => `<html><body></body></html>`;
 
-const _getTemplateData = (templateName) => resources.getResources(`./templates${templateName}`).then(values => _.isEmpty(values) ? _blankHtml() : _.first(values).data);
+const _getTemplateData = (templateName) => {
+    const resourceName = `./templates/${templateName}`;
+    return resources.exists(resourceName).then(exists => exists ? resources.readResource(resourceName).then(r => r.data) : _blankHtml());
+}
 
 const _prepareScripts = (doc, htmlEl) => {
-    let head = _.first(htmlEl.findChildrenByName("head"));
+    let head = _.first(htmlEl.getElementsByName("head"));
     if (!head) {
         head = doc.createElement("head");
         htmlEl.insertChild(head, 0);
@@ -170,17 +173,18 @@ const _prepareScripts = (doc, htmlEl) => {
 }
 
 const _prepareTopElements = (doc) => {
-    const htmlList = doc.findChildrenByName("html");
+    const htmlList = doc.getElementsByName("html");
     if (_.isEmpty(htmlList) || htmlList.length > 1) {
         throw new Error("Invalid page. There must be one (and only one) html element in a html page");
     }
     const htmlEl = htmlList[0];
     _prepareScripts(doc, htmlEl);
 
-    const bodyList = htmlEl.findChildrenByName("body");
+    const bodyList = htmlEl.getElementsByName("body");
     if (_.isEmpty(bodyList) || bodyList.length > 1) {
         throw new Error("Invalid page. There must be one (and only one) body element in a html page");
     }
+    const body = bodyList[0];
     body.addText("\n\n");
 
     const tempLoadDiv = doc.createElement("div");
@@ -233,11 +237,11 @@ const _reloadTemplate = (templateName) => _getTemplateData(templateName)
                         };
                         var controller = new function(){
                             var __xbinds__ = null; 
-                            this._x_eval = function(f){
+                            this.__eval__ = function(f){
                                 return eval(f);
                             };
                         };
-                        X._setEvalFn(controller._x_eval);
+                        X._setEvalFn(controller.__eval__);
                         document.body.setAttribute('data-x_ctx', 'true');
                         X.setController(controller, function(){
                             console.log('X started (spa)');
@@ -407,7 +411,7 @@ const _prepareInjections = (js, boundModals) => {
         }
         hasBoundVar = true;
     });
-    return `this.__binds__ = ${hasBoundVar ? `[${binds.join(',')}]` : 'null'};
+    return `var __binds__ = ${hasBoundVar ? `[${binds.join(',')}]` : 'null'};
     //user code start
 
     ${result.join('')}
@@ -449,7 +453,7 @@ const _instrumentController = (htmlJson, jsData, isGlobal, resInfo, boundVars = 
         `: ''}
         ${isGlobal ? `window.${_parseGlovalVarName(jsName)} = this;
         `: ''}
-        this._x_eval = function(f){
+        this.__eval__ = function(f){
             return eval(f)
         };
     }`;
@@ -481,5 +485,7 @@ module.exports = {
     _compilePage: _compilePage,
     _prepareInjections: _prepareInjections,
     _instrumentController: _instrumentController,
-    _reloadTemplate: _reloadTemplate
+    _reloadTemplate: _reloadTemplate,
+    _getTemplateData: _getTemplateData,
+    _prepareTopElements: _prepareTopElements
 }

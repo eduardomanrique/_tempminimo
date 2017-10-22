@@ -4,6 +4,7 @@ const resources = require('../minimojs/resources');
 const expect = require('chai').expect;
 const components = require('../minimojs/components');
 const htmlParser = require('../minimojs/htmlParser');
+const _ = require('underscore');
 
 describe('Test compiler', function () {
     it('Get resource info htmx/js OK', () => compiler._restart()
@@ -79,7 +80,7 @@ describe('Test compiler', function () {
         }
         var binds;
         eval(`${prepared}; 
-            binds = this.__binds__;
+            binds = __binds__;
             setVars = function(){
                 vars.i=i;
                 vars.i2=i2;
@@ -119,11 +120,16 @@ describe('Test compiler', function () {
             test:1
         };
         var mod;
+        var init = 0;
+        var change = 0;
         function onInit(){
-            console.log('onInit');
+            init = 1;
         }
         function onChange(){
-            console.log('onChange ' + obj.test);
+            _privateFn();
+        }
+        function _privateFn(){
+            change = 1;
         }
         `;
         const realPath = resources.getRealPath('/pages/dir1/test1.htmx');
@@ -150,13 +156,48 @@ describe('Test compiler', function () {
         eval(`controller = ${controllerJs}`);
         expect(controller.onInit).not.null;
         expect(controller.onChange).not.null;
-        expect(controller._x_eval('mod')).not.null;
         expect(controller.resourceName).to.be.eq('dir1.test1');
-        expect(controller._x_eval('setInterval')).to.eq(1);
-        expect(controller._x_eval('setTimeout')).to.eq(2);
-        expect(controller._x_eval('clearInterval')).to.eq(3);
-        expect(controller._x_eval('clearTimeout')).to.eq(4);
+        expect(controller.__eval__('setInterval')).to.eq(1);
+        expect(controller.__eval__('setTimeout')).to.eq(2);
+        expect(controller.__eval__('clearInterval')).to.eq(3);
+        expect(controller.__eval__('clearTimeout')).to.eq(4);
+        expect(controller.__eval__('init')).to.eq(0);
+        expect(controller.onInit).not.to.be.null;
+        expect(controller.onChange).not.to.be.null;
+        expect(controller._privateFn).not.to.be.null;
+        controller.onInit();
+        expect(controller.__eval__('init')).to.eq(1);
+        expect(controller.__eval__('change')).to.eq(0);
+        controller.onChange();
+        expect(controller.__eval__('change')).to.eq(1);
+        expect(controller.__eval__('mod')).not.null;
+        var binds = controller.__eval__('__binds__');
+        return Promise.all(binds).then(() => {
+            expect(binds).to.have.lengthOf(1);
+        })
     });
+    it ('Get empty template data', () => 
+        compiler._getTemplateData().then(data => {
+            const doc = new htmlParser.HTMLParser().parse(data);
+            doc.htmlElement.should.not.be.null;
+            const body = _.first(doc.htmlElement.getElementsByName('body'));
+            body.should.not.be.null;
+            body.children.should.have.lengthOf(0);
+        }));
+    it ('Get non empty template data', () => 
+        compiler._getTemplateData('tpl.htmx').then(data => {
+            const doc = new htmlParser.HTMLParser().parse(data);
+            doc.htmlElement.should.not.be.null;
+            const body = _.first(doc.htmlElement.getElementsByName('body'));
+            body.should.not.be.null;
+            expect(body.children.length).be.greaterThan(4);
+        }));
+    it ('Prepare top elements', () => 
+        compiler._getTemplateData('tpl.htmx').then(data => {
+            const doc = new htmlParser.HTMLParser().parse(data);
+            compiler._prepareTopElements(doc);
+            console.log(doc);
+        }));
     it ('Reload black template', () => {
         compiler._reloadTemplate();
     });

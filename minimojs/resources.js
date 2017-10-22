@@ -48,7 +48,9 @@ const readResource = path =>
       }
     }));
 
-const getResources = (root, filter) => getResourcePaths(root, filter).then(paths => Promise.all(paths.map(readResource)));
+const getResources = (root, filter) => getResourcePaths(root, filter)
+  .then(paths => Promise.all(paths.map(readResource)))
+  .catch(e => Promise.all([]));
 
 const copy = (source, dest) => 
   new Promise((resolve, reject) => 

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="" data-useappcache="true">
+<head>
+<meta charset="utf-8">
+<title>XTests</title>
+<link rel="stylesheet" href="{webctx}/css/xtests.css" media="all" />
+</head>
+<body>
+	<div id="tpl">tpl</div>
+	{xbody}
+	<div id="load">Loaded:${X$.isReady()}</div>
+	<script type="text/javascript">
+	X$.ready(function(){
+		var instructions = _('instructions');
+		if(instructions){
+			instructions.onclick = function(){
+				var a = instructions.innerHTML.split(";");
+				instructions.innerHTML = "";
+				var count = 0;
+				for (var i = 0; i < a.length;i++) {
+					if(a[i].trim()){
+						instructions.innerHTML += count++ + ": " + a[i] + "<br>";						
+					}else{
+						instructions.innerHTML += "<br>";
+					}
+				}
+			}
+		}
+	});
+	</script>
+</body>
+</html>

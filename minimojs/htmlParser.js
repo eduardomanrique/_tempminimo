@@ -147,24 +147,24 @@ class Attribute {
         value = value.substring(1, value.length - 1);
       }
       value = deliminitator == '"' ? value.replace(/\\"/g, '"') : value.replace(/\\'/g, "'");
-    }
-    //parse inner scripts
-    this._value = [];
-    let index = 0;
-    let pattern = /\$\{(.*?)}/g;
-    let m;
-    while ((m = pattern.exec(value)) != null) {
-      if (index != m.index) {
-        this._value.push(value.substring(index, m.index));
+      //parse inner scripts
+      this._value = [];
+      let index = 0;
+      let pattern = /\$\{(.*?)}/g;
+      let m;
+      while ((m = pattern.exec(value)) != null) {
+        if (index != m.index) {
+          this._value.push(value.substring(index, m.index));
+        }
+        //script
+        this._value.push({
+          s: m[1]
+        });
+        index = m.index + m[1].length + 3;
       }
-      //script
-      this._value.push({
-        s: m[1]
-      });
-      index = m.index + m[1].length + 3;
-    }
-    if (index < value.length) {
-      this._value.push(value.substring(index, value.length));
+      if (index < value.length) {
+        this._value.push(value.substring(index, value.length));
+      }
     }
   }
   get name() {
