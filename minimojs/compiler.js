@@ -188,7 +188,7 @@ const _prepareTopElements = (doc) => {
     body.addText("\n\n");
 
     const tempLoadDiv = doc.createElement("div");
-    tempLoadDiv.setAttribute("id", "_xtemploaddiv_");
+    tempLoadDiv.setAttribute("id", "__temploader__");
     tempLoadDiv.setAttribute("style",
         "position:absolute;top:0px;left:0px;height: 100%;width:100%;z-index: 99999;background-color: white;");
     const imgLoad = tempLoadDiv.addElement("img");
@@ -200,36 +200,36 @@ const _prepareTopElements = (doc) => {
     body.insertChild(tempLoadDiv, 0);
 }
 
-const _printScripts = (element) => element.children.forEach(e => {
-    if (e.name == 'script') {
-        const tag = `<script>${e.childre.map(c => c.text).join('')}</script>`;
+const _printElements = (element) => element.children.map(e => {
+    if(e instanceof htmlParser.Element){
+        const tag = `<${e.name} ${e.attributes.map(a => `${a.name}="${a.value.replace(/"/g, '\\"')}"`).join(' ')}>${e.children.map(c => c.text).join('')}</${e.name}>`;
         e.remove();
         return tag;
     }
     return '';
-});
+}).join('\n');
 
-const _printHtmlWithoutBody = (doc) => `
+const _printCleanHtml = (doc) => `
     <html ${!context.devMode ? `manifest="${context.contextPath}/x/_appcache"` : ''}>
-        <head>${_printScripts(_.first(doc.htmlElement.getElementsByName('head')))}</head>
+        <head>${_printElements(_.first(doc.htmlElement.getElementsByName('head')))}</head>
+        <body>${_printElements(_.first(doc.htmlElement.getElementsByName('body')))}</body>
     </html>`;
 
 const _reloadTemplate = (templateName) => _getTemplateData(templateName)
     .then(data => {
-        const templateDoc = new htmlParser.HTMLParser().parse(data);
+        const templateDoc = new htmlParser.HTMLParser().parse(data.replace(/\{xbody\}/, '<xbody></xbody>'));
         const boundVars = templateDoc.boundVars;
         const boundModals = templateDoc.boundModals;
         _prepareHTML(templateDoc, boundVars, boundModals);
-        const xbody = _.first(templateDoc.getElementsByName("xbody"));
-        _prepareTopElements(templateDoc);
-        if (_.isEmpty(doc.findChildrenByName('xbody'))) {
+        if (_.isEmpty(templateDoc.getElementsByName("xbody"))) {
             throw new Error('Template should have {xbody}');
         }
-        const html = _printHtmlWithoutBody(templateDoc);
+        _prepareTopElements(templateDoc);
+        const body = _.first(templateDoc.getElementsByName("body"));
         const postString = `
             (function(){
         		var X = new _XClass();
-                X.createHtml(${templateDoc.toJson()})
+                X.createHtml({c:${JSON.stringify(body.toJson().c)}})
                     .then(function(){
                         X$._xbodyNode = document.getElementsByTagName('xbody')[0];
                         X$._xbodyNode.xsetModal = function(child){
@@ -252,9 +252,11 @@ const _reloadTemplate = (templateName) => _getTemplateData(templateName)
                     .then(X.createHtml);
                 });
             })();`;
-        const script = _.first(htmlEl.findChildrenByName("body")).addElement("script");
+        body.removeAllChildren();
+        const script = body.addElement("script");
         script.setAttribute("type", "text/javascript");
         script.addText(postString);
+        return _printCleanHtml(templateDoc);
     });
 
 
@@ -272,6 +274,12 @@ const _addChildValidElements = (doc) => {
             _cached.appcacheResources.add(href);
         }
     });
+}
+
+const _loadTemplate = (templateName) => {
+    if(!_cached.templateMap[templateName]){
+        _reloadTemplate(templateName).then(v => _cached.templateMap[templateName] = v);
+    }
 }
 
 const _compilePage = (resInfo, htmxData, jsData) => {
@@ -292,7 +300,7 @@ const _compilePage = (resInfo, htmxData, jsData) => {
     //get all the bound modals in the page
     const boundModals = doc.boundModals;
 
-    resInfo.templateName.ifPresent(_reloadTemplate);
+    resInfo.templateName.ifPresent(_loadTemplate);
 
     //place real html of components, prepare iterators and labels
     _prepareHTML(doc, boundVars, boundModals);

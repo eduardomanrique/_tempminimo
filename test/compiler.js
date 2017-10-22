@@ -196,11 +196,15 @@ describe('Test compiler', function () {
         compiler._getTemplateData('tpl.htmx').then(data => {
             const doc = new htmlParser.HTMLParser().parse(data);
             compiler._prepareTopElements(doc);
-            console.log(doc);
+            const divLoader = _.first(doc.getElementsByName('body')).children[0];
+            divLoader.getAttribute("id").should.be.equal('__temploader__');
         }));
-    it ('Reload black template', () => {
-        compiler._reloadTemplate();
-    });
+    it ('Reload black template', () => compiler._reloadTemplate('tpl.htmx').then(template => {
+        const doc = new htmlParser.HTMLParser().parse(template);
+        const body = _.first(doc.getElementsByName('body'));
+        body.children.should.have.lengthOf(1);
+        body.children[0].name.should.be.equal('script');
+    }));
     it ('Compile page htmx and js no components no html element', () => {
         const realPath = resources.getRealPath('/pages/dir1/test1.htmx');
         const resInfo = new compiler.Resource('/dir1/test1', true, true, realPath.substring(0, realPath.lastIndexOf('.')), false);

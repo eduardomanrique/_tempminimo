@@ -277,6 +277,11 @@ class Element extends Node {
   set root(root) {
     this._root = root;
   }
+  get attributes(){
+    return _.values(this._attributes).map(a => {
+      return {name: a.name, value: a.stringValue}
+    });
+  }
   getElementsByName(name) {
     return _.flatten(this.getElements()
       .filter(e => e instanceof Element)
@@ -337,7 +342,7 @@ class Element extends Node {
     this.insertChild(node, this._children.indexOf(before));
   }
   get children() {
-    return this._children;
+    return this._children || [];
   }
   clearChildren() {
     this._children = [];
