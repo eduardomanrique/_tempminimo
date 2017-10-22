@@ -79,7 +79,7 @@ describe('Test compiler', function () {
         }
         var binds;
         eval(`${prepared}; 
-            binds = __binds__;
+            binds = this.__binds__;
             setVars = function(){
                 vars.i=i;
                 vars.i2=i2;
@@ -114,7 +114,8 @@ describe('Test compiler', function () {
         </html>`).toJson();
         const boundVars = parser.boundVars;
         const boundModals = parser.boundModals;
-        const jsData = `var obj = {
+        const jsData = `
+        var obj = {
             test:1
         };
         var mod;
@@ -128,7 +129,33 @@ describe('Test compiler', function () {
         const realPath = resources.getRealPath('/pages/dir1/test1.htmx');
         const resInfo = new compiler.Resource('/dir1/test1', true, true, realPath.substring(0, realPath.lastIndexOf('.')), false);
         const controllerJs = compiler._instrumentController(docJson, jsData, false, resInfo, boundVars, boundModals);
-        console.log(controllerJs);
+        
+        let htmlStruct;
+        let resourceName;
+        const X = {
+            _interval: 1,
+            _timeout: 2,
+            _clearInterval: 3,
+            _clearTimeout: 4,
+            modalS: (path, bool, id) => new Promise(resolve => resolve({}))
+        };
+        const X$ = {
+            register: (html, name, constructorFn) => {
+                htmlStruct = html;
+                resourceName = name;
+                return new constructorFn(X);
+            }
+        };
+        var controller;
+        eval(`controller = ${controllerJs}`);
+        expect(controller.onInit).not.null;
+        expect(controller.onChange).not.null;
+        expect(controller._x_eval('mod')).not.null;
+        expect(controller.resourceName).to.be.eq('dir1.test1');
+        expect(controller._x_eval('setInterval')).to.eq(1);
+        expect(controller._x_eval('setTimeout')).to.eq(2);
+        expect(controller._x_eval('clearInterval')).to.eq(3);
+        expect(controller._x_eval('clearTimeout')).to.eq(4);
     });
     it ('Reload black template', () => {
         compiler._reloadTemplate();

@@ -362,12 +362,10 @@ const _prepareInjections = (js, boundModals) => {
                 const nextLine = lines[++i];
                 const [varName, params, next] = _parseVar("//service:", line, nextLine);
                 binds.push(`${varName} = X.bindService('${params}');`);
-                result.push(`var ${varName};
-                `);
+                result.push(`var ${varName};\n`);
                 hasBoundVar = true;
                 if (next) {
-                    result.push(`${next}
-                    `);
+                    result.push(`${next}\n`);
                 }
                 isAnnot = true;
             } else if (annotation == Annotation.importJs) {
@@ -375,12 +373,10 @@ const _prepareInjections = (js, boundModals) => {
                 const nextLine = lines[++i];
                 const [varName, params, next] = _parseVar("//import:", line, nextLine);
                 binds.push(`X.import('${params}.js').then(function(o){o.CTX=X.CTX;${varName} = o;})`);
-                result.push(`var ${varName};
-                `);
+                result.push(`var ${varName};\n`);
                 hasBoundVar = true;
                 if (next) {
-                    result.push(`${next}
-                    `);
+                    result.push(`${next}\n`);
                 }
                 isAnnot = true;
             } else if (annotation == Annotation.modal) {
@@ -390,8 +386,7 @@ const _prepareInjections = (js, boundModals) => {
                 const paramArray = params.split(",");
                 const toggle = paramArray.length > 2 && paramArray[2].toLowerCase() == "toggle";
                 binds.push(`X.modalS('${paramArray[0].trim()}',${toggle},'${paramArray[1].trim()}').then(function(o){${varName} = o;})`);
-                result.push(`var ${varName};
-                `);
+                result.push(`var ${varName};\n`);
                 hasBoundVar = true;
                 if (next) {
                     result.push(next + "\n");
@@ -400,31 +395,34 @@ const _prepareInjections = (js, boundModals) => {
             }
         }
         if (!isAnnot) {
-            result.push(`${line}
-            `);
+            result.push(`${line}\n`);
         }
 
     }
     boundModals.forEach(val => {
         const toggle = val.toggled;
         binds.push(`X.modalS('${val.path}', ${toggle},'${val.elementId}').then(function(o){${val.varName} = o;})`);
-        result.push(`var ${val.varName};
-        `);
+        if(!new RegExp(`\\s*var\\s+${val.varName}\\s*;`).exec(js)){
+            result.unshift(`var ${val.varName};\n`);
+        }
         hasBoundVar = true;
     });
-    return `var __binds__ = ${hasBoundVar ? `[${binds.join(',')}]` : 'null'};
-        ${result.join('')}
+    return `this.__binds__ = ${hasBoundVar ? `[${binds.join(',')}]` : 'null'};
+    //user code start
+
+    ${result.join('')}
+
+    //user code end
     `;
 }
 
 const _instrumentController = (htmlJson, jsData, isGlobal, resInfo, boundVars = [], boundModals = []) => {
-    const jsName = resInfo.resourceName;
+    const jsName = resInfo.resourceName.replace(/\./g, '').replace(/\//g, '.');
     const preparedJs = _prepareInjections(jsData, boundModals);
     const boundVarDeclaration = [];
     boundVars.forEach(boundVar => {
         if (!boundVar.trim() == "" && !boundVar.trim().startsWith("${") && !boundVar.trim() == "this") {
-            boundVarDeclaration.push(`var ${boundVar};
-            `);
+            boundVarDeclaration.push(`var ${boundVar};\n`);
         }
     });
     const controllerObject = `function(xInstance){
@@ -472,7 +470,7 @@ const _instrumentController = (htmlJson, jsData, isGlobal, resInfo, boundVars = 
             }
         })();`;
     } else {
-        return `X$.register(${htmlJson}, '${jsName}', ${controllerObject});`;
+        return `X$.register(${JSON.stringify(htmlJson)}, '${jsName}', ${controllerObject});`;
     }
 }
 
