@@ -1,5 +1,6 @@
 const logging = require('./logging');
 const fs = require('fs');
+const _ = require('underscore');
 
 const readModuleFile = (path) => new Promise((resolve, reject) => {
     try {
@@ -21,12 +22,19 @@ class Option {
         this._val = val;
     }
     ifPresent(fn) {
+        this.map(fn);
+    }
+    map(fn, defaultValue) {
         if(this._val){
-            fn(this._val);
+            return fn(this._val);
         }
+        return defaultValue || null;
     }
     get value() {
         return this._val;
+    }
+    orElseGet(fn) {
+        return this._val || fn();
     }
     orElseValue(another) {
         return this._val || another;
@@ -36,9 +44,15 @@ class Option {
     }
 }
 
+const optionOf = (val) => val ? new Option(val) : (() => {throw new Error('Value cannot be null')})();
+const nullableOption = (val) => new Option(val);
+const emptyOption = () => new Option(null);
+const firstOption = (array) => nullableOption(_.first(array));
+
 module.exports = {
-    optionOf: (val) => val ? new Option(val) : (() => {throw new Error('Value cannot be null')})(),
-    nullableOption: (val) => new Option(val),
-    emptyOption: () => new Option(null),
-    readModuleFile: readModuleFile
+    optionOf: optionOf,
+    nullableOption: nullableOption,
+    emptyOption: emptyOption,
+    readModuleFile: readModuleFile,
+    firstOption: firstOption
 }

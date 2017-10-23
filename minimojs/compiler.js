@@ -141,11 +141,12 @@ const _getTemplateData = (templateName) => {
 }
 
 const _prepareScripts = (doc, htmlEl) => {
-    let head = _.first(htmlEl.getElementsByName("head"));
-    if (!head) {
-        head = doc.createElement("head");
-        htmlEl.insertChild(head, 0);
-    }
+    const head = util.firstOption(htmlEl.getElementsByName("head"))
+        .orElseGet(() => {
+            const head = doc.createElement("head");
+            htmlEl.insertChild(head, 0);
+            return head;
+        });
     // params
     let script = head.addElement("script");
     script.setAttribute("type", "text/javascript");
@@ -211,8 +212,8 @@ const _printElements = (element) => element.children.map(e => {
 
 const _printCleanHtml = (doc) => `
     <html ${!context.devMode ? `manifest="${context.contextPath}/x/_appcache"` : ''}>
-        <head>${_printElements(_.first(doc.htmlElement.getElementsByName('head')))}</head>
-        <body>${_printElements(_.first(doc.htmlElement.getElementsByName('body')))}</body>
+        <head>${util.firstOption(doc.htmlElement.getElementsByName('head')).map(_printElements, '')}</head>
+        <body>${util.firstOption(doc.htmlElement.getElementsByName('body')).map(_printElements, '')}</body>
     </html>`;
 
 const _reloadTemplate = (templateName) => _getTemplateData(templateName)
@@ -278,7 +279,7 @@ const _addChildValidElements = (doc) => {
 
 const _loadTemplate = (templateName) => {
     if(!_cached.templateMap[templateName]){
-        _reloadTemplate(templateName).then(v => _cached.templateMap[templateName] = v);
+        compiler._reloadTemplate(templateName).then(v => _cached.templateMap[templateName] = v);
     }
 }
 
@@ -287,20 +288,16 @@ const _compilePage = (resInfo, htmxData, jsData) => {
     resInfo.templateName = null;
     if (!doc.htmlElement) {
         //has template
-        let templateInfo = doc.getElementsByName("template-info");
-        if (templateInfo.length > 0) {
-            templateInfo.forEach(ti => {
-                resInfo.templateName = ti.getAttribute("path");
-                ti.remove();
-            });
-        }
+        util.firstOption(doc.getElementsByName("template-info")).ifPresent(templateInfo => {
+            resInfo.templateName = templateInfo.getAttribute("path");
+            templateInfo.remove();
+            resInfo.templateName.ifPresent(_loadTemplate);
+        });
     }
     //get all the bound variables in the page
     const boundVars = doc.boundVars;
     //get all the bound modals in the page
     const boundModals = doc.boundModals;
-
-    resInfo.templateName.ifPresent(_loadTemplate);
 
     //place real html of components, prepare iterators and labels
     _prepareHTML(doc, boundVars, boundModals);
@@ -486,7 +483,7 @@ const _instrumentController = (htmlJson, jsData, isGlobal, resInfo, boundVars = 
     }
 }
 
-module.exports = {
+const compiler = {
     _restart: _restart,
     _getResourceInfo: _getResourceInfo,
     Resource: Resource,
@@ -497,3 +494,4 @@ module.exports = {
     _getTemplateData: _getTemplateData,
     _prepareTopElements: _prepareTopElements
 }
+module.exports = compiler;

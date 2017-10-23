@@ -1,6 +1,7 @@
 const _ = require('underscore');
 const esprima = require('esprima');
 const context = require('./context');
+const util = require('./util');
 
 const _prepareXScriptsValues = (value) => {
   let last = value;
@@ -441,18 +442,10 @@ class Element extends Node {
       }));
   }
   findDeepestChild(tagName) {
-    const e = _.first(this.getElementsByName(tagName));
-    if (e) {
-      return e.findDeepestChild(tagName) || e;
-    }
-    return null;
+    return util.firstOption(this.getElementsByName(tagName)).map(e => e.findDeepestChild(tagName) || e);
   }
   findDeepestChildWithAttribute(attributeName) {
-    const e = _.first(this.getElementsWithAttribute(attributeName));
-    if (e) {
-      return e.findDeepestChildWithAttribute(attributeName) || e;
-    }
-    return null;
+    return util.firstOption(this.getElementsWithAttribute(attributeName)).map(e => e.findDeepestChildWithAttribute(attributeName) || e);
   }
 }
 

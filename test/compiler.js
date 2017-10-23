@@ -5,6 +5,10 @@ const expect = require('chai').expect;
 const components = require('../minimojs/components');
 const htmlParser = require('../minimojs/htmlParser');
 const _ = require('underscore');
+const chai = require('chai')
+const spies = require('chai-spies');
+
+chai.use(spies);
 
 describe('Test compiler', function () {
     it('Get resource info htmx/js OK', () => compiler._restart()
@@ -199,21 +203,35 @@ describe('Test compiler', function () {
             const divLoader = _.first(doc.getElementsByName('body')).children[0];
             divLoader.getAttribute("id").should.be.equal('__temploader__');
         }));
-    it ('Reload black template', () => compiler._reloadTemplate('tpl.htmx').then(template => {
+    it ('Reload blank template', () => compiler._reloadTemplate('tpl.htmx').then(template => {
         const doc = new htmlParser.HTMLParser().parse(template);
         const body = _.first(doc.getElementsByName('body'));
         body.children.should.have.lengthOf(1);
         body.children[0].name.should.be.equal('script');
     }));
     it ('Compile page htmx and js no components no html element', () => {
+        const spy = chai.spy(compiler._reloadTemplate);
+        compiler._reloadTemplate = spy;
         const realPath = resources.getRealPath('/pages/dir1/test1.htmx');
         const resInfo = new compiler.Resource('/dir1/test1', true, true, realPath.substring(0, realPath.lastIndexOf('.')), false);
         return components.startComponents().then(() => 
-            Promise.all([resources.readResource(resInfo.relativeHtmxPath.value), resources.readResource(resInfo.relativeJsPath.value)])
-            .then(([htmx, js]) => compiler._compilePage(resInfo, htmx.data, js.data)));
+            Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
+            .then(([htmx, js]) => {
+                compiler._compilePage(resInfo, htmx.data, js.data);
+                expect(spy).not.to.have.been.called;
+            }));
     });
-    it ('Compile page htmx and js not components with template info', () => {
-        
+    it ('Compile page htmx and js no components with template', () => {
+        const spy = chai.spy(compiler._reloadTemplate);
+        compiler._reloadTemplate = spy;
+        const realPath = resources.getRealPath('/pages/dir1/test1_template.htmx');
+        const resInfo = new compiler.Resource('/dir1/test1_template', false, true, realPath.substring(0, realPath.lastIndexOf('.')), false);
+        return components.startComponents().then(() => 
+            Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
+            .then(([htmx, js]) => {
+                compiler._compilePage(resInfo, htmx.data, "");
+                spy.should.have.been.called();
+            }));
     });
     it ('Compile page htmx and js with components no html element', () => {
     });
