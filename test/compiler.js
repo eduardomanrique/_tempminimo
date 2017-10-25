@@ -256,8 +256,6 @@ describe('Test compiler', function () {
                 spy.should.have.been.called();
             }));
     });
-    it ('Compile page htmx and js with components with template info', () => {
-    });
     it ('Compile page js only', () => {
         const spy = chai.spy(compiler._reloadTemplate);
         compiler._reloadTemplate = spy;
@@ -282,6 +280,8 @@ describe('Test compiler', function () {
                 instance.__eval__('param').should.be.eq(1);
                 spy.should.not.have.been.called();
             }));
+    });
+    it ('Compile page htmx and js with components with template info', () => {
     });
     //_loadFileAndCache
     // _reloadFile
