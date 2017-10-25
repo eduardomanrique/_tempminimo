@@ -803,6 +803,9 @@ class HTMLParser {
               element.setAttribute(attName, val);
               if (attName == "bind") {
                 let bind = val.trim();
+                if (!endNoAspas) {
+                  bind = bind.substring(1, bind.length-1);
+                }
                 let varName = bind.split(".")[0];
                 if (varName != "window" && varName != "xuser") {
                   this._boundObjects.push(varName.split("[")[0]);

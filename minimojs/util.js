@@ -28,7 +28,13 @@ class Option {
         if(this._val){
             return fn(this._val);
         }
-        return defaultValue || null;
+        return defaultValue ||  defaultValue == "" ? defaultValue : null;
+    }
+    optionMap(fn) {
+        if(this._val){
+            return nullableOption(fn(this._val));
+        }
+        return emptyOption();
     }
     get value() {
         return this._val;

@@ -126,8 +126,8 @@ const _reloadFiles = () =>
 
 const _reloadFile = (_resources, path) => {
     const resInfo = _getResourceInfo(path);
-    const htmx = path.htmxPath.isPresent() ? (_resources[0].path.endsWith('.htmx') ? _resources[0].data : _resources[1].data) : '';
-    const js = path.jsPath.isPresent() ? (_resources[0].path.endsWith('.js') ? _resources[0].data : _resources[1].data) : '';
+    const htmx = util.nullableOption(path.htmxPath.isPresent() ? (_resources[0].path.endsWith('.htmx') ? _resources[0].data : _resources[1].data) : null);
+    const js = util.nullableOption(path.jsPath.isPresent() ? (_resources[0].path.endsWith('.js') ? _resources[0].data : _resources[1].data) : null);
     let compiledPage = _compilePage(resInfo, htmx, js);
     _loadFileAndCache(resInfo, compiledPage);
     _cached.importableResourceInfo[path] = new ImportableResourceInfo(path, htmxResInfo.templateName);
@@ -284,24 +284,25 @@ const _loadTemplate = (templateName) => {
 }
 
 const _compilePage = (resInfo, htmxData, jsData) => {
-    const doc = new htmlParser.HTMLParser().parse(htmxData);
+    const parser = new htmlParser.HTMLParser();
+    const doc = util.nullableOption(htmxData.map(html => parser.parse(html)));
     resInfo.templateName = null;
-    if (!doc.htmlElement) {
+    if (doc.isPresent() && !doc.value.htmlElement) {
         //has template
-        util.firstOption(doc.getElementsByName("template-info")).ifPresent(templateInfo => {
+        util.firstOption(doc.value.getElementsByName("template-info")).ifPresent(templateInfo => {
             resInfo.templateName = templateInfo.getAttribute("path");
             templateInfo.remove();
             resInfo.templateName.ifPresent(_loadTemplate);
         });
     }
     //get all the bound variables in the page
-    const boundVars = doc.boundVars;
+    const boundVars = parser.boundObjects;
     //get all the bound modals in the page
-    const boundModals = doc.boundModals;
+    const boundModals = parser.boundModals;
 
     //place real html of components, prepare iterators and labels
-    _prepareHTML(doc, boundVars, boundModals);
-    return _instrumentController(doc.toJson(), jsData, false, resInfo, boundVars, boundModals)
+    doc.ifPresent(d => _prepareHTML(d, boundVars, boundModals));
+    return _instrumentController(doc.map(d => d.toJson()), jsData, false, resInfo, boundVars, boundModals)
 }
 
 const _prepareHTML = (doc, boundVars, boundModals) => {
@@ -427,10 +428,10 @@ const _prepareInjections = (js, boundModals) => {
 
 const _instrumentController = (htmlJson, jsData, isGlobal, resInfo, boundVars = [], boundModals = []) => {
     const jsName = resInfo.resourceName.replace(/\./g, '').replace(/\//g, '.');
-    const preparedJs = _prepareInjections(jsData, boundModals);
+    const preparedJs = jsData.map(js => _prepareInjections(js, boundModals), "");
     const boundVarDeclaration = [];
     boundVars.forEach(boundVar => {
-        if (!boundVar.trim() == "" && !boundVar.trim().startsWith("${") && !boundVar.trim() == "this") {
+        if (!boundVar.trim() == "" && !boundVar.trim().startsWith("${") && !boundVar.trim() != "this") {
             boundVarDeclaration.push(`var ${boundVar};\n`);
         }
     });

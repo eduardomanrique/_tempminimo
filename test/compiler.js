@@ -4,6 +4,7 @@ const resources = require('../minimojs/resources');
 const expect = require('chai').expect;
 const components = require('../minimojs/components');
 const htmlParser = require('../minimojs/htmlParser');
+const util = require('../minimojs/util');
 const _ = require('underscore');
 const chai = require('chai')
 const spies = require('chai-spies');
@@ -119,7 +120,7 @@ describe('Test compiler', function () {
         </html>`).toJson();
         const boundVars = parser.boundVars;
         const boundModals = parser.boundModals;
-        const jsData = `
+        const jsData = util.optionOf(`
         var obj = {
             test:1
         };
@@ -135,7 +136,7 @@ describe('Test compiler', function () {
         function _privateFn(){
             change = 1;
         }
-        `;
+        `);
         const realPath = resources.getRealPath('/pages/dir1/test1.htmx');
         const resInfo = new compiler.Resource('/dir1/test1', true, true, realPath.substring(0, realPath.lastIndexOf('.')), false);
         const controllerJs = compiler._instrumentController(docJson, jsData, false, resInfo, boundVars, boundModals);
@@ -217,29 +218,70 @@ describe('Test compiler', function () {
         return components.startComponents().then(() => 
             Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
             .then(([htmx, js]) => {
-                compiler._compilePage(resInfo, htmx.data, js.data);
+                let instance;
+                const X$ = {
+                    register: (html, name, constructorFn) => {
+                        htmlStruct = html;
+                        resourceName = name;
+                        instance = new constructorFn({});
+                    }
+                };
+                eval(compiler._compilePage(resInfo, util.optionOf(htmx.data), util.optionOf(js.data)));
+                instance.__eval__('param').should.be.eq(1);
                 expect(spy).not.to.have.been.called;
             }));
     });
-    it ('Compile page htmx and js no components with template', () => {
+    it ('Compile page htmx and no js no components with template', () => {
         const spy = chai.spy(compiler._reloadTemplate);
         compiler._reloadTemplate = spy;
-        const realPath = resources.getRealPath('/pages/dir1/test1_template.htmx');
-        const resInfo = new compiler.Resource('/dir1/test1_template', false, true, realPath.substring(0, realPath.lastIndexOf('.')), false);
+        const realPath = resources.getRealPath('/pages/dir1/test1_template_no_js.htmx');
+        const resInfo = new compiler.Resource('/dir1/test1_template_no_js', false, true, realPath.substring(0, realPath.lastIndexOf('.')), false);
         return components.startComponents().then(() => 
-            Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
+        Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
             .then(([htmx, js]) => {
-                compiler._compilePage(resInfo, htmx.data, "");
+                let instance;
+                const X$ = {
+                    register: (html, name, constructorFn) => {
+                        htmlStruct = html;
+                        resourceName = name;
+                        instance = new constructorFn({});
+                    }
+                };
+                const compiled = compiler._compilePage(resInfo, util.nullableOption(htmx).optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data));
+                eval(compiled);
+                var param;
+                instance.__eval__('param = 1');
+                param = 3;
+                instance.__eval__('param').should.be.eq(1);
                 spy.should.have.been.called();
             }));
     });
-    it ('Compile page htmx and js with components no html element', () => {
-    });
     it ('Compile page htmx and js with components with template info', () => {
     });
-    it ('Compile page htmx only', () => {
-    });
-    it ('Compile page js only?', () => {
+    it ('Compile page js only', () => {
+        const spy = chai.spy(compiler._reloadTemplate);
+        compiler._reloadTemplate = spy;
+        const realPath = resources.getRealPath('/pages/dir2/jsonly.js');
+        const resInfo = new compiler.Resource('/dir2/jsonly', true, false, realPath.substring(0, realPath.lastIndexOf('.')), false);
+        return components.startComponents().then(() => 
+        Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
+            .then(([htmx, js]) => {
+                let instance;
+                const X$ = {
+                    register: (html, name, constructorFn) => {
+                        htmlStruct = html;
+                        resourceName = name;
+                        instance = new constructorFn({});
+                    }
+                };
+                const compiled = compiler._compilePage(resInfo, util.nullableOption(htmx).optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data));
+                eval(compiled);
+                var param;
+                instance.__eval__('param = 1');
+                param = 3;
+                instance.__eval__('param').should.be.eq(1);
+                spy.should.not.have.been.called();
+            }));
     });
     //_loadFileAndCache
     // _reloadFile
