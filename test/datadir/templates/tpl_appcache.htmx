@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="" data-useappcache="true">
+<head>
+<meta charset="utf-8">
+<title>XTests</title>
+<link rel="stylesheet" href="/css/tests.css" media="all" />
+<script src="/x.js"></script>
+</head>
+<body>
+	{xbody}
+	<script type="text/javascript">
+		alert(2);
+	</script>
+	<script src="/y.js"></script>
+</body>
+</html>

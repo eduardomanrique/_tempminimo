@@ -1,0 +1,7 @@
+<template-info path="tpl_appcache.htmx"/>
+
+<div>
+    <script src="/test.js"></script>
+    <script>alert(1)</script>
+    <script src="/abc/def.js"></script>
+</div>

@@ -11,6 +11,8 @@ const spies = require('chai-spies');
 
 chai.use(spies);
 
+const _reloadTemplate = compiler._reloadTemplate;
+
 describe('Test compiler', function () {
     it('Get resource info htmx/js OK', () => compiler._restart()
         .then(() => compiler._getResourceInfo('/dir1/test1.htmx', false)
@@ -204,6 +206,23 @@ describe('Test compiler', function () {
             const divLoader = _.first(doc.getElementsByName('body')).children[0];
             divLoader.getAttribute("id").should.be.equal('__temploader__');
         }));
+    it ('Test add child to app cache', () => {
+        compiler._resetAppcache();
+        const realPath = resources.getRealPath('/pages/dir2/test_appcache.htmx');
+        const resInfo = new compiler.Resource('/dir2/test_appcache', false, true, realPath.substring(0, realPath.lastIndexOf('.')), false);
+        return components.startComponents().then(() => 
+            Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
+                .then(([htmx, js]) => 
+                    compiler._compilePage(resInfo, util.nullableOption(htmx).optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data))
+                        .then(compiledPage => {
+                            var a = compiler._appcache();
+                            a.should.contain('/ctx/test.js');
+                            a.should.contain('/ctx/abc/def.js');
+                            a.should.contain('/ctx/x.js');
+                            a.should.contain('/ctx/y.js');
+                            a.should.contain('/css/tests.css');
+                        })));
+            });
     it ('Reload blank template', () => compiler._reloadTemplate('tpl.htmx').then(template => {
         const doc = new htmlParser.HTMLParser().parse(template);
         const body = _.first(doc.getElementsByName('body'));
@@ -211,13 +230,13 @@ describe('Test compiler', function () {
         body.children[0].name.should.be.equal('script');
     }));
     it ('Compile page htmx and js no components no html element', () => {
-        const spy = chai.spy(compiler._reloadTemplate);
+        const spy = chai.spy(_reloadTemplate);
         compiler._reloadTemplate = spy;
         const realPath = resources.getRealPath('/pages/dir1/test1.htmx');
         const resInfo = new compiler.Resource('/dir1/test1', true, true, realPath.substring(0, realPath.lastIndexOf('.')), false);
         return components.startComponents().then(() => 
             Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
-            .then(([htmx, js]) => {
+            .then(([htmx, js]) => compiler._compilePage(resInfo, util.optionOf(htmx.data), util.optionOf(js.data)).then(compiled => {
                 let instance;
                 const X$ = {
                     register: (html, name, constructorFn) => {
@@ -226,19 +245,19 @@ describe('Test compiler', function () {
                         instance = new constructorFn({});
                     }
                 };
-                eval(compiler._compilePage(resInfo, util.optionOf(htmx.data), util.optionOf(js.data)));
+                eval(compiled);    
                 instance.__eval__('param').should.be.eq(1);
                 expect(spy).not.to.have.been.called;
-            }));
+            })));
     });
     it ('Compile page htmx and no js no components with template', () => {
-        const spy = chai.spy(compiler._reloadTemplate);
+        const spy = chai.spy(_reloadTemplate);
         compiler._reloadTemplate = spy;
         const realPath = resources.getRealPath('/pages/dir1/test1_template_no_js.htmx');
         const resInfo = new compiler.Resource('/dir1/test1_template_no_js', false, true, realPath.substring(0, realPath.lastIndexOf('.')), false);
         return components.startComponents().then(() => 
         Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
-            .then(([htmx, js]) => {
+            .then(([htmx, js]) => compiler._compilePage(resInfo, util.nullableOption(htmx).optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data)).then(compiled => {
                 let instance;
                 const X$ = {
                     register: (html, name, constructorFn) => {
@@ -247,23 +266,22 @@ describe('Test compiler', function () {
                         instance = new constructorFn({});
                     }
                 };
-                const compiled = compiler._compilePage(resInfo, util.nullableOption(htmx).optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data));
                 eval(compiled);
                 var param;
                 instance.__eval__('param = 1');
                 param = 3;
                 instance.__eval__('param').should.be.eq(1);
                 spy.should.have.been.called();
-            }));
+            })));
     });
     it ('Compile page js only', () => {
-        const spy = chai.spy(compiler._reloadTemplate);
+        const spy = chai.spy(_reloadTemplate);
         compiler._reloadTemplate = spy;
         const realPath = resources.getRealPath('/pages/dir2/jsonly.js');
         const resInfo = new compiler.Resource('/dir2/jsonly', true, false, realPath.substring(0, realPath.lastIndexOf('.')), false);
         return components.startComponents().then(() => 
         Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
-            .then(([htmx, js]) => {
+            .then(([htmx, js]) => compiler._compilePage(resInfo, util.nullableOption(htmx).optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data)).then(compiled => {
                 let instance;
                 const X$ = {
                     register: (html, name, constructorFn) => {
@@ -272,23 +290,37 @@ describe('Test compiler', function () {
                         instance = new constructorFn({});
                     }
                 };
-                const compiled = compiler._compilePage(resInfo, util.nullableOption(htmx).optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data));
                 eval(compiled);
                 var param;
                 instance.__eval__('param = 1');
                 param = 3;
                 instance.__eval__('param').should.be.eq(1);
                 spy.should.not.have.been.called();
-            }));
+            })));
     });
-    it ('Compile page htmx and js with components with template info', () => {
+    it ('Compile page htmx and js with components', () => {
+        const realPath = resources.getRealPath('/pages/dir1/with_components.htmx');
+        const resInfo = new compiler.Resource('/dir1/with_components', true, true, realPath.substring(0, realPath.lastIndexOf('.')), false);
+        return components.startComponents().then(() => 
+            Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
+                .then(([htmx, js]) => compiler._compilePage(resInfo, util.nullableOption(htmx).optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data)).then(compiled => {
+                    let instance;
+                    const X$ = {
+                        register: (html, name, constructorFn) => {
+                            htmlStruct = html;
+                            resourceName = name;
+                            instance = new constructorFn({});
+                        }
+                    };
+                    eval(compiled);
+                    var bindV;
+                    instance.__eval__('bindV = 1');
+                    bindV = 3;
+                    instance.__eval__('bindV').should.be.eq(1);
+                    var obj = {val:null};
+                    instance.__eval__('obj = {val:1}');
+                    obj.val = 3
+                    instance.__eval__('obj.val').should.be.eq(1);
+                })));
     });
-    //_loadFileAndCache
-    // _reloadFile
-    //_reloadFiles
-    //_reloadTemplate com mock?
-    //_addChildValidElements ?
-    //_compilePage com mock?
-    //_buildComponents
-
 });

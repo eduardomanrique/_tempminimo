@@ -129,9 +129,9 @@ describe('Test component', function () {
 							<column title="Gender">item.data.gender.name</column>
 							<column title="Like movies?">item.likeMovies ? 'Yes' : 'No'</column>
 							<column>
-								<htmxstyle.checkbox id="cb_\${index}" bind="obj.val" label="Label">
-									<htmxstyle.checkbox id="cb_\${index}" bind="obj.val" label="Label2">
-										<htmxstyle.checkbox id="cb_\${index}" bind="obj.val" label="OK"/>
+								<htmxstyle.checkbox id="cb_\${index}" varToBind="obj.val" label="Label">
+									<htmxstyle.checkbox id="cb_\${index}" varToBind="obj.val" label="Label2">
+										<htmxstyle.checkbox id="cb_\${index}" varToBind="obj.val" label="OK"/>
 										</htmxstyle.checkbox>
 								</htmxstyle.checkbox>
 							</column>

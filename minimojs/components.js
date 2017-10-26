@@ -237,7 +237,7 @@ const _buildComponentOnPage = (compInfo, element, doc, boundVars, boundModals) =
   _configComponentBinds(componentDoc, htmxBoundVars);
   
   if (boundVars) {
-    _.values(htmxBoundVars).forEach(v => boundVars.push(v.split('.')[0]));
+    _.values(htmxBoundVars).filter(v => v != null).map(v => v.split('.')[0]).forEach(v => boundVars.push(v));
     parser.boundObjects.forEach(e => boundVars.push(e));
   }
   if (boundModals) {

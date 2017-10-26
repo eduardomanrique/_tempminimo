@@ -128,9 +128,10 @@ const _reloadFile = (_resources, path) => {
     const resInfo = _getResourceInfo(path);
     const htmx = util.nullableOption(path.htmxPath.isPresent() ? (_resources[0].path.endsWith('.htmx') ? _resources[0].data : _resources[1].data) : null);
     const js = util.nullableOption(path.jsPath.isPresent() ? (_resources[0].path.endsWith('.js') ? _resources[0].data : _resources[1].data) : null);
-    let compiledPage = _compilePage(resInfo, htmx, js);
-    _loadFileAndCache(resInfo, compiledPage);
-    _cached.importableResourceInfo[path] = new ImportableResourceInfo(path, htmxResInfo.templateName);
+    _compilePage(resInfo, htmx, js).then(compiledPage => {
+        _loadFileAndCache(resInfo, compiledPage);
+        _cached.importableResourceInfo[path] = new ImportableResourceInfo(path, htmxResInfo.templateName);
+    });
 }
 
 const _blankHtml = () => `<html><body></body></html>`;
@@ -279,7 +280,7 @@ const _addChildValidElements = (doc) => {
 
 const _loadTemplate = (templateName) => {
     if(!_cached.templateMap[templateName]){
-        compiler._reloadTemplate(templateName).then(v => _cached.templateMap[templateName] = v);
+        return compiler._reloadTemplate(templateName).then(v => _cached.templateMap[templateName] = v);
     }
 }
 
@@ -287,14 +288,7 @@ const _compilePage = (resInfo, htmxData, jsData) => {
     const parser = new htmlParser.HTMLParser();
     const doc = util.nullableOption(htmxData.map(html => parser.parse(html)));
     resInfo.templateName = null;
-    if (doc.isPresent() && !doc.value.htmlElement) {
-        //has template
-        util.firstOption(doc.value.getElementsByName("template-info")).ifPresent(templateInfo => {
-            resInfo.templateName = templateInfo.getAttribute("path");
-            templateInfo.remove();
-            resInfo.templateName.ifPresent(_loadTemplate);
-        });
-    }
+    const promises = [];
     //get all the bound variables in the page
     const boundVars = parser.boundObjects;
     //get all the bound modals in the page
@@ -302,7 +296,16 @@ const _compilePage = (resInfo, htmxData, jsData) => {
 
     //place real html of components, prepare iterators and labels
     doc.ifPresent(d => _prepareHTML(d, boundVars, boundModals));
-    return _instrumentController(doc.map(d => d.toJson()), jsData, false, resInfo, boundVars, boundModals)
+    promises.push(_instrumentController(doc.map(d => d.toJson()), jsData, false, resInfo, _.uniq(boundVars), _.uniq(boundModals)));
+    if (doc.isPresent() && !doc.value.htmlElement) {
+        //has template
+        util.firstOption(doc.value.getElementsByName("template-info")).ifPresent(templateInfo => {
+            resInfo.templateName = templateInfo.getAttribute("path");
+            templateInfo.remove();
+            resInfo.templateName.ifPresent(t => promises.push(_loadTemplate(t)));
+        });
+    }
+    return Promise.all(promises).then(values => values[0]);
 }
 
 const _prepareHTML = (doc, boundVars, boundModals) => {
@@ -493,6 +496,8 @@ const compiler = {
     _instrumentController: _instrumentController,
     _reloadTemplate: _reloadTemplate,
     _getTemplateData: _getTemplateData,
-    _prepareTopElements: _prepareTopElements
+    _prepareTopElements: _prepareTopElements,
+    _appcache: () => _cached.appcacheResources,
+    _resetAppcache: () => _cached.appcacheResources = new Set()
 }
 module.exports = compiler;
