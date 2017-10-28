@@ -132,8 +132,13 @@ const _getResourceInfo = (path, isGlobal) => new Promise((resolve) => {
         resolve(_cached.resourceInfoMap[noExtPath]);
     }
 });
-const _loadFileAndCache = (resInfo, compiledPage) =>
-    resources.writeFile(`${context.destinationPath}${resInfo.path}.js`, compiledPage);
+const _loadFileAndCache = (resInfo, compiled) => 
+    resources.writeFile(`${context.destinationPath}${resInfo.path}.m.js`, compiled.js)
+        .then(() => {
+            if(compiled.globalJs){
+                return resources.writeFile(`${context.destinationPath}${resInfo.path}.js`, compiled.js)
+            }
+        });
 
 const _reloadFiles = () =>
     resources.getResources("./pages", r => r.endsWith(".htmx") || r.endsWith(".js"))
@@ -147,8 +152,14 @@ const _reloadFile = (_resources, path) => _getResourceInfo(path.replace(/\.\/pag
         const htmx = util.nullableOption(resInfo.htmxPath.isPresent() ? (_resources[0].path.endsWith('.htmx') ? _resources[0].data : _resources[1].data) : null);
         const js = util.nullableOption(resInfo.jsPath.isPresent() ? (_resources[0].path.endsWith('.js') ? _resources[0].data : _resources[1].data) : null);
         return _compilePage(resInfo, htmx, js)
-            .then(compiledPage => _loadFileAndCache(resInfo, compiledPage))
-            .then(() => _cached.importableResourceInfo[resInfo.path] = new ImportableResourceInfo(resInfo.path, resInfo.templateName));
+            .then(compiled => _loadFileAndCache(resInfo, compiled))
+            .then(() => {
+                _cached.importableResourceInfo[resInfo.path] = new ImportableResourceInfo(resInfo.path, resInfo.templateName);
+                _cached.appcacheResources.add(`${context.contextPath}${resInfo.path}.m.js`);
+                htmx.ifNotPresent(() => {
+                    _cached.appcacheResources.add(`${context.contextPath}${resInfo.path}.js`);
+                });
+            });
     }));
 
 

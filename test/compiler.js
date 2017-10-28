@@ -361,13 +361,14 @@ describe('Test compiler', function () {
                 ].toPromise())
             .then(([dir1, dir2]) => {
                 dir1.should.have.lengthOf(3);
-                dir1.should.contain(`${context.destinationPath}/dir1/test1.js`);
-                dir1.should.contain(`${context.destinationPath}/dir1/test1_template_no_js.js`);
-                dir1.should.contain(`${context.destinationPath}/dir1/with_components.js`);
-                dir2.should.have.lengthOf(3);
-                dir2.should.contain(`${context.destinationPath}/dir2/htmxonly.js`);
+                dir1.should.contain(`${context.destinationPath}/dir1/test1.m.js`);
+                dir1.should.contain(`${context.destinationPath}/dir1/test1_template_no_js.m.js`);
+                dir1.should.contain(`${context.destinationPath}/dir1/with_components.m.js`);
+                dir2.should.have.lengthOf(4);
+                dir2.should.contain(`${context.destinationPath}/dir2/htmxonly.m.js`);
+                dir2.should.contain(`${context.destinationPath}/dir2/js-only.m.js`);
                 dir2.should.contain(`${context.destinationPath}/dir2/js-only.js`);
-                dir2.should.contain(`${context.destinationPath}/dir2/test_appcache.js`);
+                dir2.should.contain(`${context.destinationPath}/dir2/test_appcache.m.js`);
             })
             .then(() => resources.rmDirR(context.destinationPath));
     });
