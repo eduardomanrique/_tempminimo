@@ -17,6 +17,12 @@ class Context {
   get localAccess() {
     return this._localAccess;
   }
+  set destinationPath(d) {
+    this._destPath = d;
+  }
+  get destinationPath(){
+    return this._destPath;
+  }
 }
 
 module.exports = new Context();

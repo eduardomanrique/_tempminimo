@@ -26,6 +26,28 @@ const _restart = () => new Promise((resolve) => {
     };
     resolve();
 });
+/*
+xresourcemanager
+
+public synchronized void reload() throws IOException {
+    modalPathsDeclared = new HashMap<String, List<String>>();
+    validResources = new HashMap<String, List<String>>();
+    importableScripts = new HashSet<String>();
+    templateMap = new HashMap<String, XHTMLDocument>();
+        //copy all res to dest
+        FileUtils.copyDirectory(new File(baseResPath), new File(baseDestPath));
+        //make a copy to res as well. It is accessible through both paths
+        FileUtils.copyDirectory(new File(baseResPath), new File(baseDestPath + "/res"));
+    reloadHtmxFiles();
+    reloadJsFiles();
+    reloadGlobalImported();
+    generateAppCacheFile();
+    startWatchService();
+    allResources = new HashSet<String>();
+    collectAllResources();
+    reloadCommonResources();
+}
+*/
 
 const compileResources = (destDir, defaultTemplateName) =>
     components.startComponents().then(() =>
@@ -54,6 +76,7 @@ class ImportableResourceInfo {
 }
 class Resource {
     constructor(_path, _js, _htmx, _realPath, _global) {
+        this._path = _path;
         this._resourceName = _path.replace('/', '.');
         this._jsPath = util.nullableOption(_js ? `${_path}.js`: null);
         this._htmxPath = util.nullableOption(_htmx ? `${_path}.htmx`: null);
@@ -94,12 +117,15 @@ class Resource {
     get isGlobal(){
         return this._global;
     }
+    get path(){
+        return this._path;
+    }
 }
 
 const _getResourceInfo = (path, isGlobal) => new Promise((resolve) => {
-    const noExtPath = path.substring(0, path.lastIndexOf('.'));
+    const noExtPath = path.indexOf('.') > 0 ? path.substring(0, path.lastIndexOf('.')) : path;
     if (!_cached.resourceInfoMap[noExtPath]) {
-        return Promise.all([resources.exists(`./pages${noExtPath}.htmx`), resources.exists(`./pages${noExtPath}.js`)])
+        return [resources.exists(`./pages${noExtPath}.htmx`), resources.exists(`./pages${noExtPath}.js`)].toPromise()
             .then(([existsHtmx, existsJs]) => {
                 if (!existsHtmx && !existsJs) {
                     _cached.resourceInfoMap[noExtPath] = util.emptyOption();
@@ -117,22 +143,21 @@ const _getResourceInfo = (path, isGlobal) => new Promise((resolve) => {
     }
 });
 const _loadFileAndCache = (resInfo, compiledPage) =>
-    resources.writeFile(`${baseDestPath}${resInfo.path}.js`, compiledPage);
+    resources.writeFile(`${context.destinationPath}${resInfo.path}.js`, compiledPage);
 
 const _reloadFiles = () =>
     resources.getResources("./pages", r => r.endsWith(".htmx") || r.endsWith(".js"))
         .then(values => _.groupBy(values, resource => resource.path.substring(0, resource.path.lastIndexOf('.'))))
-        .then(values => _.mapObject(values, _reloadFile));
+        .then(values => _.keys(values).map(key => _reloadFile(values[key], key)).toPromise());
 
-const _reloadFile = (_resources, path) => {
-    const resInfo = _getResourceInfo(path);
-    const htmx = util.nullableOption(path.htmxPath.isPresent() ? (_resources[0].path.endsWith('.htmx') ? _resources[0].data : _resources[1].data) : null);
-    const js = util.nullableOption(path.jsPath.isPresent() ? (_resources[0].path.endsWith('.js') ? _resources[0].data : _resources[1].data) : null);
-    _compilePage(resInfo, htmx, js).then(compiledPage => {
-        _loadFileAndCache(resInfo, compiledPage);
-        _cached.importableResourceInfo[path] = new ImportableResourceInfo(path, htmxResInfo.templateName);
-    });
-}
+const _reloadFile = (_resources, path) => _getResourceInfo(path.replace(/\.\/pages/, '')).then(resInfoOption => resInfoOption.map(resInfo => {
+    const htmx = util.nullableOption(resInfo.htmxPath.isPresent() ? (_resources[0].path.endsWith('.htmx') ? _resources[0].data : _resources[1].data) : null);
+    const js = util.nullableOption(resInfo.jsPath.isPresent() ? (_resources[0].path.endsWith('.js') ? _resources[0].data : _resources[1].data) : null);
+    return _compilePage(resInfo, htmx, js)
+        .then(compiledPage => _loadFileAndCache(resInfo, compiledPage))
+        .then(() => _cached.importableResourceInfo[resInfo.path] = new ImportableResourceInfo(resInfo.path, htmxResInfo.templateName));
+    }));
+
 
 const _blankHtml = () => `<html><body></body></html>`;
 
@@ -305,7 +330,7 @@ const _compilePage = (resInfo, htmxData, jsData) => {
             resInfo.templateName.ifPresent(t => promises.push(_loadTemplate(t)));
         });
     }
-    return Promise.all(promises).then(values => values[0]);
+    return promises.toPromise().then(values => values[0]);
 }
 
 const _prepareHTML = (doc, boundVars, boundModals) => {
@@ -498,6 +523,7 @@ const compiler = {
     _getTemplateData: _getTemplateData,
     _prepareTopElements: _prepareTopElements,
     _appcache: () => _cached.appcacheResources,
-    _resetAppcache: () => _cached.appcacheResources = new Set()
+    _resetAppcache: () => _cached.appcacheResources = new Set(),
+    _reloadFiles: _reloadFiles
 }
 module.exports = compiler;

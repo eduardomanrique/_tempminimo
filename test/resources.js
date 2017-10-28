@@ -1,5 +1,6 @@
 require('./test');
 require('chai').should();
+const util = require('../minimojs/util');
 const expect = require('chai').expect;
 const _ = require('underscore');
 const assert = require('assert');
@@ -8,7 +9,7 @@ const resources = require('../minimojs/resources');
 
 
 
-describe('Get resources', function() {
+describe('Get resources', function () {
   it('List res folder', () => {
     expect(_.difference(resources.getResourcePaths('./res'), ['./res/file.txt', './res/file2.txt', './res/dir1/fdir1.jsp', './res/dir1/fdir1.html']))
       .to.have.lengthOf(0);
@@ -40,7 +41,7 @@ describe('Get resources', function() {
 
 
   it('List and get groupped with filter', () =>
-    resources.getResourcePaths("./res", r => !r.endsWith(".html")).then(res => 
+    resources.getResourcePaths("./res", r => !r.endsWith(".html")).then(res =>
       Promise.all(res.map(resource => resources.readResource(resource))))
     .then(values => _.groupBy(values, resource => resource.path.substring(0, resource.path.lastIndexOf('.'))))
     .then(values => {
@@ -95,4 +96,15 @@ describe('Get resources', function() {
   );
   it('Exists', () => resources.exists("./res/dir1/fdir1.html").then(assert));
   it('Doesnt Exist', () => resources.exists("./res/dir1/xasdf.html").then(exists => assert(!exists)));
+  it('MkdirTree, ls and RmDirR', () => 
+    [resources.mkdirTree("/tmp/testresminimo/test"), resources.mkdirTree("/tmp/testresminimo/test2")].toPromise().then(() => [resources.mkdirTree("/tmp/testresminimo/test/x"), resources.mkdirTree("/tmp/testresminimo/test2/y")].toPromise()).then(() => {
+      resources.ls("/tmp/testresminimo").then(list => {
+        list.should.have.lengthOf(4);
+        return resources.rmDirR("/tmp/testresminimo").then(() => {
+          return resources.ls("/tmp/testresminimo").then(list => {
+            list.should.have.lengthOf(0);
+          })
+        })
+      })
+    }));
 });

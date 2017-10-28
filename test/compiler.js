@@ -5,9 +5,11 @@ const expect = require('chai').expect;
 const components = require('../minimojs/components');
 const htmlParser = require('../minimojs/htmlParser');
 const util = require('../minimojs/util');
+const context = require('../minimojs/context');
 const _ = require('underscore');
 const chai = require('chai')
 const spies = require('chai-spies');
+const fs = require('fs');
 
 chai.use(spies);
 
@@ -322,5 +324,15 @@ describe('Test compiler', function () {
                     obj.val = 3
                     instance.__eval__('obj.val').should.be.eq(1);
                 })));
+    });
+    it('Reload files', () => {
+        context.destinationPath = `/tmp${context.contextPath}`;
+        return resources.rmDirR(context.destinationPath)
+            .then(() => resources.mkdirTree(context.destinationPath))
+            .then(compiler._restart)
+            .then(compiler._reloadFiles)
+            .then(p => {
+                console.log(p);
+            });
     });
 });
