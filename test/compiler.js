@@ -39,13 +39,13 @@ describe('Test compiler', function () {
                 expect(resourceOption.isPresent()).to.be.false;
             })));
     it('Get resource info js Only', () => compiler._restart()
-        .then(() => compiler._getResourceInfo('/dir2/jsonly.htmx', false)
+        .then(() => compiler._getResourceInfo('/dir2/js-only.htmx', false)
             .then(resourceOption => {
                 expect(resourceOption.isPresent()).to.be.true;
                 resourceOption.ifPresent(resource => {
                     resource.htmxPath.isPresent().should.be.false;
                     resource.jsPath.isPresent().should.be.true;
-                    resource.relativeJsPath.value.should.equal('./pages/dir2/jsonly.js');
+                    resource.relativeJsPath.value.should.equal('./pages/dir2/js-only.js');
                 });
             })));
     it('Get resource info htmx Only', () => compiler._restart()
@@ -238,7 +238,7 @@ describe('Test compiler', function () {
         const resInfo = new compiler.Resource('/dir1/test1', true, true, realPath.substring(0, realPath.lastIndexOf('.')), false);
         return components.startComponents().then(() => 
             Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
-            .then(([htmx, js]) => compiler._compilePage(resInfo, util.optionOf(htmx.data), util.optionOf(js.data)).then(compiled => {
+            .then(([htmx, js]) => compiler._compilePage(resInfo, util.optionOf(htmx.data), util.optionOf(js.data)).then(scripts => {
                 let instance;
                 const X$ = {
                     register: (html, name, constructorFn) => {
@@ -247,7 +247,8 @@ describe('Test compiler', function () {
                         instance = new constructorFn({});
                     }
                 };
-                eval(compiled);    
+                eval(scripts.js);
+                expect(scripts.globalJs).to.be.undefined;
                 instance.__eval__('param').should.be.eq(1);
                 expect(spy).not.to.have.been.called;
             })));
@@ -268,7 +269,8 @@ describe('Test compiler', function () {
                         instance = new constructorFn({});
                     }
                 };
-                eval(compiled);
+                eval(compiled.js);
+                expect(compiled.globalJs).to.be.undefined;
                 var param;
                 instance.__eval__('param = 1');
                 param = 3;
@@ -279,8 +281,8 @@ describe('Test compiler', function () {
     it ('Compile page js only', () => {
         const spy = chai.spy(_reloadTemplate);
         compiler._reloadTemplate = spy;
-        const realPath = resources.getRealPath('/pages/dir2/jsonly.js');
-        const resInfo = new compiler.Resource('/dir2/jsonly', true, false, realPath.substring(0, realPath.lastIndexOf('.')), false);
+        const realPath = resources.getRealPath('/pages/dir2/js-only.js');
+        const resInfo = new compiler.Resource('/dir2/js-only', true, false, realPath.substring(0, realPath.lastIndexOf('.')), false);
         return components.startComponents().then(() => 
         Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
             .then(([htmx, js]) => compiler._compilePage(resInfo, util.nullableOption(htmx).optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data)).then(compiled => {
@@ -292,11 +294,32 @@ describe('Test compiler', function () {
                         instance = new constructorFn({});
                     }
                 };
-                eval(compiled);
+                eval(compiled.js);
                 var param;
                 instance.__eval__('param = 1');
                 param = 3;
                 instance.__eval__('param').should.be.eq(1);
+                instance.showSomething().should.be.equal('Param: 1');
+                instance.resourceName.should.be.eq('dir2.js-only');
+
+                function _XClass(){this.value = true};
+                const window = {
+                    addEventListener: (eventName, fn) => {
+                        fn();
+                    }
+                }
+                let jsName;
+                X$._onScript = (constructorFn, xInstance, onFinish, v, name) => {
+                    instance = new constructorFn(xInstance);
+                    jsName = name;
+                }
+                eval(compiled.globalJs);
+                instance.__eval__('param = 2');
+                instance.__eval__('param').should.be.eq(2);
+                instance.showSomething().should.be.equal('Param: 2');
+                instance.resourceName.should.be.eq('dir2.js-only');
+                expect(window.jsOnly == instance).to.be.true;
+
                 spy.should.not.have.been.called();
             })));
     });
@@ -314,7 +337,8 @@ describe('Test compiler', function () {
                             instance = new constructorFn({});
                         }
                     };
-                    eval(compiled);
+                    eval(compiled.js);
+                    expect(compiled.globalJs).to.be.undefined;
                     var bindV;
                     instance.__eval__('bindV = 1');
                     bindV = 3;
@@ -342,7 +366,7 @@ describe('Test compiler', function () {
                 dir1.should.contain(`${context.destinationPath}/dir1/with_components.js`);
                 dir2.should.have.lengthOf(3);
                 dir2.should.contain(`${context.destinationPath}/dir2/htmxonly.js`);
-                dir2.should.contain(`${context.destinationPath}/dir2/jsonly.js`);
+                dir2.should.contain(`${context.destinationPath}/dir2/js-only.js`);
                 dir2.should.contain(`${context.destinationPath}/dir2/test_appcache.js`);
             })
             .then(() => resources.rmDirR(context.destinationPath));

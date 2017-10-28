@@ -30,16 +30,6 @@ const _restart = () => new Promise((resolve) => {
 xresourcemanager
 
 public synchronized void reload() throws IOException {
-    modalPathsDeclared = new HashMap<String, List<String>>();
-    validResources = new HashMap<String, List<String>>();
-    importableScripts = new HashSet<String>();
-    templateMap = new HashMap<String, XHTMLDocument>();
-        //copy all res to dest
-        FileUtils.copyDirectory(new File(baseResPath), new File(baseDestPath));
-        //make a copy to res as well. It is accessible through both paths
-        FileUtils.copyDirectory(new File(baseResPath), new File(baseDestPath + "/res"));
-    reloadHtmxFiles();
-    reloadJsFiles();
     reloadGlobalImported();
     generateAppCacheFile();
     startWatchService();
@@ -78,46 +68,46 @@ class Resource {
     constructor(_path, _js, _htmx, _realPath, _global) {
         this._path = _path;
         this._resourceName = _path.replace('/', '.');
-        this._jsPath = util.nullableOption(_js ? `${_path}.js`: null);
-        this._htmxPath = util.nullableOption(_htmx ? `${_path}.htmx`: null);
-        this._relativeJsPath = util.nullableOption(_js ? `./pages${_path}.js`: null);
-        this._relativeHtmxPath = util.nullableOption(_htmx ? `./pages${_path}.htmx`: null);
-        this._realJsPath = util.nullableOption(_js ? `${_realPath}.js`: null);
-        this._realHtmxPath = util.nullableOption(_htmx ? `${_realPath}.htmx`: null);
+        this._jsPath = util.nullableOption(_js ? `${_path}.js` : null);
+        this._htmxPath = util.nullableOption(_htmx ? `${_path}.htmx` : null);
+        this._relativeJsPath = util.nullableOption(_js ? `./pages${_path}.js` : null);
+        this._relativeHtmxPath = util.nullableOption(_htmx ? `./pages${_path}.htmx` : null);
+        this._realJsPath = util.nullableOption(_js ? `${_realPath}.js` : null);
+        this._realHtmxPath = util.nullableOption(_htmx ? `${_realPath}.htmx` : null);
         this._global = _global;
         this._template = util.emptyOption();
     }
     get resourceName() {
         return this._resourceName;
     }
-    get jsPath(){
+    get jsPath() {
         return this._jsPath;
     }
-    get htmxPath(){
+    get htmxPath() {
         return this._htmxPath;
     }
-    get relativeJsPath(){
+    get relativeJsPath() {
         return this._relativeJsPath;
     }
-    get relativeHtmxPath(){
+    get relativeHtmxPath() {
         return this._relativeHtmxPath;
     }
-    get jsRealPath(){
+    get jsRealPath() {
         return this._realJsPath;
     }
-    get htmxRealPath(){
+    get htmxRealPath() {
         return this._realHtmxPath;
     }
-    get templateName(){
+    get templateName() {
         return this._template;
     }
-    set templateName(_template){
+    set templateName(_template) {
         this._template = util.nullableOption(_template);
     }
-    get isGlobal(){
+    get isGlobal() {
         return this._global;
     }
-    get path(){
+    get path() {
         return this._path;
     }
 }
@@ -138,7 +128,7 @@ const _getResourceInfo = (path, isGlobal) => new Promise((resolve) => {
                 }
                 resolve(_cached.resourceInfoMap[noExtPath]);
             });
-    }else{
+    } else {
         resolve(_cached.resourceInfoMap[noExtPath]);
     }
 });
@@ -147,10 +137,10 @@ const _loadFileAndCache = (resInfo, compiledPage) =>
 
 const _reloadFiles = () =>
     resources.getResources("./pages", r => r.endsWith(".htmx") || r.endsWith(".js"))
-        .then(values => _.groupBy(values, resource => resource.path.substring(0, resource.path.lastIndexOf('.'))))
-        .then(values => _.keys(values).map(key => {
-            return _reloadFile(values[key], key)
-        }).toPromise());
+    .then(values => _.groupBy(values, resource => resource.path.substring(0, resource.path.lastIndexOf('.'))))
+    .then(values => _.keys(values).map(key => {
+        return _reloadFile(values[key], key)
+    }).toPromise());
 
 const _reloadFile = (_resources, path) => _getResourceInfo(path.replace(/\.\/pages/, ''))
     .then(resInfoOption => resInfoOption.map(resInfo => {
@@ -231,7 +221,7 @@ const _prepareTopElements = (doc) => {
 }
 
 const _printElements = (element) => element.children.map(e => {
-    if(e instanceof htmlParser.Element){
+    if (e instanceof htmlParser.Element) {
         const tag = `<${e.name} ${e.attributes.map(a => `${a.name}="${a.value.replace(/"/g, '\\"')}"`).join(' ')}>${e.children.map(c => c.text).join('')}</${e.name}>`;
         e.remove();
         return tag;
@@ -307,7 +297,7 @@ const _addChildValidElements = (doc) => {
 }
 
 const _loadTemplate = (templateName) => {
-    if(!_cached.templateMap[templateName]){
+    if (!_cached.templateMap[templateName]) {
         return compiler._reloadTemplate(templateName).then(v => _cached.templateMap[templateName] = v);
     }
 }
@@ -316,24 +306,22 @@ const _compilePage = (resInfo, htmxData, jsData) => {
     const parser = new htmlParser.HTMLParser();
     const doc = util.nullableOption(htmxData.map(html => parser.parse(html)));
     resInfo.templateName = null;
-    const promises = [];
-    //get all the bound variables in the page
-    const boundVars = parser.boundObjects;
-    //get all the bound modals in the page
-    const boundModals = parser.boundModals;
-
     //place real html of components, prepare iterators and labels
-    doc.ifPresent(d => _prepareHTML(d, boundVars, boundModals));
-    promises.push(_instrumentController(doc.map(d => d.toJson()), jsData, false, resInfo, _.uniq(boundVars), _.uniq(boundModals)));
+    doc.ifPresent(d => _prepareHTML(d, parser.boundObjects, parser.boundModals));
+    const boundVars = _.uniq(parser.boundObjects);
+    const boundModals = _.uniq(parser.boundModals);
+    const scripts = {js: _instrumentController(doc.map(d => d.toJson()), jsData, false, resInfo, boundVars, boundModals)};
+    htmxData.ifNotPresent(() => scripts.globalJs = _instrumentController(util.emptyOption(), jsData, true, resInfo, boundVars, boundModals));
+    const promise = [];
     if (doc.isPresent() && !doc.value.htmlElement) {
         //has template
         util.firstOption(doc.value.getElementsByName("template-info")).ifPresent(templateInfo => {
             resInfo.templateName = templateInfo.getAttribute("path");
             templateInfo.remove();
-            resInfo.templateName.ifPresent(t => promises.push(_loadTemplate(t)));
+            resInfo.templateName.ifPresent(t => promise.push(_loadTemplate(t)));
         });
     }
-    return promises.toPromise().then(values => values[0]);
+    return promise.toPromise().then(() => scripts);
 }
 
 const _prepareHTML = (doc, boundVars, boundModals) => {
@@ -393,7 +381,7 @@ const _prepareInjections = (js, boundModals) => {
     const binds = [];
     const lines = js.split("\n");
     let hasBoundVar = false;
-    for(let i = 0; i < lines.length; i++) {
+    for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         let isAnnot = false;
         const annotation = _checkAnnotation(lines, i);
@@ -443,7 +431,7 @@ const _prepareInjections = (js, boundModals) => {
     boundModals.forEach(val => {
         const toggle = val.toggled;
         binds.push(`X.modalS('${val.path}', ${toggle},'${val.elementId}').then(function(o){${val.varName} = o;})`);
-        if(!new RegExp(`\\s*var\\s+${val.varName}\\s*;`).exec(js)){
+        if (!new RegExp(`\\s*var\\s+${val.varName}\\s*;`).exec(js)) {
             result.unshift(`var ${val.varName};\n`);
         }
         hasBoundVar = true;
@@ -455,6 +443,15 @@ const _prepareInjections = (js, boundModals) => {
 
     //user code end
     `;
+}
+
+const _parseGlovalVarName = (name) => {
+    let result = name.substring(name.lastIndexOf('/') + 1);
+    let index;
+    while ((index = result.indexOf('-')) >= 0) {
+        result = result.substring(0, index) + result.substring(index + 1, index + 2).toUpperCase() + result.substring(index + 2);
+    }
+    return result.startsWith("_") ? result.substring(1) : result;
 }
 
 const _instrumentController = (htmlJson, jsData, isGlobal, resInfo, boundVars = [], boundModals = []) => {
@@ -488,7 +485,7 @@ const _instrumentController = (htmlJson, jsData, isGlobal, resInfo, boundVars = 
             };
             this.closeModal = closeModal;
         `: ''}
-        ${isGlobal ? `window.${_parseGlovalVarName(jsName)} = this;
+        ${isGlobal ? `window.${_parseGlovalVarName(resInfo.resourceName)} = this;
         `: ''}
         this.__eval__ = function(f){
             return eval(f)
@@ -500,7 +497,7 @@ const _instrumentController = (htmlJson, jsData, isGlobal, resInfo, boundVars = 
         (function (){
             var _load = function(){
                 var xInstance = new _XClass();
-                X$._onScript(${JSON.stringify(htmlStruct)}, ${controllerObject}, xInstance, function(){
+                X$._onScript(${controllerObject}, xInstance, function(){
                     console.log("Global resource ${jsName} imported.")
                 }, null, '${jsName}');
             };

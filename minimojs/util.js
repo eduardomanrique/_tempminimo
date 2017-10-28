@@ -24,6 +24,11 @@ class Option {
     ifPresent(fn) {
         this.map(fn);
     }
+    ifNotPresent(fn) {
+        if (!this._val) {
+            return fn();
+        }
+    }
     map(fn, defaultValue) {
         if (this._val) {
             return fn(this._val);
@@ -64,9 +69,9 @@ Array.prototype.toPromise = Array.prototype.toPromise || function () {
 const toPromise = (fn, args) => new Promise((resolve, reject) => {
     const parameters = args instanceof Array ? args : [args];
     parameters.push((err, result) => {
-        if(err){
+        if (err) {
             reject(err);
-        }else{
+        } else {
             resolve(result);
         }
     });
