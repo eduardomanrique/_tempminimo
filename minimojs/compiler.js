@@ -148,14 +148,17 @@ const _loadFileAndCache = (resInfo, compiledPage) =>
 const _reloadFiles = () =>
     resources.getResources("./pages", r => r.endsWith(".htmx") || r.endsWith(".js"))
         .then(values => _.groupBy(values, resource => resource.path.substring(0, resource.path.lastIndexOf('.'))))
-        .then(values => _.keys(values).map(key => _reloadFile(values[key], key)).toPromise());
+        .then(values => _.keys(values).map(key => {
+            return _reloadFile(values[key], key)
+        }).toPromise());
 
-const _reloadFile = (_resources, path) => _getResourceInfo(path.replace(/\.\/pages/, '')).then(resInfoOption => resInfoOption.map(resInfo => {
-    const htmx = util.nullableOption(resInfo.htmxPath.isPresent() ? (_resources[0].path.endsWith('.htmx') ? _resources[0].data : _resources[1].data) : null);
-    const js = util.nullableOption(resInfo.jsPath.isPresent() ? (_resources[0].path.endsWith('.js') ? _resources[0].data : _resources[1].data) : null);
-    return _compilePage(resInfo, htmx, js)
-        .then(compiledPage => _loadFileAndCache(resInfo, compiledPage))
-        .then(() => _cached.importableResourceInfo[resInfo.path] = new ImportableResourceInfo(resInfo.path, htmxResInfo.templateName));
+const _reloadFile = (_resources, path) => _getResourceInfo(path.replace(/\.\/pages/, ''))
+    .then(resInfoOption => resInfoOption.map(resInfo => {
+        const htmx = util.nullableOption(resInfo.htmxPath.isPresent() ? (_resources[0].path.endsWith('.htmx') ? _resources[0].data : _resources[1].data) : null);
+        const js = util.nullableOption(resInfo.jsPath.isPresent() ? (_resources[0].path.endsWith('.js') ? _resources[0].data : _resources[1].data) : null);
+        return _compilePage(resInfo, htmx, js)
+            .then(compiledPage => _loadFileAndCache(resInfo, compiledPage))
+            .then(() => _cached.importableResourceInfo[resInfo.path] = new ImportableResourceInfo(resInfo.path, resInfo.templateName));
     }));
 
 

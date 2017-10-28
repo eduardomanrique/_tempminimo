@@ -326,13 +326,25 @@ describe('Test compiler', function () {
                 })));
     });
     it('Reload files', () => {
-        context.destinationPath = `/tmp${context.contextPath}`;
+        context.destinationPath = `/tmp/minimojs_test${context.contextPath}`;
         return resources.rmDirR(context.destinationPath)
             .then(() => resources.mkdirTree(context.destinationPath))
             .then(compiler._restart)
             .then(compiler._reloadFiles)
-            .then(p => {
-                console.log(p);
-            });
+            .then(() => [
+                    resources.ls(`${context.destinationPath}/dir1`),
+                    resources.ls(`${context.destinationPath}/dir2`)
+                ].toPromise())
+            .then(([dir1, dir2]) => {
+                dir1.should.have.lengthOf(3);
+                dir1.should.contain(`${context.destinationPath}/dir1/test1.js`);
+                dir1.should.contain(`${context.destinationPath}/dir1/test1_template_no_js.js`);
+                dir1.should.contain(`${context.destinationPath}/dir1/with_components.js`);
+                dir2.should.have.lengthOf(3);
+                dir2.should.contain(`${context.destinationPath}/dir2/htmxonly.js`);
+                dir2.should.contain(`${context.destinationPath}/dir2/jsonly.js`);
+                dir2.should.contain(`${context.destinationPath}/dir2/test_appcache.js`);
+            })
+            .then(() => resources.rmDirR(context.destinationPath));
     });
 });

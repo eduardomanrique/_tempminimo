@@ -26,15 +26,20 @@ const getResourcePaths = (root, filter) => {
   return _getResourcePaths(root).then(paths => _.flatten(paths).filter(filter || (() => true)));
 }
 
-const writeFile = (path, data) =>
-  new Promise((resolve, reject) =>
-    fs.writeFile(path, data, function (err) {
-      if (err) {
-        reject(err);
-      } else {
-        resolve();
-      }
-    }));
+const writeFile = (path, data) => new Promise((resolve, reject) => {
+  const dir = path.substring(0, path.lastIndexOf("/"));
+  exists(dir).then(exists => {
+    if(!exists){
+      return mkdirTree(dir);
+    }
+  }).then(() => fs.writeFile(path, data, function (err) {
+    if (err) {
+      reject(err);
+    } else {
+      resolve();
+    }
+  }));
+});
 
 const readResource = path =>
   new Promise((resolve, reject) =>
@@ -74,14 +79,14 @@ const exists = (path) => new Promise((resolve) =>
 const pathStats = exists;
 
 const ls = (path) => util.toPromise(fs.readdir, path).then(files => files.map((file) => {
-    const result = `${path}/${file}`;
-    return pathStats(result).then(stats => {
-      if(stats.isDirectory()){
-        return [result, ls(result)].toPromise();
-      }else{
-        return result;
-      }
-    })
+  const result = `${path}/${file}`;
+  return pathStats(result).then(stats => {
+    if (stats.isDirectory()) {
+      return [result, ls(result)].toPromise();
+    } else {
+      return result;
+    }
+  })
 }).toPromise().then(files => _.flatten(files))).catch(() => []);
 
 const _rmExistingDirR = (path) => util.toPromise(fs.readdir, path).then(files => files.map((file) => {
@@ -107,9 +112,9 @@ const rmDirR = (path) => new Promise((resolve, reject) => {
 
 const mkdirTree = (path) => new Promise((resolve, reject) => {
   mkdirp(path, (err) => {
-    if(err){
+    if (err) {
       reject(err);
-    }else{
+    } else {
       resolve();
     }
   });
