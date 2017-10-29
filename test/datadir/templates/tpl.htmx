@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>XTests</title>
-<link rel="stylesheet" href="{webctx}/css/xtests.css" media="all" />
+<link rel="stylesheet" href="/css/xtests.css" media="all" />
 </head>
 <body>
 	<div id="tpl">tpl</div>

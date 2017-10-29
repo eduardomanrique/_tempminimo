@@ -119,7 +119,7 @@ const _loadComponents = (groupedResources) => {
   let nameAndPath = info.map(c => `["${c.resourceName}","${c.varPath}"],`).join('');
   return {
     scripts: `var _comps = [${nameAndPath}];
-      ${js.join('').replace(/\{webctx\}/g, ctx.contextPath)}`,
+      ${js.join('')}`,
     info: info,
     htmxSources: htmxSources
   };

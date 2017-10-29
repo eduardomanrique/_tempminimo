@@ -14,6 +14,6 @@ function onReady(){
 }
 
 function getHtml(){
-  return '{webctx}<input type="text">';
+  return '<input type="text">';
 }
 

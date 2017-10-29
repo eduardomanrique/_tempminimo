@@ -14,6 +14,11 @@ const fs = require('fs');
 chai.use(spies);
 
 describe('Test compiler', function () {
+    before(() => context.destinationPath = `/tmp/minimojs_test${context.contextPath}`);
+    beforeEach(() => resources.rmDirR(context.destinationPath)
+        .then(() => resources.mkdirTree(context.destinationPath)));
+    afterEach(() => resources.rmDirR(context.destinationPath));
+    
     it('Get resource info htmx/js OK', () => compiler._restart()
         .then(() => compiler._getResourceInfo('/dir1/test1.htmx', false)
             .then(resourceOption => {
@@ -341,11 +346,7 @@ describe('Test compiler', function () {
                     instance.__eval__('obj.val').should.be.eq(1);
                 })));
     });
-    it('Reload files', () => {
-        context.destinationPath = `/tmp/minimojs_test${context.contextPath}`;
-        return resources.rmDirR(context.destinationPath)
-            .then(() => resources.mkdirTree(context.destinationPath))
-            .then(compiler._restart)
+    it('Reload files', () => compiler._restart()
             .then(compiler._reloadFiles)
             .then(() => [
                     resources.ls(`${context.destinationPath}/dir1`),
@@ -361,7 +362,9 @@ describe('Test compiler', function () {
                 dir2.should.contain(`${context.destinationPath}/dir2/js-only.m.js`);
                 dir2.should.contain(`${context.destinationPath}/dir2/js-only.js`);
                 dir2.should.contain(`${context.destinationPath}/dir2/test_appcache.m.js`);
-            })
-            .then(() => resources.rmDirR(context.destinationPath));
-    });
+            }));
+    it('Compile Resources', () => compiler.compileResources()
+        .then(importableResInfo => {
+            _.size(importableResInfo).should.be.eq(6);
+        }));
 });

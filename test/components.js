@@ -49,7 +49,7 @@ before(() => loadComponents().then(c => util.readModuleFile('../minimojs/compone
 
 describe('Test component', function () {
 	it('Old type', () => {
-		expect(components.oldtype.getHtml()).is.equal('/ctx<input type="text">');
+		expect(components.oldtype.getHtml()).is.equal('<input type="text">');
 		// expect(components.oldtype.method1()).is.equal('method1');
 		// expect(components.oldtype.method2()).is.equal('method2');
 	});
