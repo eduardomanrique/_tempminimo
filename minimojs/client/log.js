@@ -1,5 +1,5 @@
 
-var _debug_flags = [%debug_flags%];
+var _debug_flags = [];
 
 function log(msg){
 	console.log(msg);

@@ -2,21 +2,6 @@ const logging = require('./logging');
 const fs = require('fs');
 const _ = require('underscore');
 
-const readModuleFile = (path) => new Promise((resolve, reject) => {
-    try {
-        const filename = require.resolve(path);
-        fs.readFile(filename, 'utf8', (err, data) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(data);
-            }
-        });
-    } catch (e) {
-        reject(e);
-    }
-});
-
 class Option {
     constructor(val) {
         this._val = val;
@@ -112,7 +97,6 @@ module.exports = {
     optionOf: optionOf,
     nullableOption: nullableOption,
     emptyOption: emptyOption,
-    readModuleFile: readModuleFile,
     firstOption: firstOption,
     toPromise: toPromise,
     outdent: outdent

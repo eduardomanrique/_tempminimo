@@ -120,6 +120,21 @@ const mkdirTree = (path) => new Promise((resolve, reject) => {
   });
 });
 
+const readModuleFile = (path) => new Promise((resolve, reject) => {
+  try {
+      const filename = require.resolve(path);
+      fs.readFile(filename, 'utf8', (err, data) => {
+          if (err) {
+              reject(err);
+          } else {
+              resolve(data);
+          }
+      });
+  } catch (e) {
+      reject(e);
+  }
+});
+
 module.exports = {
   getResourcePaths: getResourcePaths,
   readResource: readResource,
@@ -130,5 +145,6 @@ module.exports = {
   writeFile: writeFile,
   rmDirR: rmDirR,
   mkdirTree: mkdirTree,
-  ls: ls
+  ls: ls,
+  readModuleFile: readModuleFile
 }

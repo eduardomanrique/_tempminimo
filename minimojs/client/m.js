@@ -1,163 +1,180 @@
-console.log("INIT X..");
+console.log("INIT Minimo..");
 
-function _(id, _doc){
-	return (_doc || document).getElementById(id);
-}
+const _byId = (id, _doc) => (_doc || document).getElementById(id);
 
-function _c(classes, _doc){
-	var l = [];
-	var cArray = classes.split(' ');
-	for(var i = 0; i < cArray.length; i++){
-		var ela = (_doc || document).getElementsByClassName(cArray[i]);
-		for(var j = 0; j < ela.length; j++){
-			l.push(ela[j]);
+const _flatten = (a) => {
+	let r = [];
+	a.forEach(i => {
+		if(i instanceof Array){
+			r = r.concat(_flatten(i));
+		}else{
+			r.push(i);
 		}
-	}
-	return l;
+	});
+	return r;
 }
 
-var X$ = X$ || new function(){
-	this._requiredUsed = [];
+const _nodeListToArray = (nl) => {
+	const a = [];
+	for(let i = 0; i < nl.length; i++){
+		a.push(nl[i]);
+	}
+	return a;
+}
+
+const _byClass = (classes, _doc) => _flatten(classes.split(' ')
+	.map(c => _nodeListToArray((_doc || document).getElementsByClassName(c))));
+
+let M$ = M$ || new function(){
+	const _iterable = function*(a) {
+		let index = 0;
+		while(a.length > index) yield a[index++];
+	}
+	const _oneline = (s, ...args) => {
+		const iter = _iterable(args);
+		return s.map(v => v.split('\n').concat(iter.next().value).map(v => `${v || ''}`.trim()).join('')).join('').trim();
+	}
+	const _requiredUsed = [];
 	this._firstUpdate = true;
-	this._containsRequired = function(src){
-		if(this._requiredUsed.indexOf(src) < 0){
-			this._requiredUsed.push(src);
+	this._containsRequired = (src) => {
+		if(_requiredUsed.indexOf(src) < 0){
+			_requiredUsed.push(src);
 			return false;
 		}
 		return true;
-	};
-	var newNodes =[];
+	}
+	let newNodes = [];
 	//check if the added nodes already have parent
-	function checkAddedNodes(){
-	    console.log("checking changed nodes " + newNodes.length);
-	    for(var i = 0; i < newNodes.length; i++){
-            var el = newNodes[i];
-            newNodes.splice(i--, 1);
-            if(el._xcreated){
-                continue;
-            }
-            var x;
-            for (var j = 0; j < instances.length; j++) {
-                if(instances[j].isInThisContext(el)){
-                    x = instances[j];
-                    break;
-                }
-            }
-            if(!x){
-                continue;
-            }
-            var lName = el.nodeName.toLowerCase();
-            if(!el._xsetAttribute){
-                el._xsetAttribute = el.setAttribute;
-                el.setAttribute = function(n, v){
-                    this._xsetAttribute(n, v);
-                    if(n.indexOf('on') == 0){
-                        x.configureEvent(n.substring(2), el);
-                    } else if(n == 'data-xbind'){
-                        x.addXBind(el);
-                    }
-                };
-            }
-            if(['input', 'button', 'select', 'textarea'].indexOf(lName) >= 0){
-                x.addInput(el);
-                x.configureAutocomplete(el);
-            } else if(lName == 'xscript'){
-                x.addXScript(el);
-            } else if(lName == 'a'){
-                x.configureHref(a);
-                x.addA(el);
-            }
-        }
+	const checkAddedNodes = () => {
+		console.log("checking changed nodes " + newNodes.length);
+		const nodes = newNodes;
+		newNodes = [];
+	    nodes.filter(el => !el._xcreated).forEach(el => {
+            const _instance = instances.find(i => i.isInThisContext(el));
+            if(_instance){
+				var nodeName = el.nodeName.toLowerCase();
+				if(!el._xsetAttribute){
+					el._minimo_instance = _instance;
+					el._xsetAttribute = el.setAttribute;
+					el.setAttribute = function(n, v){
+						this._xsetAttribute(n, v);
+						if(n.startsWith('on')){
+							this._minimo_instance.configureEvent(n.substring(2), this);
+						} else if(n == 'data-xbind'){
+							this._minimo_instance.addXBind(this);
+						}
+					}
+				}
+				if(['input', 'button', 'select', 'textarea'].indexOf(nodeName) >= 0){
+					_instance.addInput(el);
+					_instance.configureAutocomplete(el);
+				} else if(nodeName == 'mscr'){
+					_instance.addXScript(el);
+				} else if(nodeName == 'a'){
+					_instance.configureHref(a);
+					_instance.addA(el);
+				}
+			}
+		});
+		
 	}
 
-    var newPageListeners = [];
-    this.onNewPage = function(fn){
+    let newPageListeners = [];
+    this.onNewPage = (fn) => {
         newPageListeners.push(fn);
-    };
+    }
 
-    this._newPage = function(){
-        for(var i = 0; i < newPageListeners.length; i++){
+    this._newPage = () => {
+		const listeners = newPageListeners;
+		newPageListeners = [];
+        listeners.forEach(listener => {
             try{
                 newPageListeners[i]();
             }catch(e){
                 console.log("Error on new page listener" + e.message);
             }
-        }
-        newPageListeners = [];
-    };
+        });
+    }
 
-	var isShowingLoading = false;
-
-    this._setBlurryBackground = function(on, idPopup){
-    	if(on){
-    		var div = document.createElement('div');
-    		div.setAttribute("id", "_x_bb_" + idPopup);
-    	    var style = "position: fixed;top: 0px;left: 0px; width: 100%; height: 100%;opacity: 0.5;background-color:white;z-index: " +
-    	        (X$._highestZIndex() + 1) + ";"
-    	    div.setAttribute("style", style);
+	let isShowingLoading = false;
+    this._setBlurryBackground = (toggleOn, idPopup, zIndex) => {
+		const id = `__m_bb_${idPopup}__`;
+    	if(toggleOn){
+    		const div = document.createElement('div');
+			div.setAttribute("id", id);
+			const blurryCss = ` position: fixed;
+								top: 0px;
+								left: 0px; 
+								width: 100%; 
+								height: 100%;
+								opacity: 0.5;
+								background-color:white;
+								z-index: ${zIndex};`;
+    	    div.setAttribute("style", blurryCss);
     		document.body.appendChild(div);
     	}else{
-    		var div = document.getElementById("_x_bb_" + idPopup);
+    		var div = _byId(id);
     		if(div){
     	        div.remove();
     		}
     	}
-    };
-
-    this._highestZIndex = function(){
-        var highestZ;
-        var onefound = false;
-        var divs = document.getElementsByTagName('*');
-        if( ! divs.length ) { return highestZ; }
-        for( var i=0; i<divs.length; i++ ) {
-           if( divs[i].style.position && divs[i].style.zIndex ) {
-              if( ! onefound ) {
-                 highestZ = parseInt(divs[i].style.zIndex);
-                 onefound = true;
-                 }
-              else {
-                 var ii = parseInt(divs[i].style.zIndex);
-                 if( ii > highestZ ) { highestZ = ii; }
-                 }
-              }
-           }
-        return highestZ;
     }
 
-    this._showLoading = function() {
+    this._highestZIndex = () => {
+        const zindexes = [];
+        document.getElementsByTagName('*').forEach(e => {
+			if(e.style.position && e.style.zIndex) {
+				zindexes.push(parseInt(e.style.zIndex));
+			};
+		});
+		return Math.max(...zindexes) + 1;
+    }
+
+    this._showLoading = () => {
     	if(!isShowingLoading){
-    		isShowingLoading = true;
-    		X$._setBlurryBackground(true, 'loading');
-    		var dv = document.createElement("div");
-    		dv.setAttribute("style","background:{{backgroundLoader}};width: 100%;margin: 0;position: fixed;height: 100%;left: 0;top: 0;border: 0;" +
-    				"-webkit-border-radius: 0;-moz-border-radius: 0;-o-border-radius: 0;border-radius: 0;z-index: 3333;");
-    		var idModal = "_loading_modal_";
-    		dv.setAttribute("id", idModal);
-    		var size = 40;
-    		var left = parseInt((window.innerWidth - size) / 2);
-    		var top = parseInt((window.innerHeight - size) / 2);
-    		var style = "style='position: relative;width: " + size + "px; height: " + size
-    				+ "px; left: " + left + "px; top: " + top + "px;'";
-
-    		var html = '<img ' + style
-    				+ ' src="%ctx%/x/loader.gif"/>';
-
-    		dv.innerHTML = html;
+			isShowingLoading = true;
+			const zIndex = M$._highestZIndex();
+    		this._setBlurryBackground(true, 'loading', zIndex);
+    		const dv = document.createElement("div");
+			dv.setAttribute("style", _oneline`
+							background:white;
+							width: 100%;
+							margin: 0;
+							position: fixed;
+							height: 100%;
+							left: 0;
+							top: 0;
+							border: 0;
+							-webkit-border-radius: 0;
+							-moz-border-radius: 0;
+							-o-border-radius: 0;
+							border-radius: 0;
+							z-index: ${zIndex + 1};`);
+    		dv.setAttribute('id', '_loading_modal_');
+    		const size = 40;
+    		const left = parseInt((window.innerWidth - size) / 2);
+    		const top = parseInt((window.innerHeight - size) / 2);
+    		dv.innerHTML = _oneline`
+					<img style="position: relative;
+								width: ${size}px; 
+								height: ${size}px; 
+								left: ${left}px; 
+						  		top: ${top}px;" src="/x/loader.gif"/>`;
     		document.body.appendChild(dv);
     	}
-    };
+    }
 
-    this._closeLoading = function(before, after) {
+    this._closeLoading = (before, after) => {
     	if(isShowingLoading){
     		setTimeout(function(){
     			if(before){
     			    before();
     			}
-    			var dv = document.getElementById("_loading_modal_");
+    			var dv = _byId("_loading_modal_");
     			if(dv){
     				dv.parentNode.removeChild(dv);
     			}
-    			X$._setBlurryBackground(false, 'loading');
+    			this._setBlurryBackground(false, 'loading');
     			isShowingLoading = false;
     			if(after){
     				after();
@@ -166,50 +183,45 @@ var X$ = X$ || new function(){
     	}
     };
 
-	function scheduleRefreshNodes(){
-	    setTimeout(function(){
-	        checkAddedNodes();
-	        if(newNodes.length){
-	            scheduleRefreshNodes();
-	        }
-	    },10);
+	let _scheduledRefreshNodes = false;
+	const _scheduleRefreshNodes = () => {
+		if(!_scheduledRefreshNodes){
+			_scheduledRefreshNodes = true;
+			setTimeout(() => {
+				checkAddedNodes();
+				_scheduledRefreshNodes = false;
+				if(newNodes.length){
+					scheduleRefreshNodes();
+				}
+			},100);
+		}
 	}
-	function _findXInstanceForElement(e){
+	const _findInstanceForElement = (e) => {
 	    var attRoot = e.getAttribute("data-xroot-ctx");
 	    if(attRoot){
-	        for (var i = 0; i < instances.length; i++) {
-	            if(instances[i].CTX == attRoot){
-	                return instances[i];
-	            }
-	        }
-	        throw Error("Unknown ERROR. X Instance not found for ctx " + instances[i].CTX);
+	        return instances.find(i => i.CTX == attRoot);
 	    }
-	    if(!e.parentElement){
-	        throw Error("Unknown ERROR. X Instance not found for element " + e.outerHTML);
-	    }
-	    return _findXInstanceForElement(e.parentElement);
+	    return _findInstanceForElement(e.parentElement);
 	}
 	this._startMutationObserver = function(){
         // cria uma nova instância de observador
-        var observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
-                for(var i = 0; i < mutation.addedNodes.length; i++){
-                    newNodes.push(mutation.addedNodes[i]);
-                }
-                for(var i = 0; i < mutation.removedNodes.length; i++){
-                    var index = newNodes.indexOf(mutation.removedNodes[i]);
+        var observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach(n => newNodex.push(n));
+                mutation.removedNodes.forEach(n => {
+                    const index = newNodes.indexOf(mutation.removedNodes[i]);
                     if(index >= 0){
                         newNodes.splice(index, 1);
                         //TODO depois fazer com que remova tambem dos arrays principais
                     }
-                }
+                });
                 if(mutation.target.getAttribute("data-xonmutate")){
-                    _findXInstanceForElement(mutation.target)._fireEvent('mutate', mutation.target, {
+                    _findInstanceForElement(mutation.target)._fireEvent('mutate', mutation.target, {
                         mutationRecord: mutation
                     });
                 }
-                scheduleRefreshNodes();
-            });
+			});
+			scheduleRefreshNodes();
         });
 
         // configuração do observador:
@@ -219,25 +231,25 @@ var X$ = X$ || new function(){
         observer.observe(document.body, config);
     };
 
-	this.copyArray = function(a){
-		var r = [];
-		if(a){
-			for (var i = 0; i < a.length; i++) {
-				r.push(a[i]);
-			}			
-		}
-		return r;
-	};
+	this.copyArray = (a) => a.map(i => i);
+	
 	this.canCloseInitLoad = function(){
-		var tempLoadDiv = document.getElementById("_xtemploaddiv_");
+		var tempLoadDiv = _byId("_xtemploaddiv_");
 		if(!tempLoadDiv){
 			return false;
 		}
 		return true;
 	}
-	this._instanceCounter = 0;
+
+	let _instanceCounter = 0;
+	this._genInstanceId = (function*(){
+		while(true){
+			yield _instanceCounter++;
+		}
+	})();
+
 	this.getJsCallbacks = {};
-	this.register = function(struct, components, resourceName, fncontroller, xInstance){
+	this.register = function(struct, components, resourceName, fncontroller, instance){
 		var array = this.getJsCallbacks[resourceName];
 		if(!array && resourceName.endsWith("/index.js")){
             resourceName = resourceName.replace(/\/index\.js$/, ".js");
@@ -262,40 +274,40 @@ var X$ = X$ || new function(){
 	};
 	//callback when scripts comes from server
 	//when it is global insertPoint, resName are empty
-    this._onScript = function(struct, fncontroller, components, thisX, callback, insertPoint, resName){
-        var controller = new fncontroller(thisX);
+    this._onScript = function(struct, fncontroller, components, thisM, callback, insertPoint, resName){
+        var controller = new fncontroller(thisM);
         //prepare context
-        thisX.isImport = false;
-        if(!document.body.getAttribute("data-x_ctx") || thisX.isSpa){
+        thisM.isImport = false;
+        if(!document.body.getAttribute("data-x_ctx") || thisM.isSpa){
             //main controller
-            thisX.isMain = true;
-            if(thisX.isSpa){
-                thisX.CTX = '_x_mainSpa';
+            thisM.isMain = true;
+            if(thisM.isSpa){
+                thisM.CTX = '_x_mainSpa';
             }else{
-                thisX.setAtt(document.body, "data-x_ctx", thisX.CTX);
+                thisM.setAtt(document.body, "data-x_ctx", thisM.CTX);
             }
-            thisX.setAtt(document.body, "data-xroot-ctx", thisX.CTX);
+            thisM.setAtt(document.body, "data-xroot-ctx", thisM.CTX);
         }else if(controller.isModal){
-            thisX.CTX = "ctx_" + thisX.generateId();
-            thisX.setAtt(insertPoint, "data-xroot-ctx", thisX.CTX);
-            insertPoint.className += thisX.CTX;
-            thisX.setRoot(insertPoint);
+            thisM.CTX = "ctx_" + thisM.generateId();
+            thisM.setAtt(insertPoint, "data-xroot-ctx", thisM.CTX);
+            insertPoint.className += thisM.CTX;
+            thisM.setRoot(insertPoint);
         }else{
-            thisX.isImport = true;
+            thisM.isImport = true;
         }
-        thisX._setEvalFn(controller._x_eval);
+        thisM._setEvalFn(controller._x_eval);
         if(struct){
-            if(!thisX.isAuthorized(resName)){
+            if(!thisM.isAuthorized(resName)){
                 //this is just to help developer, not to protect source. The data is the one that must be protected
                 window.location = '/x/unauthorized';
             }else{
-                X$.setModalResource(resName);
-                thisX._createElements(struct, components, insertPoint, 0, function(){
-                    thisX.setController(controller, callback);
+                M$.setModalResource(resName);
+                thisM._createElements(struct, components, insertPoint, 0, function(){
+                    thisM.setController(controller, callback);
                 });
             }
         }else{
-            thisX.setController(controller, callback);
+            thisM.setController(controller, callback);
         }
     };
 	var instances = [];
@@ -313,12 +325,12 @@ var X$ = X$ || new function(){
 	};
 	var ready = false;
 	this._checkReadyInterval = setInterval(function(){
-		if(X$._ifAllReady() && !ready){
-			clearInterval(X$._checkReadyInterval);
+		if(M$._ifAllReady() && !ready){
+			clearInterval(M$._checkReadyInterval);
 			ready = true;
-			X$._update();
+			M$._update();
 			for (var i = 0; i < readyEvents.length; i++) {
-				X$._ifAllReady(readyEvents[i]());
+				M$._ifAllReady(readyEvents[i]());
 			}
 			try{
 				$.holdReady(false);
@@ -335,7 +347,7 @@ var X$ = X$ || new function(){
 			}
 		}
 		%parameters_loaded%
-		return X$.canCloseInitLoad();
+		return M$.canCloseInitLoad();
 	};
 	this._update = function(){
 		//check first if all instances are ready
@@ -348,9 +360,9 @@ var X$ = X$ || new function(){
 					updated = true
 				}
 			}
-			if(X$._firstUpdate && updated){
-				X$._firstUpdate = false;
-				var tempLoadDiv = document.getElementById("_xtemploaddiv_");
+			if(M$._firstUpdate && updated){
+				M$._firstUpdate = false;
+				var tempLoadDiv = _byId("_xtemploaddiv_");
 				tempLoadDiv.remove();
 			}
 		}
@@ -380,7 +392,7 @@ var X$ = X$ || new function(){
 	};
 }
 
-var _XClass = function(parent, isSpa) {
+var _Minimo = function(parent, isSpa) {
     this.isSpa = isSpa;
 	if(parent){
 		this.CTX = parent.CTX;
@@ -390,21 +402,21 @@ var _XClass = function(parent, isSpa) {
 	}else{
 		this.CTX = 'main';
 	}
-	this.instanceId = X$._instanceCounter++;
-	var thisX = this;
-	X$._addInstance(this);
-	var X = this;
-	if(!window.X || window.X.instanceId == undefined){
-		window.X = this;
+	this.instanceId = M$._genInstanceId();
+	var thisM = this;
+	M$._addInstance(this);
+	var m = this;
+	if(!window.m || window.m.instanceId == undefined){
+		window.m = this;
 	}
-	this.isDevMode = %xdevmode%;
+	this.isDevMode = "%devmode%";
 	var isDevMode = this.isDevMode;
 	function externalExpose(owner, fn){
 		return function(){
 			return fn.apply(owner, arguments);
 		}
 	}
-	function xexpose(owner, fn, external, name){
+	function _exposeFunction(owner, fn, external, name){
 		if(!name){
 			name = fn.name;
 		}
@@ -413,10 +425,10 @@ var _XClass = function(parent, isSpa) {
 		}
 		owner[name] = fn;
 		if(external){
-			if(thisX[name]){
+			if(thisM[name]){
 				throw new Error("Function " + name + " already exposed in X");
 			}
-			thisX[name] = externalExpose(owner, fn);
+			thisM[name] = externalExpose(owner, fn);
 		}
 	}
 	this._loadObjects = function(){
@@ -424,19 +436,19 @@ var _XClass = function(parent, isSpa) {
         xobj.updateXScripts();
 	};
 	function addModule(moduleFunction){
-		return new moduleFunction(thisX);
+		return new moduleFunction(thisM);
 	}
 	
 	var _afterCheck = [];
-	thisX.addAfterCheck = function(f){
+	thisM.addAfterCheck = function(f){
 		_afterCheck.push(f);
 	}
 	
-	%xmodulescripts%
+	"%xmodulescripts%"
 	xcomponents.init();
 	this.temp = {};
 	
-	function _(id){
+	function byId(id){
 		return xdom.getElementById(id);
 	}
 
@@ -445,7 +457,7 @@ var _XClass = function(parent, isSpa) {
 	this._interval = function(f,t){
 	    var i = window.setInterval(function(){
 	        f();
-	        X$._update();
+	        M$._update();
 	    },t);
 	    _intervals.push(i);
 	    return i;
@@ -460,7 +472,7 @@ var _XClass = function(parent, isSpa) {
     this._timeout = function(f,t){
         var i = window.setTimeout(function(){
             f();
-            X$._update();
+            M$._update();
         },t);
         _timeouts.push(i);
         return i;
@@ -481,8 +493,8 @@ var _XClass = function(parent, isSpa) {
         }
     }
 	
-	thisX._ = _;
-	thisX._temp = {};
+	thisM._ = _;
+	thisM._temp = {};
 	
 	this.eval = function(fn) {
 		try{
@@ -495,7 +507,7 @@ var _XClass = function(parent, isSpa) {
 	var ready = false;
 	this.ready = function(fn){
 		if(ready){
-			X$.ready(fn);
+			M$.ready(fn);
 		}else{
 			readyEvents.push(fn);			
 		}
@@ -504,19 +516,19 @@ var _XClass = function(parent, isSpa) {
 	this._getJS = function(resName, insertPoint, callback){
 	    var self = this;
 	    var fnCb = function(struct, fncontroller, components){
-	        X$._onScript(struct, fncontroller, components, self, callback, insertPoint, resName);
+	        M$._onScript(struct, fncontroller, components, self, callback, insertPoint, resName);
 	    };
 		if(!xresources.isImportable(resName)){
 		    throw new Error('Invalid resouce to import ' + resName);
 		}
-		if(!X$.getJsCallbacks[resName]){
-			X$.getJsCallbacks[resName] = [];
+		if(!M$.getJsCallbacks[resName]){
+			M$.getJsCallbacks[resName] = [];
 			var scr = xdom.createElement("script");
-			xdom.setAtt(scr, "src", xutil.getCtx() + resName);
+			xdom.setAtt(scr, "src", resName);
 			document.body.appendChild(scr);
 		}
 		//TODO it is temporary. Will be replaced by app.cache
-		X$.getJsCallbacks[resName].push(fnCb);
+		M$.getJsCallbacks[resName].push(fnCb);
 	}
 	
 	xevents.onStart();
@@ -540,15 +552,15 @@ var _XClass = function(parent, isSpa) {
 		this._controller = controller;
 		if(!this.isImport){
 			xinputs.configEvents();
-			thisX.debug("xstartup", "XObj update all objects");
+			thisM.debug("xstartup", "XObj update all objects");
             if(controller.isModal || this.isSpa){
                 xevents.setModal();
             }
         }
-		thisX.debug("xstartup", "XObj showing screen");
+		thisM.debug("xstartup", "XObj showing screen");
 		try {
-			thisX.debug("xstartup", "XObj calling before show page");
-			thisX.eval('if(X.beforeShowPage){X.beforeShowPage("' + window.location.pathname.substring(xutil.getCtx().length) + '");}');
+			thisM.debug("xstartup", "XObj calling before show page");
+			thisM.eval('if(m.beforeShowPage){m.beforeShowPage("' + window.location.pathname + '");}');
 		} catch (e) {
 			xlog.error("xstartup", "XObj error calling init");
 			throw e;
@@ -556,13 +568,13 @@ var _XClass = function(parent, isSpa) {
 		
 		//exec chord of imports and services and exec onInit
 		try {
-			thisX.debug("xstartup", "XObj calling init");
+			thisM.debug("xstartup", "XObj calling init");
 			var __temp_onInit_fn__ = null; 
 			try{
-				var fn = thisX.eval('onInit');
+				var fn = thisM.eval('onInit');
 				__temp_onInit_fn__ = function(){
 				    xremote.setInitMode();
-					if((thisX.CTX == 'main' || thisX.CTX == '_x_mainSpa') && !thisX.isImport){
+					if((thisM.CTX == 'main' || thisM.CTX == '_x_mainSpa') && !thisM.isImport){
 					    var query = xutil.getQueryParams();
 						var param = query['_xjp'] ? JSON.parse(xutil._atob(decodeURIComponent(query['_xjp']))) : {};
 						for(var k in query){
@@ -570,13 +582,13 @@ var _XClass = function(parent, isSpa) {
 						        param[k] = query[k];
 						    }
 						}
-						thisX._loadObjects();
+						thisM._loadObjects();
 						fn(param);
 					}else{
 						var param = {};
                             var parameters = window['_x_modal_parameters'];
 						if(parameters){
-							var queue = parameters[thisX._controller.resourceName.split(".")[0]];
+							var queue = parameters[thisM._controller.resourceName.split(".")[0]];
 							if(queue){
 								param = queue.shift();								
 							}
@@ -586,13 +598,13 @@ var _XClass = function(parent, isSpa) {
 					xremote.unsetInitMode();
 				}
 			}catch(e){
-				__temp_onInit_fn__ = thisX.$(function(){
-					thisX._ready = true;
+				__temp_onInit_fn__ = thisM.$(function(){
+					thisM._ready = true;
 				});
 			};
-			var binds = thisX.eval('__xbinds__');
+			var binds = thisM.eval('__xbinds__');
 			if(binds){
-				var __chord = thisX.createChord(binds.length, __temp_onInit_fn__);
+				var __chord = thisM.createChord(binds.length, __temp_onInit_fn__);
 				binds.__exec(__chord);
 			}else{
 				__temp_onInit_fn__();
@@ -605,9 +617,9 @@ var _XClass = function(parent, isSpa) {
 		callback(controller);
 		ready = true;
 		for (var i = 0; i < readyEvents.length; i++) {
-			X$.ready(readyEvents[i]);
+			M$.ready(readyEvents[i]);
 		}
-		setTimeout(X$._update, 100);
+		setTimeout(M$._update, 100);
 
 	};
 	
@@ -639,7 +651,7 @@ var _XClass = function(parent, isSpa) {
 	};
 	var _updating = false;
 	this._update = function(){
-		if(!this._ready || _updating || X$._changingState){
+		if(!this._ready || _updating || M$._changingState){
 			return;
 		}
 		_updating = true;
@@ -667,7 +679,7 @@ var _XClass = function(parent, isSpa) {
 	};
 	this.defineProperty(this, 'referrer',
         function() {
-            return X$._lastUrl || document.referrer;
+            return M$._lastUrl || document.referrer;
         },
         function(v) {
         }

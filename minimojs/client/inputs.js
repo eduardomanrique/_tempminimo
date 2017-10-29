@@ -76,7 +76,7 @@ function setValueOnInput(input, value){
 		}
 	}else if(input.getAttribute("data-xtype") == 'autocomplete'){
 		//autocomplete
-		thisX.getAutocomplete(input).setInputValue(value);
+		thisM.getAutocomplete(input).setInputValue(value);
 	}else{
 		var compVal = input.value;
 		var xtype = input.getAttribute('data-xtype');
@@ -149,7 +149,7 @@ function getValueFromInput(input){
         if(xvalue || cbValueAtt){
             //multiple choice
             try{
-                val = thisX.eval(input.getAttribute("data-xbind"));
+                val = thisM.eval(input.getAttribute("data-xbind"));
             }catch(e){}
             val = val || [];
             var cbVal;
@@ -203,7 +203,7 @@ function getValueFromInput(input){
 		} else if (type == 'boolean') {
 			val = input.value.toUpperCase() == 'TRUE';
 		} else if (type == 'autocomplete') {
-			val = thisX.getAutocomplete(input).getValue();
+			val = thisM.getAutocomplete(input).getValue();
 			if (!val) {
 				val = null;
 			}
@@ -231,7 +231,7 @@ function getValueFromInput(input){
 	if(typeof(val) == 'string' && input.getAttribute){
 		var trimoff = input.getAttribute('data-xtrimoff');
 		if(!trimoff || trimoff.toLowerCase() == 'true'){
-			val = thisX.trim(val);
+			val = thisM.trim(val);
 			if(!val){
 				val = null;
 			}
@@ -297,7 +297,7 @@ function _fireEventAUX(eventName, input, e, updateInputs){
 			    resultFn(e);
 			}
 			if(input._compCtx){
-				X$._update();
+				M$._update();
 			}
 		}catch(e){
 			xlog.error('Error firing ' + eventName + ' script: ' + fn, e);
@@ -305,7 +305,7 @@ function _fireEventAUX(eventName, input, e, updateInputs){
 		xsetCurrentEvent(null);
 		xlog.debug("_x_event", "After fired ev: " + eventName + " data-xbind: " + input.getAttribute("data-xbind") + " val: " + input.value);
 	}
-	X$._update();
+	M$._update();
     updateDisabled = false;
     xutil.setFocused();
     for (var i = 0; i < _afterCheck.length; i++) {
@@ -333,14 +333,14 @@ function execInCorrectContext(input, fn){
         fnName = '_xcompEval';
     }
     if(!ctx){
-        ctx = thisX;
+        ctx = thisM;
     }
     return ctx[fnName](decodeURIComponent(fn));
 }
 
 //the event function can be fired outside through this function
 function _fireEvent(eventName, idSelOrInput, event){
-	var input = typeof(idSelOrInput) == 'string' ? X._(idSelOrInput) : idSelOrInput;
+	var input = typeof(idSelOrInput) == 'string' ? m._(idSelOrInput) : idSelOrInput;
 	if(!input){
 		return;
 	}
@@ -352,12 +352,12 @@ function _fireEvent(eventName, idSelOrInput, event){
 
 //config all events on new inputs
 function configEvents(){
-	if(thisX.isImport){
+	if(thisM.isImport){
 		return;
 	}
 	if(!window._xpushStateConfigured){
 	    window._xpushStateConfigured = true;
-	    if (X$._isSpa){
+	    if (M$._isSpa){
 	        window.addEventListener('click', function(e){
 	            //set the pushState
 	            if(e.target.nodeName.toUpperCase() == 'A' && e.target.href && !e.target.getAttribute('data-x_event_hrefclick')){
@@ -383,12 +383,12 @@ function configEvents(){
                     }
 	            }
 	        }, false);
-	        X$._currentUrl = window.location.toString();
+	        M$._currentUrl = window.location.toString();
 	        window.addEventListener('popstate', function(event) {
 	            var url = window.location.toString().split("#")[0]
-	            if(url != X$._currentUrl){
-                    X$._lastUrl = X$._currentUrl;
-                    X$._currentUrl = window.location.toString();
+	            if(url != M$._currentUrl){
+                    M$._lastUrl = M$._currentUrl;
+                    M$._currentUrl = window.location.toString();
                     xvisual.onPushStateSpa(window.location.pathname + window.location.search, true);
                 }
             });
@@ -420,17 +420,17 @@ function configureHref(a){
 
 function configureAutocomplete(input){
     if(input.getAttribute("data-xtype") == 'autocomplete' && !input._xautocomplete){
-        var ac = thisX.getAutocomplete(input);
+        var ac = thisM.getAutocomplete(input);
         if(input.autocompletefunction){
-            var fn = thisX.eval(input.autocompletefunction);
+            var fn = thisM.eval(input.autocompletefunction);
             ac.setSourceFunction(fn);
         }
         if(input.descriptionfunction){
-            var fn = thisX.eval(input.descriptionfunction);
+            var fn = thisM.eval(input.descriptionfunction);
             ac.setDescriptionFunction(fn);
         }
         if(input.finaldescriptionfunction){
-            var fn = thisX.eval(input.finaldescriptionfunction);
+            var fn = thisM.eval(input.finaldescriptionfunction);
             ac.setFinalDescriptionFunction(fn);
         }
     }

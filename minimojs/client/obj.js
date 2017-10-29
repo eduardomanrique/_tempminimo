@@ -180,7 +180,7 @@ function _loadObjIntInputs(objName) {
 
 			var value = null;
 			try{
-				value = thisX.eval(inputArray[i].getAttribute("data-xbind"));
+				value = thisM.eval(inputArray[i].getAttribute("data-xbind"));
 			}catch(e){}
 
 			if (!value) {
@@ -227,7 +227,7 @@ function _loadObjIntInputs(objName) {
 				}
 				if (xtype == 'autocomplete'){
 					//autocomplete
-					thisX.getAutocomplete(inputArray[i]).setValue(value);
+					thisM.getAutocomplete(inputArray[i]).setValue(value);
 				}else{
 					//normal
 					xinputs.setValueOnInput(inputArray[i], value);
@@ -331,16 +331,16 @@ function _setValueOnObjFromInput(input) {
     objName = objName[0].trim();
 
     if (!isSimpleVar) {
-        currentObject = thisX.eval(objName);
+        currentObject = thisM.eval(objName);
         if(!currentObject){
             if(_isArray(objName, dataXBind)){
                 currentObject = [];
             }else{
                 currentObject = {};
             }
-            X._temp._x_temp_var_ = currentObject;
-            thisX.eval(objName + ' = X._temp._x_temp_var_');
-            delete thisX._temp['_x_temp_var_'];
+            m._temp.__temp_var__ = currentObject;
+            thisM.eval(objName + ' = m._temp.__temp_var__');
+            delete thisM._temp['__temp_var__'];
         }
 
         var propName = dataXBind.substring(objName.length);
@@ -382,9 +382,9 @@ function _setValueOnObjFromInput(input) {
     }
     try {
         if(isSimpleVar){
-            X._temp._x_temp_var_ = val;
-            thisX.eval(objName + ' = X._temp._x_temp_var_');
-            delete thisX._temp['_x_temp_var_'];
+            m._temp.__temp_var__ = val;
+            thisM.eval(objName + ' = m._temp.__temp_var__');
+            delete thisM._temp['__temp_var__'];
         }else{
             currentObject[currentPropName] = val;
         }
@@ -422,7 +422,7 @@ function _createProperty(obj, propertyName){
 
 function _varExists(v){
 	try{
-		return thisX.eval(v);
+		return thisM.eval(v);
 	}catch(e){
 		return false;
 	}
@@ -430,7 +430,7 @@ function _varExists(v){
 
 //update an object from its inputs
 function updateObject(input) {
-	if(thisX.isImport){
+	if(thisM.isImport){
 		return;
 	}
 	var v;
@@ -446,7 +446,7 @@ function updateObject(input) {
 			xlog.debug("updateObject", "Input data-xbind: " + v
 					+ ", checkbox checked: " + input.checked);
 			try{
-				thisX.eval(v + ' = ' + input.checked);
+				thisM.eval(v + ' = ' + input.checked);
 			}catch(e){
 			}
 		} else if (input.getAttribute && input.getAttribute("type") == 'radio') {
@@ -460,18 +460,18 @@ function updateObject(input) {
 					break;
 				}
 			}
-			thisX._temp['_x_temp_var_'] = xinputs.getValueFromInput(objVal);
+			thisM._temp['__temp_var__'] = xinputs.getValueFromInput(objVal);
 			xlog.debug("updateObject", "Input data-xbind: " + v
-					+ ", radio valFromInput: " + thisX._temp['_x_temp_var_']);
+					+ ", radio valFromInput: " + thisM._temp['__temp_var__']);
 			var lastDot = v.lastIndexOf(".");
 			if(lastDot > 0){
-				_createProperty(thisX.eval(v.substring(0, lastDot)), v.substring(lastDot + 1));
+				_createProperty(thisM.eval(v.substring(0, lastDot)), v.substring(lastDot + 1));
 			}
 			try{
-				thisX.eval(v + ' = X._temp._x_temp_var_');
+				thisM.eval(v + ' = m._temp.__temp_var__');
 			}catch(e){
 			}
-			delete thisX._temp['_x_temp_var_'];
+			delete thisM._temp['__temp_var__'];
 		} else {
 			xlog.debug("updateObject", "Input data-xbind: " + v + ", normal input");
 
@@ -500,7 +500,7 @@ function updateObject(input) {
 
 function existsObject(varName) {
 	try {
-		var obj = thisX.eval(varName);
+		var obj = thisM.eval(varName);
 		return obj != null;
 	} catch (e) {
 		return false;
@@ -548,21 +548,21 @@ var _grabValueFromPropertyOrInput = function(v) {
 
 	var array = _splitProperties(v);
 	var varName = array.shift();
-	var obj = thisX.eval(varName);
+	var obj = thisM.eval(varName);
 	while (array.length > 0) {
 		var property = array.shift();
 		varName = varName + (property.indexOf('[') == 0 ? '' : '.') + property;
-		var objProperty = thisX.eval(varName);
+		var objProperty = thisM.eval(varName);
 		if (objProperty == null) {
 			var isArray = array.length > 0 && array[0].indexOf('[') == 0;
 			var indexComp = null
 			if(property.indexOf('[') == 0){
 				property = property.substring(1, property.length-1);
 			}
-			thisX._temp.__x_temp_val = array.length > 0 ? (isArray ? [] : {}) : finalVal;
-			thisX.eval(varName + "=X._temp.__x_temp_val");
-			obj = thisX._temp.__x_temp_val;
-			delete thisX._temp.__x_temp_val
+			thisM._temp.__x_temp_val = array.length > 0 ? (isArray ? [] : {}) : finalVal;
+			thisM.eval(varName + "=m._temp.__x_temp_val");
+			obj = thisM._temp.__x_temp_val;
+			delete thisM._temp.__x_temp_val
 		} else {
 			obj = objProperty;
 			lastArrayIndex = null;
@@ -584,7 +584,7 @@ var _grabValueFromPropertyOrInput = function(v) {
 
 //updates all var objects
 function updateAllObjects() {
-	if(thisX.isImport){
+	if(thisM.isImport){
 		return;
 	}
 	var createdFromInputs = {};
@@ -629,9 +629,9 @@ function updateAllObjects() {
 					xlog.debug("updateAllObjects", "Each before update: "
 							+ input.value);
 					updated[objName] = true;
-					thisX._temp['_x_temp_var_'] = _buildObjFromInputs(objName, split.length == 1);
-					thisX.eval(objName + ' = X._temp._x_temp_var_');
-					delete thisX._temp['_x_temp_var_'];
+					thisM._temp['__temp_var__'] = _buildObjFromInputs(objName, split.length == 1);
+					thisM.eval(objName + ' = m._temp.__temp_var__');
+					delete thisM._temp['__temp_var__'];
 					xlog.debug("updateAllObjects", "Each after update: "
 							+ input.value);
 				}
@@ -646,7 +646,7 @@ function updateAllObjects() {
 
 //update inputs from objects
 function updateInputs() {
-	if (!thisX._loaded || thisX.isImport) {
+	if (!thisM._loaded || thisM.isImport) {
 		return;
 	}
 	var updated = {};
@@ -676,7 +676,7 @@ function updateInputs() {
 }
 
 function updateXScripts() {
-	if(thisX.isImport){
+	if(thisM.isImport){
 		return;
 	}
 	var elements = _getXScripts();
@@ -689,7 +689,7 @@ function updateXScripts() {
 				if(el._compCtx){
 					res = el._compCtx._xcompEval(v);
 				}else{
-					res = thisX.eval(v);
+					res = thisM.eval(v);
 				}
 				res = res == null || res == undefined ? '' : res;
 				el.innerHTML = res;
@@ -701,7 +701,7 @@ function updateXScripts() {
 }
 
 function bindTo(id, dataXbind){
-	xdom.setAtt(X._(id), "data-xbind", dataXbind);
+	xdom.setAtt(m._(id), "data-xbind", dataXbind);
 }
 
 _expose(updateObject);

@@ -107,4 +107,7 @@ describe('Get resources', function () {
         })
       })
     }));
+    it('Get module as string', () => resources.readModuleFile('./component-types.js').then((data) => {
+      expect(data.length).to.be.greaterThan(100);
+  }));
 });

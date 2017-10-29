@@ -42,7 +42,7 @@ const startComponents = () => loadComponents().then(componentsInfo => {
   _componentsScript = componentsInfo.scripts;
   _componentsInfo = componentsInfo.info;
   _componentsHtmxSources = componentsInfo.htmxSources
-  return util.readModuleFile('./component-types.js').then((componentTypes) => {
+  return resources.readModuleFile('./component-types.js').then((componentTypes) => {
     const script = `(function(){
       var __types = (function(){
         var module = {};
@@ -302,5 +302,6 @@ module.exports = {
   _childInfoHtmxFormat: _childInfoHtmxFormat,
   _findDeepestComponent: _findDeepestComponent,
   setUpGetterForAttributes: __setUpGetterForAttributes,
-  forEachComponent: (fn) => _componentsInfo.forEach(fn)
+  forEachComponent: (fn) => _componentsInfo.forEach(fn),
+  getScripts: () => _componentsScript
 }

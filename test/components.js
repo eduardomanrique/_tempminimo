@@ -16,6 +16,7 @@ const ctx = require('../minimojs/context');
 const _components = rewire('../minimojs/components');
 const htmlParser = require('../minimojs/htmlParser');
 const util = require('../minimojs/util');
+const resources = require('../minimojs/resources');
 
 process.chdir(`${__dirname}/datadir`);
 
@@ -26,7 +27,7 @@ let _setComponents = (c, i) => {
 	info = i;
 }
 
-before(() => loadComponents().then(c => util.readModuleFile('../minimojs/component-types.js').then((componentTypes) => {
+before(() => loadComponents().then(c => resources.readModuleFile('../minimojs/component-types.js').then((componentTypes) => {
 		var _test = {};
 		try{
 			eval(`

@@ -9,7 +9,7 @@ function _addExecuteWhenReady(fn){
 }
 
 function setModal(){
-    thisX._loaded = true;
+    thisM._loaded = true;
 }
 
 //private method executed on screen is ready
@@ -17,40 +17,40 @@ function ready() {
 	if(calledReady){
 		return;
 	}
-	thisX.debug("xstartup", "READY function");
+	thisM.debug("xstartup", "READY function");
 	calledReady = true;
-	thisX._loaded = true;
+	thisM._loaded = true;
 	xdefaultservices.init();
 	var isRemote = %is_remote%;
 	if(!isRemote){
-		thisX.debug("xstartup", "COMPONENTS Init..");
-		thisX.debug("xstartup", "Default Services Init..");
+		thisM.debug("xstartup", "COMPONENTS Init..");
+		thisM.debug("xstartup", "Default Services Init..");
 		xutil.each(execWhenReady, function(item){
-			thisX.debug("xstartup", "Exec execWhenReady " + item);
+			thisM.debug("xstartup", "Exec execWhenReady " + item);
 			item();
 		});
 	}
-	if(!X$._startedMutationObserver){
-	    X$._startedMutationObserver = true;
-	    X$._startMutationObserver();
+	if(!M$._startedMutationObserver){
+	    M$._startedMutationObserver = true;
+	    M$._startMutationObserver();
 	}
-	thisX.debug("xstartup", "READY done");
+	thisM.debug("xstartup", "READY done");
 }
 
 //onunload event
 function onUnloadCall(){
 	var onExit;
 	try{
-		onExit = thisX.eval('onExit');	
+		onExit = thisM.eval('onExit');	
 	}catch(e){}
 	if(onExit){
 		return onExit();
 	}
 }
 
-//method called when X instantiation is finished
+//method called when m instantiation is finished
 function onStart(){
-	thisX.debug("xstartup", "onStart");
+	thisM.debug("xstartup", "onStart");
 	if ( document.addEventListener ) {
 		document.addEventListener( "DOMContentLoaded", function(){
 			document.removeEventListener( "DOMContentLoaded", arguments.callee, false );
@@ -83,7 +83,7 @@ function onStart(){
 		});
 	}
 	window.onbeforeunload = onUnloadCall;
-	thisX.debug("xstartup", "onStart done");
+	thisM.debug("xstartup", "onStart done");
 }
 
 _expose(onStart);

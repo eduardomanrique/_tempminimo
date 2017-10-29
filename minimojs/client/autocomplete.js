@@ -76,11 +76,11 @@ function _startAutoComplete(param, autocompleteClass, selectedItemClass) {
 		
 		//local function to retrive the element
 		function __getInput(){
-			return typeof(param) == 'string' ? X._(param) : param;
+			return typeof(param) == 'string' ? m._(param) : param;
 		}
 		
 		__getInput().xacId = __getInput().xacId || (__getInput().getAttribute("id") ? 
-				("xaci_" + __getInput().getAttribute("id")) : thisX.generateId());
+				("xaci_" + __getInput().getAttribute("id")) : thisM.generateId());
 		
 		//local function to retrive the autocomplete element panel
 		function __getAutoCompleteElementPanel(){
@@ -164,7 +164,7 @@ function _startAutoComplete(param, autocompleteClass, selectedItemClass) {
 			__getInput()._xautocompletevalue = obj;
 			__getInput().value = finalDesc || '';
 			xobj.updateObject(__getInput());
-			X$._update();
+			M$._update();
 		};
 		
 		//returns the autocomplete final current value
@@ -189,7 +189,7 @@ function _startAutoComplete(param, autocompleteClass, selectedItemClass) {
 			__getAutoCompleteElementPanel().innerHTML = '';
 			__getAutoCompleteElementPanel().style.display = 'none';
 			xobj.updateObject(__getInput());
-			X$._update();
+			M$._update();
 		};
 		//style
 		var styleVal = _createStyleObj();
@@ -386,7 +386,7 @@ function _startAutoComplete(param, autocompleteClass, selectedItemClass) {
 
 function createAutoCompleteFunction(input, fnName){
 	return function(typed, callback, thisObj){
-		var fn = thisX.eval(fnName);
+		var fn = thisM.eval(fnName);
 		if(fn){
 			fn(typed, callback, thisObj);
 		}
@@ -395,7 +395,7 @@ function createAutoCompleteFunction(input, fnName){
 
 function createDescriptionFunction(input, fnName){
 	return function(item){
-		var fn = thisX.eval(fnName);
+		var fn = thisM.eval(fnName);
 		if(fn){
 			return stripFunction(fn)(item);
 		}
@@ -409,7 +409,7 @@ function createDescFunction(input, typeFn){
 			var scriptFn = input.getAttribute(typeFn);
 			var varName = input.getAttribute('data-xac-itemvar');
 			window._x_temp_autocomplete_item = item;
-			var result = thisX.eval('var ' + varName + ' = window._x_temp_autocomplete_item;' + scriptFn + ';');
+			var result = thisM.eval('var ' + varName + ' = window._x_temp_autocomplete_item;' + scriptFn + ';');
 			delete window._x_temp_autocomplete_item;
 			return result;
 		}

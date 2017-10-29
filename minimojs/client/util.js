@@ -9,7 +9,7 @@ function putValue(key, value){
 //get value from local storage
 function getValue(key){
 	if (hasStorage()) {
-		return thisX.eval('__xstorage = ' + localStorage.getItem(window.xuser.id + '|' + key) + ';');
+		return thisM.eval('__xstorage = ' + localStorage.getItem(window.xuser.id + '|' + key) + ';');
 	}
 	return null;
 }
@@ -29,7 +29,7 @@ function putValueOnSession(key, value){
 //get value from local storage
 function getValueFromSession(key){
 	if (hasStorage()) {
-		return thisX.eval('__xstorage = ' + sessionStorage.getItem(window.xuser.id + '|' + key) + ';');
+		return thisM.eval('__xstorage = ' + sessionStorage.getItem(window.xuser.id + '|' + key) + ';');
 	}
 	return null;
 }
@@ -263,8 +263,8 @@ var focused;
 var idFocused;
 var xidFocused;
 function focus(id){
-	if(X._(id)){
-		X._(id).focus();
+	if(m._(id)){
+		m._(id).focus();
 	}else{
 		idFocused = id;
 	}
@@ -282,7 +282,7 @@ function markFocused(){
 function setFocused(){
 	if(focused && !focused.parentElement){
 		if(idFocused){
-			focused = X._(idFocused);
+			focused = m._(idFocused);
 		}else if(xidFocused){
 			var array = xdom.getElementsByAttribute('xid', xidFocused, false, true);
 			if(array){
@@ -312,7 +312,7 @@ function _btoa(s){
 
 //highest zindex in screen
 function highestZIndex() {
-	return X$._highestZIndex();
+	return M$._highestZIndex();
 }
 
 function removeFromArray(item, array){
@@ -347,11 +347,6 @@ function equals(o1, o2){
     return false;
 }
 
-function getCtx(){
-    return "%ctx%";
-}
-
-_expose(getCtx);
 _external(setCookie);
 _external(getCookie);
 _expose(removeFromArray);

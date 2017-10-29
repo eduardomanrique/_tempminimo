@@ -64,7 +64,7 @@ function _createValProp(mandatory, type, instance, properties, evalFn, forChildE
 }
 
 function _definePropertyForXScr(instance, prop, evalFn, values, type){
-    thisX.defineProperty(instance, prop,
+    thisM.defineProperty(instance, prop,
         function(){
             var result = [];
             for(var i = 0; i < values.length; i++){
@@ -141,13 +141,13 @@ function _bindValProp(instance) {
     bindTo = bindTo || prop;
     var evalFn = instance._xcompEval;
     var varToBind = instance._attrs[prop];
-    thisX.defineProperty(instance, bindTo,
+    thisM.defineProperty(instance, bindTo,
         function(){
             return evalFn(varToBind);
         },
         function(v){
-            thisX._temp._setVar = v;
-            evalFn(varToBind + ' = thisX._temp._setVar');
+            thisM._temp._setVar = v;
+            evalFn(varToBind + ' = thisM._temp._setVar');
         }
     );
   }

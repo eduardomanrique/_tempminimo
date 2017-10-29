@@ -3,8 +3,8 @@ var metaObj = %meta%;
 //import remote script
 function importScript(jsName, insertPoint, callback, parentX, isSpa){
 	xlog.debug("ximport", "Importing script " + jsName);
-	var X = new _XClass(parentX, isSpa);
-	X._getJS(jsName, insertPoint, callback);
+	var m = new _Minimo(parentX, isSpa);
+	m._getJS(jsName, insertPoint, callback);
 }
 
 var importCallback = {}
@@ -27,8 +27,8 @@ function addToInitChord(object, callback){
 			callback(object);			
 		}
 	}
-	thisX.eval('var fnName = "' + fnName + 
-			'";if(__xbinds__){var __chord = X.createChord(__xbinds__.length, function(){try{onInit()}catch(e){};X[fnName]()});__xbinds__.__exec(__chord);}else{try{onInit()}catch(e){};try{X[fnName]();}catch(e){}}');
+	thisM.eval('var fnName = "' + fnName + 
+			'";if(__xbinds__){var __chord = m.createChord(__xbinds__.length, function(){try{onInit()}catch(e){};X[fnName]()});__xbinds__.__exec(__chord);}else{try{onInit()}catch(e){};try{X[fnName]();}catch(e){}}');
 }
 
 function go(path, param) {
@@ -82,7 +82,7 @@ function _postHiddenForm(path, params) {
     form.submit();
 }
 
-//all service calls when on initmode must have their callback called so the X instance can start to update screen
+//all service calls when on initmode must have their callback called so the m instance can start to update screen
 var _initMode;
 function setInitMode(){
     _initMode = true;
@@ -109,7 +109,7 @@ function decreaseCountInInitMode(){
 
 function _checkReady(){
     if(_countCallsInInitMode == 0){
-        thisX._ready = true;
+        thisM._ready = true;
     }
 }
 
@@ -207,7 +207,7 @@ function _createRemoteFunction(alias, method, responseInOutputStream){
 function ping(onSuccess, onError){
 	ajax({
 		type : "get",
-		url :  xutil.getCtx() + "/x/_x_ping?_x_nocache=" + xutil.generateId(),
+		url :  "/x/_x_ping?_x_nocache=" + xutil.generateId(),
 		async : true,
 		success : onSuccess || function(){xlog.debug("_x_internal", "ping")},
 		error : onError || function(e){xlog.error("ping error: " + e.message, e)}
@@ -254,7 +254,7 @@ function _callSync() {
 //callback to a server response
 function _onCallback(successCallback, exceptionCallback, url, resolve, reject){
 	return function(){
-		var result = thisX.eval("__x = " + arguments[0]);
+		var result = thisM.eval("__x = " + arguments[0]);
 		if(result.__response){
 			if(successCallback){
 			    var tempInitMode = false;
@@ -274,7 +274,7 @@ function _onCallback(successCallback, exceptionCallback, url, resolve, reject){
 			}
 		}else{
 			if(result.__not_authenticated){
-				thisX.go('/x/no_authentication');
+				thisM.go('/x/no_authentication');
 			}
 			if(exceptionCallback){
 			    var tempInitMode = false;
@@ -302,7 +302,7 @@ function _onCallback(successCallback, exceptionCallback, url, resolve, reject){
                 }
 			}
 		}
-		X$._update();
+		M$._update();
 	}
 }
 
@@ -313,7 +313,7 @@ function _callAjaxGET(purl, success, exception) {
         resolve = rs;
         reject = rj;
     });
-	var url = xutil.getCtx() + "/x/" + purl;
+	var url = "/x/" + purl;
 	ajax({
 		type : "get",
 		url : url,
@@ -333,7 +333,7 @@ function _callSyncAjaxGET(purl, success, exception) {
         resolve = rs;
         reject = rj;
     });
-	var url = xutil.getCtx() + "/x/" + purl;
+	var url = "/x/" + purl;
 	ajax({
 		type : "get",
 		url : url,
@@ -350,7 +350,7 @@ function _callAjaxPOST(url, param, success, exception) {
     });
 	ajax({
 		type : "POST",
-		url : xutil.getCtx() + "/x/" + url,
+		url : "/x/" + url,
 		data : param,
 		async : true,
 		dataType : "html",
@@ -367,7 +367,7 @@ function _callSyncAjaxPOST(url, param, success, exception) {
     });
 	ajax({
 		type : "POST",
-		url : xutil.getCtx() + "/x/" + url,
+		url : "/x/" + url,
 		data : param,
 		async : false,
 		dataType : "html",
@@ -413,7 +413,7 @@ function ajax(param){
 
 //get html for a modal
 function getHtmlPage(url, callback){
-	var _url = xutil.getCtx() + url + "?_xmd=true";
+	var _url = url + "?_xmd=true";
 	ajax({
 		type : "get",
 		url : _url,
@@ -459,7 +459,7 @@ function prepareForUpload(id){
 var _callbackUpload = null;
 //submits the upload
 function _upload(url, parameters, callback, onException) {
-	xdom.setAtt(_formUpload, "action", xutil.getCtx() + "/x/" + url + "?" + parameters);
+	xdom.setAtt(_formUpload, "action", "/x/" + url + "?" + parameters);
 	_callbackUpload = _onCallback(callback, onException, url);
 	_formUpload.submit();
 	_formUpload = null;

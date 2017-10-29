@@ -8,8 +8,8 @@ function popup(obj){
 	modal(obj, "popup", function(){
 		obj._c._id_modal = xutil.generateId();
 		msg(obj);
-		X$._update();
-		thisX.closeLoading();
+		M$._update();
+		thisM.closeLoading();
 	}, false);
 }
 var modalCallbacks = {};
@@ -21,7 +21,7 @@ var modalCallbacks = {};
 function modal(obj, type, callback, isSpa){
     var isPopup = type == "popup";
 	if(isPopup){
-		thisX.showLoading();
+		thisM.showLoading();
 	}
 	var jsName = obj.url.replace(/\.html$/, '') + ".m.js";
 	if(!window['_x_modal_parameters']){
@@ -54,7 +54,7 @@ function modalS(url, toggle, parentElementId, callback){
     var execModal = function(){
         var modalEl = xdom.createElement('xmodal');
         modalEl.style.display = 'none';
-        X._(parentElementId).appendChild(modalEl);
+        m._(parentElementId).appendChild(modalEl);
         var obj = {url:url, toggle: toggle, el: modalEl};
         modal(obj, "modal", function(){
             obj._c.toggle = function(){
@@ -65,8 +65,8 @@ function modalS(url, toggle, parentElementId, callback){
             }
         }, false);
     }
-    if(X$._changingState){
-        X$.onNewPage(execModal);
+    if(M$._changingState){
+        M$.onNewPage(execModal);
     }else{
         execModal();
     }
@@ -75,16 +75,15 @@ function modalS(url, toggle, parentElementId, callback){
 
 //to be used by spa feature
 function setSpaModalNode(insertPoint){
-    X$.spaNode = xdom.createElement('xspamodal');
-    xdom.setAtt(X$.spaNode, 'data-xroot-ctx', '_x_mainSpa');
-    insertPoint.xsetModal(X$.spaNode);
+    M$.spaNode = xdom.createElement('xspamodal');
+    xdom.setAtt(M$.spaNode, 'data-xroot-ctx', '_x_mainSpa');
+    insertPoint.xsetModal(M$.spaNode);
     _spaModal(window.location.pathname + window.location.search, true);
 }
 
 function _parseUrl(url){
     var qmIndex = url.indexOf('?');
     var path = qmIndex >= 0 ? url.substring(0, qmIndex) : url;
-    path = path.substring(xutil.getCtx().length);
     return {
         path: path,
         query: qmIndex >= 0 ? url.substring(qmIndex) : '',
@@ -95,7 +94,7 @@ function _parseUrl(url){
 var lastUrl = window.location.pathname + window.location.search;
 //refreshs the spa modal node
 function _spaModal(gotoUrl, skipUpdateState){
-    X$._clearInstances();
+    M$._clearInstances();
 	var current = _parseUrl(lastUrl);
 	var goto = _parseUrl(gotoUrl);
 	if(!goto.tpl || !current.tpl || goto.tpl != current.tpl){
@@ -104,33 +103,33 @@ function _spaModal(gotoUrl, skipUpdateState){
 	}else{
 	    var tempNode = document.createElement('div');
 	    if(!skipUpdateState){
-	        var newPath = xutil.getCtx() + goto.path + goto.query;
+	        var newPath = goto.path + goto.query;
 	        if(xutil.isRunningOnFileProtocol()){
                 //running locally push state is disable
                 xutil.setQueryParams(newPath);
             }else{
 	            history.pushState(null, null, newPath);
 	        }
-	        X$._lastUrl = X$._currentUrl;
-            X$._currentUrl = window.location.toString();
+	        M$._lastUrl = M$._currentUrl;
+            M$._currentUrl = window.location.toString();
 	    }
 	    var obj = {url: goto.path, toggle: true, el: tempNode, isSpa: true};
 
     	modal(obj, "spa", function(){
-            while (X$.spaNode.firstChild) {
-                X$.spaNode.removeChild(X$.spaNode.firstChild);
+            while (M$.spaNode.firstChild) {
+                M$.spaNode.removeChild(M$.spaNode.firstChild);
             }
             while (tempNode.childNodes.length > 0) {
-                X$.spaNode.appendChild(tempNode.childNodes[0]);
+                M$.spaNode.appendChild(tempNode.childNodes[0]);
             }
-            X$._changingState = false;
-            X$._newPage();
+            M$._changingState = false;
+            M$._newPage();
     	}, true);
 	}
 }
 
 function onPushStateSpa(newUrl, skipUpdateState){
-    if(X$.spaNode){
+    if(M$.spaNode){
         _spaModal(newUrl, skipUpdateState);
     }else{
         window.location = newUrl;
@@ -142,12 +141,12 @@ function toggleModal(obj, callback){
 	xobj.updateAllObjects();
 	xobj.updateXScripts();
 	if(obj.showLoading){
-		thisX.showLoading();
+		thisM.showLoading();
 	}
-	var beforeShowModal = thisX.beforeShowModal;
+	var beforeShowModal = thisM.beforeShowModal;
 	try {
-		thisX.debug("xstartup", "XObj calling before show modal");
-		thisX.eval('if(X.beforeShowModal){X.beforeShowModal("' + obj.url + '");}');
+		thisM.debug("xstartup", "XObj calling before show modal");
+		thisM.eval('if(m.beforeShowModal){m.beforeShowModal("' + obj.url + '");}');
 	} catch (e) {
 		xlog.error("xstartup", "XObj error calling init");
 		throw e;
@@ -158,7 +157,7 @@ function toggleModal(obj, callback){
             child.style.display = child === obj.el ? "block" : "none";
         }
 	}
-	obj._c._x_eval("X._loadObjects()");
+	obj._c._x_eval("m._loadObjects()");
 	if(callback){
 		callback();
 	}
@@ -181,11 +180,11 @@ function setModalPosition(elmod){
 	}
 }
 
-var popupTemplates = {%popupmodaltemplates%};
+var popupTemplates = {"%popupmodaltemplates%"};
 
 //alert message
 function msg(obj) {
-	var mprop = X$._modalProperties[obj.url] || {};
+	var mprop = M$._modalProperties[obj.url] || {};
 	if (!obj.size) {
 		obj.size = {
 			width : mprop.width || 400
@@ -236,14 +235,14 @@ function msg(obj) {
 	elmod.style.left = '50%';
 	elmod.style.opacity = 0;
 	var hzi = xutil.highestZIndex();
-	X$._setBlurryBackground(true, idModal);
-	elmod.style.zIndex = hzi + 2;
+	M$._setBlurryBackground(true, idModal, hzi);
+	elmod.style.zIndex = hzi + 1;
 	xdom.setAtt(bgDiv, "style", "position: fixed;overflow-y: auto;top: 0;left: 0;bottom: 0;right: 0;outline: 0;z-index: " + (hzi + 1));
 	
 	bgDiv.appendChild(elmod);
 	document.body.appendChild(bgDiv);
 	setModalPosition(elmod);
-	thisX.addAfterCheck(function(){
+	thisM.addAfterCheck(function(){
 		setModalPosition(elmod);
 	});
 	elmod.style.opacity = 1;
@@ -275,11 +274,11 @@ function msg(obj) {
 }
 
 function showLoading(){
-    X$._showLoading();
+    M$._showLoading();
 }
 
 function closeLoading(noupdate, cb){
-    X$._closeLoading(function(){
+    M$._closeLoading(function(){
         if(!noupdate){
             xobj.updateInputs();
         }
@@ -300,7 +299,7 @@ function buildHtmlNodeFromString(html){
 function closeMsg(idModal) {
 	var dv = document.getElementById(idModal);
 	dv.parentNode.removeChild(dv);
-	X$._setBlurryBackground(false, idModal);
+	M$._setBlurryBackground(false, idModal, xutil.highestZIndex());
 	xobj.updateInputs();
 }
 
@@ -353,7 +352,7 @@ var updatingIterators = false;
 var iteratorContexts = {};
 //updates the iterators on screen
 function updateIterators(){
-	if(thisX.isImport){
+	if(thisM.isImport){
 		return;
 	}
 	if(updatingIterators){
@@ -407,7 +406,7 @@ function updateIterators(){
 						fnUpdateCtx.push("_xold_count_" + i + "=_xold_count_" + i);
 						fnUpdateCtx.push("try{_x_count_" + i + "=(function (){\nreturn " + item.countVar + ";\n}).call(_xctx)}catch(e){_x_count_" + i + "=0;}");
 						if(item.listVar){
-							fnUpdateCtx.push("try{_x_list_" + i + "=X$.copyArray((function (){return " + item.listVar + "}).call(_xctx));}catch(e){_x_list_" + i + "=[];}");
+							fnUpdateCtx.push("try{_x_list_" + i + "=M$.copyArray((function (){return " + item.listVar + "}).call(_xctx));}catch(e){_x_list_" + i + "=[];}");
 							fnUpdateCtx.push("__t='" + item.listVar + "[' + __arg[" + i + "] + ']'");
 							fnUpdateCtx.push("for(var __k in __transl){__transl[__k].push(__t);}");
 							fnUpdateCtx.push("__transl." + item.itemVar + "=[__t]");
@@ -422,7 +421,7 @@ function updateIterators(){
 						fnCtx.push("var _xold_list_" + i);
 						fnUpdateCtx.push("_xold_list_" + i + "= _x_list_" + i);
 						
-						fnUpdateCtx.push("try{_x_list_" + i + "=X$.copyArray((function (){\nreturn " + iterator.listVar + ";\n}).call(_xctx));}catch(e){_x_list_" + i + "=[];}");
+						fnUpdateCtx.push("try{_x_list_" + i + "=M$.copyArray((function (){\nreturn " + iterator.listVar + ";\n}).call(_xctx));}catch(e){_x_list_" + i + "=[];}");
 						if(!iterator.itemVar){
 							iterator.itemVar = "_xv" + xutil.generateId();
 						}
@@ -475,7 +474,7 @@ function updateIterators(){
                             execCtx = iterEl._compCtx;
                             fnName = '_xcompEval';
                         }else{
-                            execCtx = thisX;
+                            execCtx = thisM;
                             fnName = 'eval';
                         }
 					    var f = execCtx[fnName]("(function(_xctx){return function(__arg){" + fnCtx.join(";\n") + "}})")(execCtx);
@@ -639,7 +638,7 @@ function _updateIterElementAttributes(el, html, ctx, xiterId){
 				e.value = val;
 			}else if(val != e.getAttribute(attName)){
 				if(attName == 'id'){
-					val = val.replace('#modal:', thisX.CTX + ":");
+					val = val.replace('#modal:', thisM.CTX + ":");
 				}
 				xdom.setAtt(e, attName, val);
 			}

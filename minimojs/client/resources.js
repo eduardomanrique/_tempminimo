@@ -1,5 +1,5 @@
 //this source has information about existing pages (and its templates), and scripts. Also has information about authorization
-var resourceInfoMap = %resourceInfoMap%;
+var resourceInfoMap = "%importableResources%";
 
 function _get(path){
     var info = resourceInfoMap[path];

@@ -1,12 +1,12 @@
 var root;
 function _rootElement(){
 	if(!root){
-		var elements = document.getElementsByClassName(thisX.CTX);
+		var elements = document.getElementsByClassName(thisM.CTX);
 		if(!elements || elements.length == 0){
-			if(thisX.CTX == "main"){
+			if(thisM.CTX == "main"){
 				root = document.body;
-			}else if(thisX.CTX == '_x_mainSpa'){
-			    root = X$.spaNode;
+			}else if(thisM.CTX == '_x_mainSpa'){
+			    root = M$.spaNode;
 			}else{
 				xlog.error('XDOM: No root element found!!!');
 			}
@@ -34,7 +34,7 @@ function _checkParent(parent){
 
 function _checkElementInContext(element){
 	var ctxAttr = element && element.getAttribute ? element.getAttribute("data-xroot-ctx") : null;
-	if(!element || (ctxAttr && ctxAttr != thisX.CTX)){
+	if(!element || (ctxAttr && ctxAttr != thisM.CTX)){
 		return false;
 	}
 	if(element.parentElement != _rootElement()){
@@ -554,7 +554,7 @@ var dynamicOutAttributes = {};
 
 //update dynamic attributes
 function updateElementsAttributeValue(){
-	if(thisX.isImport){
+	if(thisM.isImport){
 		return;
 	}
 	var rootEl = _rootElement();
@@ -594,7 +594,7 @@ function updateElementsAttributeValue(){
 
 //check if ctx for component is already created
 function _checkCompId(e, compCtxSuffix){
-	xcomponents.prepareComponentContext(e, compCtxSuffix, thisX, "");
+	xcomponents.prepareComponentContext(e, compCtxSuffix, thisM, "");
 }
 
 function _createHTML(json, insertPoint, index, onFinish, compCtxSuffix){
@@ -632,7 +632,7 @@ function _createHTML(json, insertPoint, index, onFinish, compCtxSuffix){
 			    rq = rq.substring(1);
 			}
 			var ext = rq.substring(rq.length-4).toLowerCase()
-			if(X$._containsRequired(rq) && ext != '.css'){
+			if(M$._containsRequired(rq) && ext != '.css'){
 				index++;
 				continue;
 			}
@@ -643,7 +643,7 @@ function _createHTML(json, insertPoint, index, onFinish, compCtxSuffix){
 				if(scoped){
 					e = createElement("style");
 					setAtt(e, "scoped", true);
-					e.innerHTML = "@import url(" + xutil.getCtx() + "/res/" + rq + ");";
+					e.innerHTML = "@import url(/res/" + rq + ");";
 					insertPoint.appendChild(e);
 					_createHTML(json, insertPoint, index+1, onFinish, compCtxSuffix);
 					return;
@@ -651,7 +651,7 @@ function _createHTML(json, insertPoint, index, onFinish, compCtxSuffix){
 					e = createElement("link");
 					setAtt(e, "rel", "stylesheet");
 					setAtt(e, "type", "text/css");
-					setAtt(e, "href",  xutil.getCtx() + "/res/" + rq);
+					setAtt(e, "href",  "/res/" + rq);
 					e.onload = function(){
 						_createHTML(json, insertPoint, index+1, onFinish, compCtxSuffix);
 					}
@@ -659,7 +659,7 @@ function _createHTML(json, insertPoint, index, onFinish, compCtxSuffix){
 			}else{
 				//js
 				e = createElement("script");
-				setAtt(e, "src", xutil.getCtx() + "/res/" + rq);
+				setAtt(e, "src", "/res/" + rq);
 				e.onload = function(){
 					_checkHoldJQuery();
 					_createHTML(json, insertPoint, index+1, onFinish, compCtxSuffix);
@@ -678,7 +678,7 @@ function _createHTML(json, insertPoint, index, onFinish, compCtxSuffix){
 			//iterate over children
 			var child = json.c[index];
 			if(child.n == 'modal-info'){
-				X$.setModalInfo(child);
+				M$.setModalInfo(child);
 				child = json.c[++index];
 			}
 			if(child.t){
@@ -736,8 +736,8 @@ function _createHTML(json, insertPoint, index, onFinish, compCtxSuffix){
 //set jquery to wait for document ready
 function _checkHoldJQuery(){
 	try{
-		if($ && $.holdReady && !thisX._holdingReady){
-			thisX._holdingReady = true;
+		if($ && $.holdReady && !thisM._holdingReady){
+			thisM._holdingReady = true;
 			$.holdReady(true);
 		}		
 	}catch(e){};
@@ -872,7 +872,7 @@ function _setAttributesOnElement(e, child, dynId, skipIteratorAtt){
 		}
 		val = val.join('');
 		if(attName == 'id'){
-			val = val.replace('#modal:', thisX.CTX + ":");
+			val = val.replace('#modal:', thisM.CTX + ":");
 		}
 		setAtt(e, attName, val);
 		if(isDynAttr){

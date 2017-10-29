@@ -7,28 +7,28 @@ function _setComponents(c){
 //called on initialization of X
 function init(){
 	try{
-		thisX.debug("xstartup", "XComponents INIT");
-		%xcomponents%
+		thisM.debug("xstartup", "XComponents INIT");
+		"%components%"
 		comps = _comps
-		thisX.debug("xstartup", "XComponents _setComponents");
+		thisM.debug("xstartup", "XComponents _setComponents");
 		_setComponents(components);
-		thisX.debug("xstartup", "XComponents initComponent");
+		thisM.debug("xstartup", "XComponents initComponent");
 		initComponents();
-		thisX.debug("xstartup", "XComponents buildComponent");
+		thisM.debug("xstartup", "XComponents buildComponent");
 		createComponentConstructors();
 	}catch(e){
 		var msg = "Error loading custom components: " + e.message;
 		xlog.error(msg, e);
 		throw new Error(msg);
 	}
-	thisX.debug("xstartup", "XComponents INIT done");
+	thisM.debug("xstartup", "XComponents INIT done");
 }
 
 //constructor of components
 function _buildCreateFunction(compName){
 	return function(comp){
 		var result = {
-			_x_comp: thisX.comp[compName]
+			_x_comp: thisM.comp[compName]
 		};
 		for(var k in comp){
 			result[k] = comp[k];
@@ -87,17 +87,17 @@ function _postCreateComp(ctx){
 
 //start component's methods
 function initComponents(){
-	thisX.comp = components;
-	thisX.comp.insertBefore = function(handle, xid){
+	thisM.comp = components;
+	thisM.comp.insertBefore = function(handle, xid){
 		_insertComp(handle, xid, -1);
 	};
-	thisX.comp.insertAfter = function(handle, xid){
+	thisM.comp.insertAfter = function(handle, xid){
 		_insertComp(handle, xid, 1);
 	};
-	thisX.comp.append = function(handle, xid){
+	thisM.comp.append = function(handle, xid){
 		_insertComp(handle, xid, 0);
 	};
-	thisX.comp.updateValue = function(comp){
+	thisM.comp.updateValue = function(comp){
 		xobj.updateObject(comp);
 	}
 };
@@ -125,25 +125,25 @@ function registerAll(compMap){
 }
 
 function prepareComponentContext(e, compCtxSuffix, ctx, postScript){
-	if(e.xcompId && (X.comp[e.xcompName].context || X.comp[e.xcompName].htmxContext)){
+	if(e.xcompId && (m.comp[e.xcompName].context || m.comp[e.xcompName].htmxContext)){
 		if(!compCtxSuffix[e.xcompId]){
 		    //must recreate function from string to create it on the right context
 		    var ctx;
-		    if(X.comp[e.xcompName].context){
-                var fn = X.comp[e.xcompName].context.toString();
+		    if(m.comp[e.xcompName].context){
+                var fn = m.comp[e.xcompName].context.toString();
                 fn = fn.substring(0, fn.length-1) + ";this._xcompEval = function(f){try{return eval(f);}catch(e){throw new Error("+
                     "'Error on component script: ' + f + '. Cause: ' + e.message);}};" + postScript + "}";
-                thisX._temp._xtemp_comp_struct = _handles[e.xcompName][e.xcompId];
-                ctx = ctx.eval('new ' + fn + '(X._temp._xtemp_comp_struct)');
-                delete thisX._temp._xtemp_comp_struct;
+                thisM._temp._xtemp_comp_struct = _handles[e.xcompName][e.xcompId];
+                ctx = ctx.eval('new ' + fn + '(m._temp._xtemp_comp_struct)');
+                delete thisM._temp._xtemp_comp_struct;
             }else{
-                var fn = X.comp[e.xcompName].htmxContext.toString();
-                ctx.eval('X._temp._fnContext = ' + fn)
-                ctx = new thisX._temp._fnContext(_handles[e.xcompName][e.xcompId]);
+                var fn = m.comp[e.xcompName].htmxContext.toString();
+                ctx.eval('m._temp._fnContext = ' + fn)
+                ctx = new thisM._temp._fnContext(_handles[e.xcompName][e.xcompId]);
                 if(ctx.defineAttributes){
                     xcomptypes.configAttributes(ctx);
                 }
-                delete thisX._temp._fnContext;
+                delete thisM._temp._fnContext;
             }
 			e._compCtx = ctx;
 			compCtxSuffix[e.xcompId] = ctx;
@@ -171,7 +171,7 @@ function startInstances(){
 		var array = xdom.findNodesByProperty('xcompId', compId, false, false);
 		for (var i = 0; i < array.length; i++) {
 			var e = array[i];
-			prepareComponentContext(e, compCtxSuffix, thisX, "");			
+			prepareComponentContext(e, compCtxSuffix, thisM, "");			
 		}
 	}
 	componentInstances = null;

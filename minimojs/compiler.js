@@ -49,14 +49,8 @@ const compileResources = () => resources.copy(_baseResPath, context.destinationP
 
 class ImportableResourceInfo {
     constructor(path, template) {
-        this._path = path;
-        this._templateName = template;
-    }
-    get path() {
-        return this._path;
-    }
-    get templateName() {
-        return this._templateName;
+        this.path = path;
+        this.templateName = template;
     }
 }
 class Resource {

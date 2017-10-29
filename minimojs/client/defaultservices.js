@@ -1,10 +1,10 @@
 var userService;
 
 function init(){
-	thisX.debug("xstartup", "XDefaultServices INIT");
-	userService = thisX.bindService("XUserService");
+	thisM.debug("xstartup", "XDefaultServices INIT");
+	userService = thisM.bindService("XUserService");
 	
-	thisX.debug("xstartup", "XDefaultServices done");
+	thisM.debug("xstartup", "XDefaultServices done");
 }
 
 function login(login, password, callback){
