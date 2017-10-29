@@ -13,8 +13,6 @@ const fs = require('fs');
 
 chai.use(spies);
 
-const _reloadTemplate = compiler._reloadTemplate;
-
 describe('Test compiler', function () {
     it('Get resource info htmx/js OK', () => compiler._restart()
         .then(() => compiler._getResourceInfo('/dir1/test1.htmx', false)
@@ -191,7 +189,7 @@ describe('Test compiler', function () {
             doc.htmlElement.should.not.be.null;
             const body = _.first(doc.htmlElement.getElementsByName('body'));
             body.should.not.be.null;
-            body.children.should.have.lengthOf(0);
+            body.children.should.have.lengthOf(1);
         }));
     it ('Get non empty template data', () => 
         compiler._getTemplateData('tpl.htmx').then(data => {
@@ -225,15 +223,17 @@ describe('Test compiler', function () {
                             a.should.contain('/css/tests.css');
                         })));
             });
-    it ('Reload blank template', () => compiler._reloadTemplate('tpl.htmx').then(template => {
-        const doc = new htmlParser.HTMLParser().parse(template);
-        const body = _.first(doc.getElementsByName('body'));
-        body.children.should.have.lengthOf(1);
-        body.children[0].name.should.be.equal('script');
-    }));
+    it ('Reload blank template', () => {
+        const resInfo = new compiler.Resource('/path', true, true, '/path', false);
+        resInfo.templateName = 'tpl.htmx';
+        return compiler._reloadTemplate(resInfo).then(template => {
+            const doc = new htmlParser.HTMLParser().parse(template);
+            const body = _.first(doc.getElementsByName('body'));
+            body.children.should.have.lengthOf(1);
+            body.children[0].name.should.be.equal('script');
+        });
+    });
     it ('Compile page htmx and js no components no html element', () => {
-        const spy = chai.spy(_reloadTemplate);
-        compiler._reloadTemplate = spy;
         const realPath = resources.getRealPath('/pages/dir1/test1.htmx');
         const resInfo = new compiler.Resource('/dir1/test1', true, true, realPath.substring(0, realPath.lastIndexOf('.')), false);
         return components.startComponents().then(() => 
@@ -250,12 +250,9 @@ describe('Test compiler', function () {
                 eval(scripts.js);
                 expect(scripts.globalJs).to.be.undefined;
                 instance.__eval__('param').should.be.eq(1);
-                expect(spy).not.to.have.been.called;
             })));
     });
     it ('Compile page htmx and no js no components with template', () => {
-        const spy = chai.spy(_reloadTemplate);
-        compiler._reloadTemplate = spy;
         const realPath = resources.getRealPath('/pages/dir1/test1_template_no_js.htmx');
         const resInfo = new compiler.Resource('/dir1/test1_template_no_js', false, true, realPath.substring(0, realPath.lastIndexOf('.')), false);
         return components.startComponents().then(() => 
@@ -275,12 +272,9 @@ describe('Test compiler', function () {
                 instance.__eval__('param = 1');
                 param = 3;
                 instance.__eval__('param').should.be.eq(1);
-                spy.should.have.been.called();
             })));
     });
     it ('Compile page js only', () => {
-        const spy = chai.spy(_reloadTemplate);
-        compiler._reloadTemplate = spy;
         const realPath = resources.getRealPath('/pages/dir2/js-only.js');
         const resInfo = new compiler.Resource('/dir2/js-only', true, false, realPath.substring(0, realPath.lastIndexOf('.')), false);
         return components.startComponents().then(() => 
@@ -319,8 +313,6 @@ describe('Test compiler', function () {
                 instance.showSomething().should.be.equal('Param: 2');
                 instance.resourceName.should.be.eq('dir2.js-only');
                 expect(window.jsOnly == instance).to.be.true;
-
-                spy.should.not.have.been.called();
             })));
     });
     it ('Compile page htmx and js with components', () => {

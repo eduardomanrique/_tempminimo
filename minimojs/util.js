@@ -47,13 +47,37 @@ class Option {
     orElseGet(fn) {
         return this._val || fn();
     }
-    orElseValue(another) {
+    orElse(another) {
         return this._val || another;
     }
     isPresent() {
         return this._val != null;
     }
 }
+
+const outdent = (s, ...val) => {
+    let currVal = 0;
+    let qtdSpaces = 0;
+    let foundFirst = false;
+    return s.map(v => v + (currVal < val.length ? val[currVal++] : '')).join('').split('\n')
+      .map(line => {
+        let result = line;
+        if(!foundFirst){
+          if(line.trim()){
+            foundFirst = true;
+            while(line[qtdSpaces] == ' ') qtdSpaces++;
+          }else{
+            return '';
+          }
+        }
+        let countSpaces = qtdSpaces;
+        while(result.startsWith(' ') && countSpaces > 0){
+          countSpaces--;
+          result = result.substring(1);
+        }
+        return result;
+      }).join('\n').trim();
+  }
 
 const optionOf = (val) => val ? new Option(val) : (() => {
     throw new Error('Value cannot be null')
@@ -66,17 +90,23 @@ Array.prototype.toPromise = Array.prototype.toPromise || function () {
     return Promise.all(this);
 }
 
-const toPromise = (fn, args) => new Promise((resolve, reject) => {
-    const parameters = args instanceof Array ? args : [args];
-    parameters.push((err, result) => {
-        if (err) {
-            reject(err);
-        } else {
-            resolve(result);
-        }
-    });
-    fn(...parameters);
-})
+const toPromise = (p1, p2) => new Promise((resolve, reject) => {
+    if(typeof p1 == "function"){
+        const fn = p1;
+        const parameters = p2 instanceof Array ? p2 : [p2];
+        parameters.push((err, result) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(result);
+            }
+        });
+        fn(...parameters);
+    }else{
+        resolve(p1);
+    }
+});
+
 
 module.exports = {
     optionOf: optionOf,
@@ -84,5 +114,6 @@ module.exports = {
     emptyOption: emptyOption,
     readModuleFile: readModuleFile,
     firstOption: firstOption,
-    toPromise: toPromise
+    toPromise: toPromise,
+    outdent: outdent
 }

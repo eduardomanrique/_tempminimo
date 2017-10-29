@@ -1,0 +1,37 @@
+
+    <html manifest="/ctx/x/_appcache">
+        <head>
+<meta charset="utf-8"></meta>
+<title >XTests</title>
+<link rel="stylesheet" href="{webctx}/css/xtests.css" media="all"></link>
+<script type="text/javascript" src="/ctx/x/scripts/x.js"></script>
+
+
+</head>
+        <body><script type="text/javascript">
+            (function(){
+        		var X = new _XClass();
+                X.createHtml({c:[{"n":"div","a":{"id":["__temploader__"],"style":["position:absolute;top:0px;left:0px;height: 100%;width:100%;z-index: 99999;background-color: white;"]},"c":[{"n":"img","a":{"style":["position:absolute;top:0;left:0;right:0;bottom:0;margin:auto;"],"height":["42"],"width":["42"],"src":["/ctx/x/loader.gif"]}}]},{"n":"div","a":{"id":["tpl"]},"c":["tpl"]},{"n":"xbody"},{"n":"div","a":{"id":["load"]},"c":["Loaded:",{"x":"X$.isReady()"}]},{"n":"script","a":{"type":["text/javascript"]},"c":["\n\tX$.ready(function(){\n\t\tvar instructions = _('instructions');\n\t\tif(instructions){\n\t\t\tinstructions.onclick = function(){\n\t\t\t\tvar a = instructions.innerHTML.split(\";\");\n\t\t\t\tinstructions.innerHTML = \"\";\n\t\t\t\tvar count = 0;\n\t\t\t\tfor (var i = 0; i < a.length;i++) {\n\t\t\t\t\tif(a[i].trim()){\n\t\t\t\t\t\tinstructions.innerHTML += count++ + \": \" + a[i] + \"<br>\";\t\t\t\t\t\t\n\t\t\t\t\t}else{\n\t\t\t\t\t\tinstructions.innerHTML += \"<br>\";\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t});\n\t"]}]})
+                    .then(function(){
+                        X$._xbodyNode = document.getElementsByTagName('xbody')[0];
+                        X$._xbodyNode.xsetModal = function(child){
+                            X$._xbodyNode.pushChild(child);
+                        };
+                        var controller = new function(){
+                            var __xbinds__ = null; 
+                            this.__eval__ = function(f){
+                                return eval(f);
+                            };
+                        };
+                        X._setEvalFn(controller.__eval__);
+                        document.body.setAttribute('data-x_ctx', 'true');
+                        X.setController(controller, function(){
+                            console.log('X started (spa)');
+                        });
+                        X.setSpaModalNode(X$._xbodyNode);
+                    })
+                    .then(X.getHtmlForUrl())
+                    .then(X.createHtml);
+                });
+            })();</script></body>
+    </html>

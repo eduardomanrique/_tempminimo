@@ -1,0 +1,30 @@
+
+    <html manifest="/ctx/x/_appcache">
+        <head><script type="text/javascript" src="/ctx/x/scripts/x.js"></script></head>
+        <body><script type="text/javascript">
+            (function(){
+        		var X = new _XClass();
+                X.createHtml({c:[{"n":"div","a":{"id":["__temploader__"],"style":["position:absolute;top:0px;left:0px;height: 100%;width:100%;z-index: 99999;background-color: white;"]},"c":[{"n":"img","a":{"style":["position:absolute;top:0;left:0;right:0;bottom:0;margin:auto;"],"height":["42"],"width":["42"],"src":["/ctx/x/loader.gif"]}}]},{"n":"xbody"}]})
+                    .then(function(){
+                        X$._xbodyNode = document.getElementsByTagName('xbody')[0];
+                        X$._xbodyNode.xsetModal = function(child){
+                            X$._xbodyNode.pushChild(child);
+                        };
+                        var controller = new function(){
+                            var __xbinds__ = null; 
+                            this.__eval__ = function(f){
+                                return eval(f);
+                            };
+                        };
+                        X._setEvalFn(controller.__eval__);
+                        document.body.setAttribute('data-x_ctx', 'true');
+                        X.setController(controller, function(){
+                            console.log('X started (spa)');
+                        });
+                        X.setSpaModalNode(X$._xbodyNode);
+                    })
+                    .then(X.getHtmlForUrl())
+                    .then(X.createHtml);
+                });
+            })();</script></body>
+    </html>
