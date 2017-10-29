@@ -50,7 +50,7 @@ const startComponents = () => loadComponents().then(componentsInfo => {
         return module.exports;
       })();
       ${__setUpGetterForAttributes}
-      var X = {generatedId: function(){return 'ID${parseInt(Math.random() * 999999)}';}, _addExecuteWhenReady: function(){}};
+      var m = {generatedId: function(){return 'ID${parseInt(Math.random() * 999999)}';}, _addExecuteWhenReady: function(){}};
       ${_componentsScript}
       _componentsCtx.components = components;
       })();`;
@@ -141,9 +141,9 @@ const _createOldTypeComponent = (compJS, varPath) =>
       try{ this.context = context; }catch(e){};
       this.getHtml = getHtml;
       try{ this.getBindingMethods = getBindingMethods; }catch(e){};
-      var generateId = X.generateId;
+      var generateId = m.generateId;
       try{ this.childElementsInfo = childElementsInfo; }catch(e){ this.childElementsInfo = function(){return {}} };
-      try{ X._addExecuteWhenReady(load); }catch(e){};
+      try{ m._addExecuteWhenReady(load); }catch(e){};
       try{ this.onReady = onReady; }catch(e){};
       try{ this.onVisible = onVisible; }catch(e){};
     };`;
@@ -164,7 +164,7 @@ const _createHtmxComponent = (compJs = "", varPath, compName) =>
        if(_attrs && __instanceProperties){
         __setUpGetterForAttributes(selfcomp, _evalFn, __instanceProperties, _attrs);
        }
-       var generateId = X.generateId;
+       var generateId = m.generateId;
      }
    };`
 

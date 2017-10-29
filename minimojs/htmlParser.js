@@ -527,11 +527,11 @@ class HTMLDoc extends Element {
             } else {
               scriptEl = this._headElement.addElement("script");
             }
-            scriptEl.setAttribute("src", `${context.contextPath}/res/${source}`);
+            scriptEl.setAttribute("src", `/res/${source}`);
             scriptEl.setAttribute("type", "text/javascript");
           } else if (source.toLowerCase().endsWith("css") && this._headElement) {
             const linkEl = this._headElement.addElement("link");
-            linkEl.setAttribute("href", `${context.contextPath}/res/${source}`);
+            linkEl.setAttribute("href", `/res/${source}`);
             if (e.getAttribute("rel")) {
               linkEl.setAttribute("rel", e.getAttribute("rel"));
             }
@@ -860,13 +860,13 @@ class HTMLParser {
     if (element.name.toUpperCase() == "SCRIPT") {
       let src = element.getAttribute("src");
       if (src && src.startsWith("/")) {
-        element.setAttribute("src", `${context.contextPath}${src}`);
+        element.setAttribute("src", `${src}`);
       }
     }
     if (element.name.toUpperCase() == "A") {
       let href = element.getAttribute("href");
       if (href && href.startsWith("/")) {
-        element.setAttribute("href", `${context.contextPath}${href}`)
+        element.setAttribute("href", `${href}`)
       }
     }
   }

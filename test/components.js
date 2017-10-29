@@ -17,7 +17,6 @@ const _components = rewire('../minimojs/components');
 const htmlParser = require('../minimojs/htmlParser');
 const util = require('../minimojs/util');
 
-ctx.contextPath = 'ctx';
 process.chdir(`${__dirname}/datadir`);
 
 let components;
@@ -37,7 +36,7 @@ before(() => loadComponents().then(c => util.readModuleFile('../minimojs/compone
 					return module.exports;
 				})();
 				${setUpGetterForAttributes}
-        var X = {generatedId: function(){return '123'}, _addExecuteWhenReady: function(){}};
+        var m = {generatedId: function(){return '123'}, _addExecuteWhenReady: function(){}};
         ${c.scripts}
         _test.components = components;`);
 		} catch (e) {

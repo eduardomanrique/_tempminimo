@@ -5,12 +5,6 @@ class Context {
   get devMode() {
     return this._devMode;
   }
-  set contextPath(ctx) {
-    this._ctxPath = ctx;
-  }
-  get contextPath() {
-    return this._ctxPath != null && !this._ctxPath.trim() == "" ? (this._localAccess == 'y' ? "" : "/") + this._ctxPath : "";
-  }
   set localAccess(local) {
     this._localAccess = local;
   }

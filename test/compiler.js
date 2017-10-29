@@ -14,7 +14,7 @@ const fs = require('fs');
 chai.use(spies);
 
 describe('Test compiler', function () {
-    before(() => context.destinationPath = `/tmp/minimojs_test${context.contextPath}`);
+    before(() => context.destinationPath = `/tmp/minimojs_test`);
     beforeEach(() => resources.rmDirR(context.destinationPath)
         .then(() => resources.mkdirTree(context.destinationPath)));
     afterEach(() => resources.rmDirR(context.destinationPath));
@@ -78,7 +78,7 @@ describe('Test compiler', function () {
         const modals = [];
         const vars = {};
         let setVars;
-        const X = {
+        const m = {
             CTX: '_CTX',
             import: path => {
                 imported.push(path);
@@ -150,18 +150,18 @@ describe('Test compiler', function () {
         
         let htmlStruct;
         let resourceName;
-        const X = {
+        const m = {
             _interval: 1,
             _timeout: 2,
             _clearInterval: 3,
             _clearTimeout: 4,
             modalS: (path, bool, id) => new Promise(resolve => resolve({}))
         };
-        const X$ = {
+        const M$ = {
             register: (html, name, constructorFn) => {
                 htmlStruct = html;
                 resourceName = name;
-                return new constructorFn(X);
+                return new constructorFn(m);
             }
         };
         var controller;
@@ -221,10 +221,10 @@ describe('Test compiler', function () {
                     compiler._compilePage(resInfo, util.nullableOption(htmx).optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data))
                         .then(compiledPage => {
                             var a = compiler._appcache();
-                            a.should.contain('/ctx/test.js');
-                            a.should.contain('/ctx/abc/def.js');
-                            a.should.contain('/ctx/x.js');
-                            a.should.contain('/ctx/y.js');
+                            a.should.contain('/test.js');
+                            a.should.contain('/abc/def.js');
+                            a.should.contain('/x.js');
+                            a.should.contain('/y.js');
                             a.should.contain('/css/tests.css');
                         })));
             });
@@ -245,7 +245,7 @@ describe('Test compiler', function () {
             Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
             .then(([htmx, js]) => compiler._compilePage(resInfo, util.optionOf(htmx.data), util.optionOf(js.data)).then(scripts => {
                 let instance;
-                const X$ = {
+                const M$ = {
                     register: (html, name, constructorFn) => {
                         htmlStruct = html;
                         resourceName = name;
@@ -264,7 +264,7 @@ describe('Test compiler', function () {
         Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
             .then(([htmx, js]) => compiler._compilePage(resInfo, util.nullableOption(htmx).optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data)).then(compiled => {
                 let instance;
-                const X$ = {
+                const M$ = {
                     register: (html, name, constructorFn) => {
                         htmlStruct = html;
                         resourceName = name;
@@ -286,7 +286,7 @@ describe('Test compiler', function () {
         Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
             .then(([htmx, js]) => compiler._compilePage(resInfo, util.nullableOption(htmx).optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data)).then(compiled => {
                 let instance;
-                const X$ = {
+                const M$ = {
                     register: (html, name, constructorFn) => {
                         htmlStruct = html;
                         resourceName = name;
@@ -301,14 +301,14 @@ describe('Test compiler', function () {
                 instance.showSomething().should.be.equal('Param: 1');
                 instance.resourceName.should.be.eq('dir2.js-only');
 
-                function _XClass(){this.value = true};
+                function _Minimo(){this.value = true};
                 const window = {
                     addEventListener: (eventName, fn) => {
                         fn();
                     }
                 }
                 let jsName;
-                X$._onScript = (constructorFn, xInstance, onFinish, v, name) => {
+                M$._onScript = (constructorFn, xInstance, onFinish, v, name) => {
                     instance = new constructorFn(xInstance);
                     jsName = name;
                 }
@@ -327,7 +327,7 @@ describe('Test compiler', function () {
             Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
                 .then(([htmx, js]) => compiler._compilePage(resInfo, util.nullableOption(htmx).optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data)).then(compiled => {
                     let instance;
-                    const X$ = {
+                    const M$ = {
                         register: (html, name, constructorFn) => {
                             htmlStruct = html;
                             resourceName = name;
@@ -363,7 +363,8 @@ describe('Test compiler', function () {
                 dir2.should.contain(`${context.destinationPath}/dir2/js-only.js`);
                 dir2.should.contain(`${context.destinationPath}/dir2/test_appcache.m.js`);
             }));
-    it('Compile Resources', () => compiler.compileResources()
+    it('Compile Resources', () => components.startComponents()
+        .then(compiler.compileResources)
         .then(importableResInfo => {
             _.size(importableResInfo).should.be.eq(6);
         }));
