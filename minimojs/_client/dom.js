@@ -8,7 +8,7 @@ function _rootElement(){
 			}else if(thisM.CTX == '_x_mainSpa'){
 			    root = M$.spaNode;
 			}else{
-				xlog.error('XDOM: No root element found!!!');
+				console.error('XDOM: No root element found!!!');
 			}
 		}else{
 			root = elements[0];
@@ -33,7 +33,7 @@ function _checkParent(parent){
 }
 
 function _checkElementInContext(element){
-	var ctxAttr = element && element.getAttribute ? element.getAttribute("data-xroot-ctx") : null;
+	var ctxAttr = element && element.getAttribute ? element.getAttribute("data-mroot-ctx") : null;
 	if(!element || (ctxAttr && ctxAttr != thisM.CTX)){
 		return false;
 	}
@@ -97,7 +97,7 @@ function _find_childNodes(el, firstLevelOnly, array, fn){
 		var childNodes = _getChildNodes(el);
 		for(var i = 0; i < childNodes.length; i++){
 			var item = childNodes[i];
-			if((!item.getAttribute || !item.getAttribute("data-xroot-ctx")) && !item.xiteratorCloseNode){
+			if((!item.getAttribute || !item.getAttribute("data-mroot-ctx")) && !item.xiteratorCloseNode){
 				if(fn(item)){
 					array.push(item);
 				}
@@ -114,7 +114,7 @@ function _find_children(el, firstLevelOnly, array, fn){
 		var children = _getChildren(el);
 		for(var i = 0; i < children.length; i++){
 			var item = children[i];
-			if(!item.getAttribute("data-xroot-ctx")){
+			if(!item.getAttribute("data-mroot-ctx")){
 				if(fn(item)){
 					array.push(item);
 				}
@@ -132,7 +132,7 @@ function _find_first_node_child(element, firstLevelOnly, fn){
 			var childNodes = _getChildNodes(el);
 			for(var i = 0; i < childNodes.length; i++){
 				var item = childNodes[i];
-				if((!item.getAttribute || !item.getAttribute("data-xroot-ctx")) && !item.xiteratorCloseNode){
+				if((!item.getAttribute || !item.getAttribute("data-mroot-ctx")) && !item.xiteratorCloseNode){
 					if(fn(item)){
 						return item;
 					}else if(!firstLevelOnly){
@@ -154,7 +154,7 @@ function _find_first_children(element, firstLevelOnly, fn){
 			var children = _getChildren(el);
 			for(var i = 0; i < children.length; i++){
 				var item = children[i];
-				if(!item.getAttribute("data-xroot-ctx")){
+				if(!item.getAttribute("data-mroot-ctx")){
 					if(fn(item)){
 						return item;
 					}else if(!firstLevelOnly){
@@ -330,7 +330,7 @@ function getChildNodesByClassName(parent, name, deepSearch, stopWhenFound){
 		var classes = node.getAttribute("class");
 		if(classes){
 			classes = classes.split(" ");
-			if(classes.indexOf(name) >= 0 && !node.getAttribute("data-xroot-ctx")){
+			if(classes.indexOf(name) >= 0 && !node.getAttribute("data-mroot-ctx")){
 				if(!attribute || (node.getAttribute && node.getAttribute(attribute.name) == attribute.value)){
 					return true;
 				}
@@ -586,7 +586,7 @@ function updateElementsAttributeValue(){
 					setAtt(e, attName, val);
 				}
 			}catch(ex){
-				xlog.error("Error updating attribute " + attName + " of " + (e.getAttribute("id") || e) + ".", ex);
+				console.error("Error updating attribute " + attName + " of " + (e.getAttribute("id") || e) + ".", ex);
 			}
 		}
 	}
@@ -632,7 +632,7 @@ function _createHTML(json, insertPoint, index, onFinish, compCtxSuffix){
 			    rq = rq.substring(1);
 			}
 			var ext = rq.substring(rq.length-4).toLowerCase()
-			if(M$._containsRequired(rq) && ext != '.css'){
+			if(M$.alreadyRequired(rq) && ext != '.css'){
 				index++;
 				continue;
 			}
@@ -903,7 +903,7 @@ function _createElements(json, components, insertPoint, index, onFinish){
             xobj.updateInputs();
             xobj.updateAllObjects();
         } catch (e) {
-            xlog.error("xstartup", "XObj starting objects");
+            console.error("xstartup", "XObj starting objects");
             throw e;
         }
 	}, compCtxSuffix);

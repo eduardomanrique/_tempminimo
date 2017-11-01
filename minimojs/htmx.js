@@ -113,8 +113,8 @@
                         + infoProperties.get("xid") + "'></div>";
             }
 
-            // change xbody
-            newHTML = XStringUtil.replaceFirst(newHTML, "{xbody}", "<_temp_x_body/>");
+            // change mContent
+            newHTML = XStringUtil.replaceFirst(newHTML, "{mContent}", "<_temp_x_body/>");
 
             // parse new html
             XHTMLParser parser = new XHTMLParser();

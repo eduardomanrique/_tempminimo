@@ -18,6 +18,6 @@ describe('Client scripts', () => {
 
     it('Load minimo.js', () => components.startComponents()
         .then(compiler.compileResources)
-        .then(clientScripts.reload)
-        .then(minimoJs => console.log(minimoJs)));
+        .then(clientScripts.reload));
+        //.then(minimoJs => console.log(minimoJs)));
 });

@@ -210,7 +210,7 @@ function ping(onSuccess, onError){
 		url :  "/x/_x_ping?_x_nocache=" + xutil.generateId(),
 		async : true,
 		success : onSuccess || function(){xlog.debug("_x_internal", "ping")},
-		error : onError || function(e){xlog.error("ping error: " + e.message, e)}
+		error : onError || function(e){console.error("ping error: " + e.message, e)}
 	});
 }
 
@@ -219,7 +219,7 @@ function bindService(alias){
 	var result = {};
 	if(!metaObj[alias]){
 		var msg = "Service '" + alias + "' not found!";
-		xlog.error(msg);
+		console.error(msg);
 		throw new Error(msg);
 	}
 	var meta = metaObj[alias];
@@ -296,7 +296,7 @@ function _onCallback(successCallback, exceptionCallback, url, resolve, reject){
                 }
 			}else{
 				var msg = "Error calling url: " + url + ".\n Exception: " + result.exceptionName + "\nMessage: " + result.message;
-				xlog.error(msg);
+				console.error(msg);
 				if(reject){
 				    reject(msg);
                 }

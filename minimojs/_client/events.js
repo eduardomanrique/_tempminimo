@@ -8,34 +8,6 @@ function _addExecuteWhenReady(fn){
 	}
 }
 
-function setModal(){
-    thisM._loaded = true;
-}
-
-//private method executed on screen is ready
-function ready() {
-	if(calledReady){
-		return;
-	}
-	thisM.debug("xstartup", "READY function");
-	calledReady = true;
-	thisM._loaded = true;
-	xdefaultservices.init();
-	var isRemote = %is_remote%;
-	if(!isRemote){
-		thisM.debug("xstartup", "COMPONENTS Init..");
-		thisM.debug("xstartup", "Default Services Init..");
-		xutil.each(execWhenReady, function(item){
-			thisM.debug("xstartup", "Exec execWhenReady " + item);
-			item();
-		});
-	}
-	if(!M$._startedMutationObserver){
-	    M$._startedMutationObserver = true;
-	    M$._startMutationObserver();
-	}
-	thisM.debug("xstartup", "READY done");
-}
 
 //onunload event
 function onUnloadCall(){

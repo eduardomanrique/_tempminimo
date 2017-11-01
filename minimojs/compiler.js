@@ -167,7 +167,7 @@ const _reloadFile = (_resources, path) => _getResourceInfo(path.replace(/\.\/pag
     }));
 
 
-const _blankHtml = () => `<html><body>{xbody}</body></html>`;
+const _blankHtml = () => `<html><body>{mContent}</body></html>`;
 
 const _getTemplateData = (templateName) => new Promise((r) => {
     if(!templateName){
@@ -256,12 +256,12 @@ const _printCleanHtml = (doc) => `
 
 const _reloadTemplate = (resInfo) => _getTemplateData(resInfo.templateName.value)
     .then(data => {
-        const templateDoc = new htmlParser.HTMLParser().parse(data.replace(/\{xbody\}/, '<xbody></xbody>'));
+        const templateDoc = new htmlParser.HTMLParser().parse(data.replace(/\{mContent\}/, '<mContent></mContent>'));
         const boundVars = templateDoc.boundVars;
         const boundModals = templateDoc.boundModals;
         _prepareHTML(templateDoc, boundVars, boundModals);
-        if (_.isEmpty(templateDoc.getElementsByName("xbody"))) {
-            throw new Error('Template should have {xbody}');
+        if (_.isEmpty(templateDoc.getElementsByName("mContent"))) {
+            throw new Error('Template should have {mContent}');
         }
         _prepareTopElements(templateDoc);
         const body = _.first(templateDoc.getElementsByName("body"));
@@ -270,9 +270,9 @@ const _reloadTemplate = (resInfo) => _getTemplateData(resInfo.templateName.value
         		var m = new _Mimino();
                 m.createHtml({c:${JSON.stringify(body.toJson().c)}})
                     .then(function(){
-                        M$._xbodyNode = document.getElementsByTagName('xbody')[0];
-                        M$._xbodyNode.xsetModal = function(child){
-                            M$._xbodyNode.pushChild(child);
+                        M$._mContentNode = document.getElementsByTagName('mContent')[0];
+                        M$._mContentNode._setModal = function(child){
+                            M$._mContentNode.pushChild(child);
                         };
                         var controller = new function(){
                             var __xbinds__ = null; 
@@ -281,13 +281,13 @@ const _reloadTemplate = (resInfo) => _getTemplateData(resInfo.templateName.value
                             };
                         };
                         m._setEvalFn(controller.__eval__);
-                        document.body.setAttribute('data-x_ctx', 'true');
+                        document.body.setAttribute('data-m-ctx', 'true');
                         m.setController(controller, function(){
                             console.log('Minimo started (spa)');
                         });
-                        m.setSpaModalNode(M$._xbodyNode);
+                        m.setSpaModalNode(M$._mContentNode);
                     })
-                    .then(m.getHtmlForUrl())
+                    .then(m.getHtmlForUrl)
                     .then(m.createHtml);
                 });
             })();`;
@@ -462,7 +462,7 @@ const _prepareInjections = (js, boundModals) => {
         }
         hasBoundVar = true;
     });
-    return `var __binds__ = ${hasBoundVar ? `[${binds.join(',')}]` : 'null'};
+    return `var __binds__ = [${binds.join(',')}];
     //user code start
 
     ${result.join('')}

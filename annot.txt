@@ -25,6 +25,14 @@ ideias:
     _outxdynattr_ removidos
 =======
 
+import
+    implementar require do node?
+    importando outro recurso js no padrao minimo (em vez do require) o recurso so pode ser dado como iniciado se ele chamou seu onInit() e o mesmo terminou.
+
+onInit
+    se for retornada uma promise, o onInit so é dado como terminado quando a promise terminar
+    
+
 appcache
     usar fallback para templates - testar
     para cada item que tem template e foi referenciado no cache, tem um item de fallback apontando para seu template

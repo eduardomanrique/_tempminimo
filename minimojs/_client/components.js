@@ -18,7 +18,7 @@ function init(){
 		createComponentConstructors();
 	}catch(e){
 		var msg = "Error loading custom components: " + e.message;
-		xlog.error(msg, e);
+		console.error(msg, e);
 		throw new Error(msg);
 	}
 	thisM.debug("xstartup", "XComponents INIT done");
@@ -60,7 +60,7 @@ function _startComp(_html, comp, fnInsert){
 function _insertComp(handle, xid, beforeInsideAfter){
 	var _html = handle._x_comp.getHtml(handle);
 	if(handle.innerHTML){
-		_html = _html.replace('{xbody}', handle.innerHTML);
+		_html = _html.replace('{mContent}', handle.innerHTML);
 	}
 	_startComp(_html, handle, function(node){
 		if(beforeInsideAfter == -1){

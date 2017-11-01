@@ -300,7 +300,7 @@ function _fireEventAUX(eventName, input, e, updateInputs){
 				M$._update();
 			}
 		}catch(e){
-			xlog.error('Error firing ' + eventName + ' script: ' + fn, e);
+			console.error('Error firing ' + eventName + ' script: ' + fn, e);
 		}
 		xsetCurrentEvent(null);
 		xlog.debug("_x_event", "After fired ev: " + eventName + " data-xbind: " + input.getAttribute("data-xbind") + " val: " + input.value);

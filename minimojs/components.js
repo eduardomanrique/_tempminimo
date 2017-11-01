@@ -231,7 +231,7 @@ const _buildComponentOnPage = (compInfo, element, doc, boundVars, boundModals) =
   let [instanceProperties, htmxBoundVars] = _childInfoHtmxFormat(componentName, element);
   // get declared properties in doc tag - finish
   // generate html
-  const newHTML = _componentsHtmxSources[componentName].replace(/\{xbody}/, "<_temp_x_body/>");
+  const newHTML = _componentsHtmxSources[componentName].replace(/\{mContent}/, "<_temp_x_body/>");
   const parser = new htmlParser.HTMLParser();
   const componentDoc = parser.parse(newHTML);
   _configComponentBinds(componentDoc, htmxBoundVars);

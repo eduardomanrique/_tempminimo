@@ -65,8 +65,8 @@ function modalS(url, toggle, parentElementId, callback){
             }
         }, false);
     }
-    if(M$._changingState){
-        M$.onNewPage(execModal);
+    if(minimoEvents.isChangingState()){
+        onNewPage(execModal);
     }else{
         execModal();
     }
@@ -76,8 +76,8 @@ function modalS(url, toggle, parentElementId, callback){
 //to be used by spa feature
 function setSpaModalNode(insertPoint){
     M$.spaNode = xdom.createElement('xspamodal');
-    xdom.setAtt(M$.spaNode, 'data-xroot-ctx', '_x_mainSpa');
-    insertPoint.xsetModal(M$.spaNode);
+    xdom.setAtt(M$.spaNode, 'data-mroot-ctx', '_x_mainSpa');
+    insertPoint._setModal(M$.spaNode);
     _spaModal(window.location.pathname + window.location.search, true);
 }
 
@@ -94,7 +94,7 @@ function _parseUrl(url){
 var lastUrl = window.location.pathname + window.location.search;
 //refreshs the spa modal node
 function _spaModal(gotoUrl, skipUpdateState){
-    M$._clearInstances();
+    minimoEvents.startPageChange();
 	var current = _parseUrl(lastUrl);
 	var goto = _parseUrl(gotoUrl);
 	if(!goto.tpl || !current.tpl || goto.tpl != current.tpl){
@@ -122,8 +122,7 @@ function _spaModal(gotoUrl, skipUpdateState){
             while (tempNode.childNodes.length > 0) {
                 M$.spaNode.appendChild(tempNode.childNodes[0]);
             }
-            M$._changingState = false;
-            M$._newPage();
+            minimoEvents.pageChanged();
     	}, true);
 	}
 }
@@ -148,7 +147,7 @@ function toggleModal(obj, callback){
 		thisM.debug("xstartup", "XObj calling before show modal");
 		thisM.eval('if(m.beforeShowModal){m.beforeShowModal("' + obj.url + '");}');
 	} catch (e) {
-		xlog.error("xstartup", "XObj error calling init");
+		console.error("xstartup", "XObj error calling init");
 		throw e;
 	}
 	if(!obj.isSpa){
@@ -234,8 +233,8 @@ function msg(obj) {
 	elmod.style.maxWidth = obj.size.width + 'px';
 	elmod.style.left = '50%';
 	elmod.style.opacity = 0;
-	var hzi = xutil.highestZIndex();
-	M$._setBlurryBackground(true, idModal, hzi);
+	var hzi = __highestZIndex();
+	__setBlurryBackground(true, idModal, hzi);
 	elmod.style.zIndex = hzi + 1;
 	xdom.setAtt(bgDiv, "style", "position: fixed;overflow-y: auto;top: 0;left: 0;bottom: 0;right: 0;outline: 0;z-index: " + (hzi + 1));
 	
@@ -274,11 +273,11 @@ function msg(obj) {
 }
 
 function showLoading(){
-    M$._showLoading();
+	__showLoading();
 }
 
 function closeLoading(noupdate, cb){
-    M$._closeLoading(function(){
+    __closeLoading(function(){
         if(!noupdate){
             xobj.updateInputs();
         }
@@ -299,7 +298,7 @@ function buildHtmlNodeFromString(html){
 function closeMsg(idModal) {
 	var dv = document.getElementById(idModal);
 	dv.parentNode.removeChild(dv);
-	M$._setBlurryBackground(false, idModal, xutil.highestZIndex());
+	__setBlurryBackground(false, idModal, xutil.highestZIndex());
 	xobj.updateInputs();
 }
 
@@ -347,6 +346,7 @@ function __registerIterator(id, listNameORTimesVar, itemVarName, indexVarName, h
 		indexVar: indexVarName ? indexVarName.v : null  
 	}
 }
+const copyArray = (a) => a.map(i => i);
 var _ctxIdGen = 0; 
 var updatingIterators = false;
 var iteratorContexts = {};
@@ -406,7 +406,7 @@ function updateIterators(){
 						fnUpdateCtx.push("_xold_count_" + i + "=_xold_count_" + i);
 						fnUpdateCtx.push("try{_x_count_" + i + "=(function (){\nreturn " + item.countVar + ";\n}).call(_xctx)}catch(e){_x_count_" + i + "=0;}");
 						if(item.listVar){
-							fnUpdateCtx.push("try{_x_list_" + i + "=M$.copyArray((function (){return " + item.listVar + "}).call(_xctx));}catch(e){_x_list_" + i + "=[];}");
+							fnUpdateCtx.push("try{_x_list_" + i + "=copyArray((function (){return " + item.listVar + "}).call(_xctx));}catch(e){_x_list_" + i + "=[];}");
 							fnUpdateCtx.push("__t='" + item.listVar + "[' + __arg[" + i + "] + ']'");
 							fnUpdateCtx.push("for(var __k in __transl){__transl[__k].push(__t);}");
 							fnUpdateCtx.push("__transl." + item.itemVar + "=[__t]");
@@ -421,7 +421,7 @@ function updateIterators(){
 						fnCtx.push("var _xold_list_" + i);
 						fnUpdateCtx.push("_xold_list_" + i + "= _x_list_" + i);
 						
-						fnUpdateCtx.push("try{_x_list_" + i + "=M$.copyArray((function (){\nreturn " + iterator.listVar + ";\n}).call(_xctx));}catch(e){_x_list_" + i + "=[];}");
+						fnUpdateCtx.push("try{_x_list_" + i + "=copyArray((function (){\nreturn " + iterator.listVar + ";\n}).call(_xctx));}catch(e){_x_list_" + i + "=[];}");
 						if(!iterator.itemVar){
 							iterator.itemVar = "_xv" + xutil.generateId();
 						}
@@ -491,11 +491,11 @@ function updateIterators(){
 				ctx.update();
 				updateIterator(iterEl, indexInParent);
 			}catch(e){
-				xlog.error("xiterator: Error updating iterator instance", e);
+				console.error("xiterator: Error updating iterator instance", e);
 			}
 		}
 	}catch(e){
-		xlog.error("xiterator: Error updating iterators", e);
+		console.error("xiterator: Error updating iterators", e);
 	}
 	for(var i = 0; i < elArray.length; i++){
 		elArray[i].xiteratorStatus = "none";

@@ -212,7 +212,7 @@ function _startAutoComplete(param, autocompleteClass, selectedItemClass) {
 							var b = __getInput().getBoundingClientRect();
 							panel.style.left = b.left + 'px';
 							panel.style.top = b.bottom + 'px';
-							panel.style.zIndex = xutil.highestZIndex() + 1;
+							panel.style.zIndex = __highestZIndex() + 1;
 							if(panel.offsetLeft != __getInput().offsetLeft && panel.offsetTop != __getInput().offsetTop + __getInput().offsetHeight){
 								fixPos();
 							}

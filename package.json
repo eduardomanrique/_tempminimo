@@ -17,6 +17,7 @@
     "debug": "^3.0.1",
     "esprima": "^4.0.0",
     "mkdirp": "^0.5.1",
+    "mocha-jsdom": "^1.1.0",
     "ncp": "^2.0.0",
     "properties-reader": "0.0.15",
     "rewire": "^2.5.2",

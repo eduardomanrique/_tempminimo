@@ -306,7 +306,7 @@ function _isArray(objName, dataXBind){
     if(objName.indexOf("[") > 0){
         if(!objName.trim().endsWith("]")){
             var msg = "Invalid bind to object " + dataXBind;
-            xlog.error(msg);
+            console.error(msg);
             throw new Error(msg);
         }
         return true;
@@ -638,7 +638,7 @@ function updateAllObjects() {
 				xlog.debug("updateAllObjects", "Each END");
 			}
 		}catch(e){
-			xlog.error("ERROR UPDATING OBJECTS.", e);
+			console.error("ERROR UPDATING OBJECTS.", e);
 		}
 	}
 	xlog.debug("updateAllObjects", "end update objects");
@@ -664,7 +664,7 @@ function updateInputs() {
 				try{
 					_loadObjIntInputs(objName);
 				}catch(e){
-					xlog.error("Error updating input on var " + objName + " of " + (input.getAttribute("id") || input) + ".", e);
+					console.error("Error updating input on var " + objName + " of " + (input.getAttribute("id") || input) + ".", e);
 				}
 			}
 			xlog.debug("updateInputs", "Each END data-xbind: " + v + ", value: "
