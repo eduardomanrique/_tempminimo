@@ -50,7 +50,7 @@ const _Mimimo$ = (function(){
 		console.log("checking changed nodes " + newNodes.length);
 		const nodes = newNodes;
 		newNodes = [];
-	    nodes.filter(el => !el._xcreated).forEach(el => {
+	    nodes.filter(el => !el._byminimo).forEach(el => {
             const _instance = instances.find(i => i.isInThisContext(el));
             if(_instance){
 				var nodeName = el.nodeName.toLowerCase();

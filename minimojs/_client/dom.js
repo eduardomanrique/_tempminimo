@@ -44,22 +44,22 @@ function _checkElementInContext(element){
 }
 
 function _insertBefore(parent, e, beforeElement){
-	var realParent = parent.xiteratorOpenNode ? parent.parentElement : parent;
+	var realParent = parent._iteratorOpenNode ? parent.parentElement : parent;
 	realParent.insertBefore(e, beforeElement);
 }
 
 function _getChildNodes(e){
-	if(e.xiteratorOpenNode){
+	if(e._iteratorOpenNode){
 		var r = [];
-		var close = e.xcloseNode;
+		var close = e._closeNodeRef;
 		var current = e;
 		while(current = current.nextSibling){
 			if(current == close){
 				return r;
 			}else{
 				r.push(current);
-			    if(current.xiteratorOpenNode){
-                    current = current.xcloseNode;
+			    if(current._iteratorOpenNode){
+                    current = current._closeNodeRef;
                 }
 			}
 		}
@@ -70,9 +70,9 @@ function _getChildNodes(e){
 }
 
 function _getChildren(e){
-	if(e.xiteratorOpenNode){
+	if(e._iteratorOpenNode){
 		var r = [];
-		var close = e.xcloseNode;
+		var close = e._closeNodeRef;
 		var current = e;
 		while(current = current.nextSibling){
 			if(current == close){
@@ -81,8 +81,8 @@ function _getChildren(e){
 			    if(current.nodeType == 1){
 			        r.push(current);
 			    }
-                if(current.xiteratorOpenNode){
-                     current = current.xcloseNode;
+                if(current._iteratorOpenNode){
+                     current = current._closeNodeRef;
                  }
             }
 		}
@@ -382,7 +382,7 @@ function _findNodesByProperty(property, value, parent, like, stopWhenFound, resu
 	}
 }
 
-function getChildNodesByProperty(el, property, value, like, stopWhenFound){
+function findChildNodesByProperty(el, property, value, like, stopWhenFound){
 	_checkParent(el);
 	var result = [];
 	_findNodesByProperty(property, value, el, like, stopWhenFound ,result);
@@ -479,10 +479,10 @@ function _findParentIteratorAux(el, xiterId){
 	}
 	var prevSib = el;
 	while(prevSib = prevSib.previousSibling){
-		if(prevSib.xiteratorOpenNode){
+		if(prevSib._iteratorOpenNode){
 			return prevSib;
 		}else if(prevSib.xiteratorCloseNode){
-			prevSib = prevSib.xopenNode;
+			prevSib = prevSib._openNodeRef;
 		}
 	}
 	if(el.parentElement && el.parentElement.xiterId && el.parentElement.xiterId != xiterId){
@@ -504,7 +504,7 @@ function findIteratorElement(el){
 		if(prevSib.xiteratorElement){
 			return prevSib;
 		}else if(prevSib.xiteratorCloseNode){
-			prevSib = prevSib.xopenNode;
+			prevSib = prevSib._openNodeRef;
 		}
 	}
 	if(el.parentElement && el.parentElement.xiteratorElement){
@@ -699,7 +699,7 @@ function _createHTML(json, insertPoint, index, onFinish, compCtxSuffix){
 					hiddenIterator = true;
 					e = document.createTextNode('');
 					e.dynId = dynId;
-					e.xiteratorOpenNode = true;
+					e._iteratorOpenNode = true;
 				}else{
 					e = createElement(child.n);
 					_setAttributesOnElement(e, child, dynId, true);
@@ -713,8 +713,8 @@ function _createHTML(json, insertPoint, index, onFinish, compCtxSuffix){
 					e.xiterId = _prepareIterator(child);			
 					if(hiddenIterator){
 						var ce = document.createTextNode('');
-						e.xcloseNode = ce;
-						ce.xopenNode = e;
+						e._closeNodeRef = ce;
+						ce._openNodeRef = e;
 						ce.dynId = dynId;
 						ce.xiteratorCloseNode = true;
 						insertPoint.appendChild(ce);
@@ -799,7 +799,7 @@ function _createTextNode(insertPoint, child, isScript){
 
 function createElement(name){
     var el = document.createElement(name);
-    el._xcreated = true;
+    el._byminimo = true;
     var lName = name.toLowerCase();
     if(['input', 'button', 'select', 'textarea'].indexOf(lName) >= 0){
         xobj.addInput(el);
@@ -957,13 +957,13 @@ function _registerObjects(jsonDynAtt, jsonHiddenAtt, jsonIterators, jsonComp, co
 			var dynId = xutil.generateId();
 			openNode.dynId = dynId;
 			openNode.xiterId = iter[0];
-			openNode.xiteratorOpenNode = true;
+			openNode._iteratorOpenNode = true;
 			openNode.xiteratorElement = true;
 			openNode.xiteratorStatus = 'none';
 				
 			var closeNode = document.createTextNode('');
-			openNode.xcloseNode = closeNode;
-			closeNode.xopenNode = openNode;
+			openNode._closeNodeRef = closeNode;
+			closeNode._openNodeRef = openNode;
 			closeNode.dynId = dynId;
 			closeNode.xiteratorCloseNode = true;
 				
@@ -992,8 +992,8 @@ function setAtt(el, attName, attValue){
 }
 
 function removeNode(node){
-    if(node.xiteratorOpenNode){
-        var closeNode = node.xcloseNode;
+    if(node._iteratorOpenNode){
+        var closeNode = node._closeNodeRef;
         //child of a hidden iterator
         var child = node;
         while(true){
@@ -1039,7 +1039,7 @@ _expose(getElementById);
 _expose(_setAttributesOnElement);
 _expose(_setHiddenAttributesOnElement);
 _expose(_isIterator);
-_expose(getChildNodesByProperty);
+_expose(findChildNodesByProperty);
 _expose(findParentWithProperty);
 _expose(_findNodes);
 _expose(_checkCompId);

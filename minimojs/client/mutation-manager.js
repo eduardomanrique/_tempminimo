@@ -1,10 +1,9 @@
 let newNodes = [];
 //check if the added nodes already have parent
-const _checkAddedNodes = () => {
-    console.log("checking changed nodes " + newNodes.length);
+const _checkMutation = () => {
     const nodes = newNodes;
     newNodes = [];
-    nodes.filter(el => !el._xcreated).forEach(el => {
+    nodes.filter(el => !el._byminimo).forEach(el => {
         const _instance = instances.find(i => i.isInThisContext(el));
         if(_instance){
             var nodeName = el.nodeName.toLowerCase();
@@ -38,7 +37,7 @@ const _scheduleRefreshNodes = () => {
     if(!_scheduledRefreshNodes){
         _scheduledRefreshNodes = true;
         setTimeout(() => {
-            _checkAddedNodes();
+            _checkMutation();
             _scheduledRefreshNodes = false;
             if(newNodes.length){
                 scheduleRefreshNodes();
@@ -65,7 +64,7 @@ const startMutationObserver = function(){
                 });
             }
         });
-        scheduleRefreshNodes();
+        _scheduleRefreshNodes();
     });
 
     // configuração do observador:

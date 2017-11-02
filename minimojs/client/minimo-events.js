@@ -21,10 +21,11 @@ const startPageChange = () => {
     });
 }
 
-ready
+//get lastUrl
 
-onStart
-
-get changingState
-
-get lastUrl
+module.exports = {
+    isChangingState: isChangingState,
+    pageChanged: pageChanged,
+    startPageChange: startPageChange,
+    lastUrl: null
+}

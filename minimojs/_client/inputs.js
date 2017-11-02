@@ -457,8 +457,7 @@ function validateField(itemOrName){
 	var result = true;
 	var item = itemOrName;
 	if(typeof(itemOrName) == "string"){
-		var array = xdom.getElementsByAttribute('data-xbind', itemOrName, false, true);
-		if(array && array.length > 0){
+		if(dom.findFirstElementByAttribute('data-bind', itemOrName).isPresent()){
 			item = array[0];
 		}else{
 			return;

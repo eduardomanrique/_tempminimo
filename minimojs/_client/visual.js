@@ -651,7 +651,7 @@ function _updateIterElementAttributes(el, html, ctx, xiterId){
 
 //update scripts in an element iterator
 function _updateIterElementScripts(el, ctx, xiterId){
-	var array = xdom.getChildNodesByProperty(el, "xscript", true, false, false);
+	var array = xdom.findChildNodesByProperty(el, "xscript", true, false, false);
 	for(var i = 0; i < array.length; i++){
 		var node = array[i];
 		if(node.xcontentIterId == xiterId){
@@ -709,8 +709,8 @@ function _createHTML(html, parent, index, xid, level, compCtxSuffix, ctx){
 				insertBeforeElement = nAux;
 			}
 		}
-		if(!insertBeforeElement && parent.xiteratorOpenNode){
-			insertBeforeElement = parent.xcloseNode;
+		if(!insertBeforeElement && parent._iteratorOpenNode){
+			insertBeforeElement = parent._closeNodeRef;
 		}
 	}
 	for(var i = 0; html.c && i < html.c.length; i++){
@@ -738,7 +738,7 @@ function _createHTML(html, parent, index, xid, level, compCtxSuffix, ctx){
 			var isHiddenIterator = false;
 			if(child.n.toLowerCase() == 'xiterator'){//invisible iterator
 				node = document.createTextNode('');
-				node.xiteratorOpenNode = true;
+				node._iteratorOpenNode = true;
 				isHiddenIterator = true;
 				if(!child.h){
 					child.h = {};
@@ -769,8 +769,8 @@ function _createHTML(html, parent, index, xid, level, compCtxSuffix, ctx){
 			xdom._insertBefore(parent, node, insertBeforeElement);
 			if(isHiddenIterator){
 				var ce = document.createTextNode('');
-				node.xcloseNode = ce;
-				ce.xopenNode = node;
+				node._closeNodeRef = ce;
+				ce._openNodeRef = node;
 				ce.xiteratorCloseNode = true;
 				xdom._insertBefore(parent, ce, insertBeforeElement);
 			}
@@ -798,7 +798,7 @@ function updateIterator(el, indexInParent){
 	var i = 0;
 	for(; i < diff.removed.length; i++){
 		var indexRemove = diff.removed[i];
-		var nodeList = xdom.getChildNodesByProperty(el, "xiterIndex", indexRemove, false, false);
+		var nodeList = xdom.findChildNodesByProperty(el, "xiterIndex", indexRemove, false, false);
 		for (var j = 0; j < nodeList.length; j++) {
 		    var node = nodeList[j];
 			if(node.xcontentIterId == id){
@@ -813,7 +813,7 @@ function updateIterator(el, indexInParent){
 	//get all first, because it cannot change one at time
 	var changeIdNodeList = [];
 	for(var i in diff.remaining){
-		changeIdNodeList = changeIdNodeList.concat(xdom.getChildNodesByProperty(el, "xiterIndex", i, false, false));
+		changeIdNodeList = changeIdNodeList.concat(xdom.findChildNodesByProperty(el, "xiterIndex", i, false, false));
 	}
 	//change with all gathered
 	for (var j = 0; j < changeIdNodeList.length; j++) {

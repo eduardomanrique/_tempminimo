@@ -22,10 +22,13 @@ minimoEvents.onNewPage(() => {
 const findMinimoInstanceForElement = (e) => {
     var attRoot = e.getAttribute(_attCtx);
     if (attRoot) {
-        return _instances.find(i => i.CTX == attRoot);
+        return _instances.find(i => i.id == attRoot);
     }
     return findMinimoInstanceForElement(e.parentElement);
 };
+
+dom.setRootElement ver isso
+set class on insertion point = root-idinstance
 
 class Minimo {
     constructor(ctxId, scriptOnly, parent) {
@@ -37,7 +40,7 @@ class Minimo {
         this._isDevMode = "%devmode%";
         this._afterCheck = [];
         this._childInstances = [];
-        this._dom = new dom.Instance(this);
+        this._dom = new dom.DOM(this);
         this._mobj = new mobj.Instance(this);
         this._inputs = new inputs.Instance(this);
         this._visual = new visual.Instance(this);
@@ -173,7 +176,7 @@ const registerInstance = (htmlStruct, resourceName, insertionPoint, parentInstan
     try {
         var fn = instance.eval('onInit');
         onInitFn = (resolve, reject) => {
-            if (instance.CTX == 'main' && !instance.scriptOnly) {
+            if (instance.id == 'main' && !instance.scriptOnly) {
                 var query = xutil.getQueryParams();
                 var param = query._xjp ? JSON.parse(atob(decodeURIComponent(query._xjp))) : {};
                 _.keys(query).filter(k => k != '_xjp' && k != '_xref')

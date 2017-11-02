@@ -1,7 +1,7 @@
 const _ = require('underscore');
 
 minimoEvents.onNewPage(() => {
-    destroy floating modal instances  
+    //destroy floating modal instances  
 })
 
 let isShowingLoading = false;

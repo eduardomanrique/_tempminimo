@@ -38,6 +38,15 @@ class Option {
     isPresent() {
         return this._val != null;
     }
+    whenTrue(condition) {
+        return {
+            then: (fn) => {
+                if(condition(this._val)){
+                    return fn(this._val);
+                }
+            }
+        }
+    }
 }
 
 const outdent = (s, ...val) => {
@@ -45,24 +54,24 @@ const outdent = (s, ...val) => {
     let qtdSpaces = 0;
     let foundFirst = false;
     return s.map(v => v + (currVal < val.length ? val[currVal++] : '')).join('').split('\n')
-      .map(line => {
-        let result = line;
-        if(!foundFirst){
-          if(line.trim()){
-            foundFirst = true;
-            while(line[qtdSpaces] == ' ') qtdSpaces++;
-          }else{
-            return '';
-          }
-        }
-        let countSpaces = qtdSpaces;
-        while(result.startsWith(' ') && countSpaces > 0){
-          countSpaces--;
-          result = result.substring(1);
-        }
-        return result;
-      }).join('\n').trim();
-  }
+        .map(line => {
+            let result = line;
+            if (!foundFirst) {
+                if (line.trim()) {
+                    foundFirst = true;
+                    while (line[qtdSpaces] == ' ') qtdSpaces++;
+                } else {
+                    return '';
+                }
+            }
+            let countSpaces = qtdSpaces;
+            while (result.startsWith(' ') && countSpaces > 0) {
+                countSpaces--;
+                result = result.substring(1);
+            }
+            return result;
+        }).join('\n').trim();
+}
 
 const optionOf = (val) => val ? new Option(val) : (() => {
     throw new Error('Value cannot be null')
@@ -76,7 +85,7 @@ Array.prototype.toPromise = Array.prototype.toPromise || function () {
 }
 
 const toPromise = (p1, p2) => new Promise((resolve, reject) => {
-    if(typeof p1 == "function"){
+    if (typeof p1 == "function") {
         const fn = p1;
         const parameters = p2 instanceof Array ? p2 : [p2];
         parameters.push((err, result) => {
@@ -87,7 +96,7 @@ const toPromise = (p1, p2) => new Promise((resolve, reject) => {
             }
         });
         fn(...parameters);
-    }else{
+    } else {
         resolve(p1);
     }
 });

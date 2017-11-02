@@ -5,7 +5,7 @@ const minimoEvents = require('./minimo-events.js');
 const instances = require('./instances-manager.js');
 
 window.Mimimo$ = window.Mimimo$ || (function(){
-	fazer aqui a chamada para obter o recurso js remoto
+	//fazer aqui a chamada para obter o recurso js remoto
 	this.startMainInstance = instances.startMainInstance;
 	this.startSpaInstance = (...param) => instances.startSpaInstance(...param)
 		.then(() => instances.allReady())
