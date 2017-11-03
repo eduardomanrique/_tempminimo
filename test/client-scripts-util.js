@@ -2,7 +2,7 @@ const expect = require('chai').expect;
 require('chai').should();
 const _ = require('underscore');
 const assert = require('assert');
-const jsdom = require('mocha-jsdom')
+const jsdom = require('mocha-jsdom');
 const util = require('../minimojs/client/util.js');
 
 describe('Client scripts - util.js', () => {
@@ -24,7 +24,7 @@ describe('Client scripts - util.js', () => {
     });
     it('tests arrays', () => {
         util.flatten([1, [2, [3, 4]], 5]).should.have.lengthOf(5);
-        const array = util.nodeListToArray(util.byClass("cl", document));
+        const array = util.nodeListToArray(document.getElementsByClassName("cl"));
         array.should.have.lengthOf(2);
         array[0].id.should.eq('test');
     });
@@ -48,16 +48,4 @@ describe('Client scripts - util.js', () => {
         `;
         oneline.should.eq('Testing');
     })
-    it('tests doc', () => {
-        util.byId("test", document).id.should.be.eq("test");
-        expect(util.byId("a", document)).to.be.null;
-        util.byClass("cl", document).should.have.lengthOf(2);
-        util.byName("c", document).should.have.lengthOf(1);
-    });
-    it('tests find minimo instance', () => {
-        const instance1 = util.findMinimoInstanceForElement(document.getElementById("test"));
-        instance1.getAttribute("id").should.eq("rootInstance");
-        const instance2 = util.findMinimoInstanceForElement(document.getElementById("test2"));
-        instance2.getAttribute("id").should.eq("rootInstance");
-    });
 });

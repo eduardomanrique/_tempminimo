@@ -8,23 +8,10 @@ const _insertBefore = (parent, e, beforeElement) => {
 }
 
 const _byId = (id, _doc = document) => util.nullableOption(_doc.getElementById(id));
-const byClass = (classes, _doc = document) => clientUtil.flatten(classes.split(' ')
+const _byClass = (classes, _doc = document) => clientUtil.flatten(classes.split(' ')
     .map(c => clientUtil.nodeListToArray(_doc.getElementsByClassName(c))));
 const _byName = (name, _doc = document) => clientUtil.nodeListToArray(_doc.getElementsByName(name));
 const _query = (query, _doc = document) => clientUtil.nodeListToArray(_doc.querySelectorAll(query));
-const _positionOffset = (element) => {
-	let top = 0, left = 0;
-	do {
-		top += element.offsetTop  || 0;
-		left += element.offsetLeft || 0;
-		element = element.offsetParent;
-	} while(element);
-
-	return {
-		top: top,
-		left: left
-	}
-}
 
 const _removeClass = (element, className) => _attr(element, "class").ifPresent(classes => 
 	element.setAttribute("class", classes.split(" ").filter(c => c != className).join(' ')));
@@ -117,7 +104,7 @@ function DOM (minimoInstance, doc = document){
 	this.setRootElement = (r) => root = r;
 	this.getRootElement = () => _rootElement();
 
-	this.getElementById = (id) => _query('*[id="' + id + '"]', doc).find(el => this.isInThisContext(el));
+	this.getElementById = (id) => _byId(id, doc).optionMap(el => this.isInThisContext(el) ? el : null);
 
 	this.getElementsByName = (name) => _byName(name).filter(el => this.isInThisContext(el));
 
@@ -166,7 +153,6 @@ module.exports = {
 	byName: _byName,
 	query: _query,
 	DOM: DOM,
-	_positionOffset: _positionOffset,
-	_removeClass: _removeClass,
-	_addClass: _addClass
+	removeClass: _removeClass,
+	addClass: _addClass
 }

@@ -26,9 +26,9 @@ const findMinimoInstanceForElement = (e) => {
     }
     return findMinimoInstanceForElement(e.parentElement);
 };
-
-dom.setRootElement ver isso
-set class on insertion point = root-idinstance
+//TODO
+//dom.setRootElement ver isso
+//set class on insertion point = root-idinstance
 
 class Minimo {
     constructor(ctxId, scriptOnly, parent) {
