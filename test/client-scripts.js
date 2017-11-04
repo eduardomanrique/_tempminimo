@@ -17,7 +17,7 @@ describe('Client scripts', () => {
     afterEach(() => resources.rmDirR(context.destinationPath));
 
     it('Load minimo.js', () => components.startComponents()
-        .then(compiler.compileResources)
-        .then(clientScripts.reload));
+        .then(compiler.compileResources));
+        //.then(clientScripts.reload));
         //.then(minimoJs => console.log(minimoJs)));
 });

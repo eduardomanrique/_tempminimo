@@ -19,132 +19,125 @@ const _removeClass = (element, className) => _attr(element, "class").ifPresent(c
 const _addClass = (element, className) => 
 	element.setAttribute("class", `${_attr(element, "class").map(v => `${v} `, '')} ${className}`);
 
-const _findNodes = (element, filter, elementsOnly, firstLevelOnly, findFirst) => {
-	const find = el => {
-		const child = elementsOnly ? el.childNodes : el.children;
-		return child.filter(i => _attr(i, "data-mroot-ctx").isPresent())
-			.map(i => {
-				const a = [];
-				if(filter(i)){
-					a.push(i);
-				}
-				if(!firstLevelOnly && (!findFirst || a.length == 0)){
-					a.push(find(item));
-				}
-				return a;
-			});
-	}
-	return clientUtil.flatten(find(element));
+const _getInstanceId = (element) => {
+	return element._mid;
 }
 
-const _findChildNodes = (e, filter, firstLevelOnly = false) => _findNodes(e, filter, true, firstLevelOnly, false);
+class DOM {
+	constructor(minimoInstance, rootElement, doc = document){
+		const m = minimoInstance;
+		const _root = rootElement;
+		this._root = _root;
+		this._root._minimoInstance = this;
 
-const _findChildren = (e, filter, firstLevelOnly = false) => _findNodes(e, filter, false, firstLevelOnly, false);
-
-const _findFirstChildNode = (e, filter, firstLevelOnly = false) => clientUtil.first(_findNodes(e, filter, true, firstLevelOnly, true));
-
-const _findFirstChild = (e, filter, firstLevelOnly = false) => clientUtil.first(_findNodes(e, filter, false, firstLevelOnly, true));
-
-const _findChildNodesByAttribute = (e, attrName, findFirst, filter) => 
-	_findNodes(e, node => {
-		const att = _attr(node, attrName);
-		return att.isPresent() && filter(att.value);
-	}, true, firstLevelOnly, findFirst);
-
-const _findChildNodesByTagName = (e, name, filter, findFirst) => 
-	_findNodes(e, node => node.nodeName == name.toUpperCase() && filter(node), true, findFirst);
-
-const _findNodesByProperty = (e, property, filter, findFirst) => 
-	_findNodes(e, node => node[property] != null && filter(node[property]), true, findFirst);
-
-const _findInParent = (el, filter = () => true) => {
-	if(el != document){
-		if(filter(el)){
-			return el;
-		}else if(el.parentElement){
-			return _findInParent(el.parentElement, filter);
-		}
-	}
-	return null;
-}
-
-function DOM (minimoInstance, doc = document){
-	const m = minimoInstance;
-	let _root;
-	const _checkElement = (e) => {
-		if(!this.isInThisContext(e)){
-			throw new Error('Invalid context for element');
-		}
-		return e;
-	}
-	const _rootElement = () => {
-		if(!_root){
-			var elements = _byClass(m.id);
-			if(!elements || elements.length == 0){
-				if(m.id == "main"){
-					_root = document.body;
-				}else{
-					console.error('XDOM: No root element found!!!');
-				}
-			}else{
-				_root = elements[0];
+		const _checkElement = (e) => {
+			if(e !== _root && !this.isInThisContext(e)){
+				throw new Error('Invalid context for element');
 			}
+			return e;
 		}
-		//if not found, is the main context
-		return _root;
-	}
-	this.isInThisContext = (element) => {
-		if(_attr(element, "data-mroot-ctx").map(v => v != m.id, false)){
+		this.isInThisContext = (element) => {
+			if(!element._minimoInstance && element.parentElement){
+				if(element.parentElement === _root){
+					return true;
+				} else if(element.parentElement){
+					return this.isInThisContext(element.parentElement);
+				}
+			}
 			return false;
-		} else if(element.parentElement != _rootElement()){
-			return this.isInThisContext(element.parentElement);
 		}
-		return true
-	}
-	this.setRootElement = (r) => root = r;
-	this.getRootElement = () => _rootElement();
 
-	this.getElementById = (id) => _byId(id, doc).optionMap(el => this.isInThisContext(el) ? el : null);
-
-	this.getElementsByName = (name) => _byName(name).filter(el => this.isInThisContext(el));
-
-	this.getElementsByTagNames = (...names) => _findChildren(_rootElement(), i => {
-		if(names.find(name => i.nodeName == name)){
-			return true;
-		}
-	});
-
-	this.getElementsByAttribute = (attrName, filter = () => true) => 
-		_findChildNodesByAttribute(_rootElement(), attrName, false, filter);
-		
-	this.findFirstElementByAttribute = (attrName, filter) => 
-		_findChildNodesByAttribute(_rootElement(), attrName, true, false);
-
-	this.getInputs = () => this.getElementsByAttribute('onclick')
-		.concat(this.getElementsByTagNames('input', 'button', 'select', 'textarea')
-			.filter(e => !_attr(e, "onclick").isPresent()));
-
-	this.findNodesByTagName = (element, name, filter) => _findChildNodesByTagName(_rootElement(), filter, false);
-
-	this.findChildNodesByProperty = (el, property, filter) => _findNodesByProperty(_checkElement(el), property, filter);
-
-	this.findFirstIteratorWithNoneStatus = () => 
-		_findNodesByProperty(_rootElement(), 'xiteratorStatus', v => 'none');
-
-	this.findParentWithAttribute = (el, attName) => {
-		if(el != document){
-			if(_attr(el, attName).isPresent()){
-				return el;
-			}else if(el.parentElement){
-				return this.findParentWithAttribute(el.parentElement, attName);
+		const _findNodes = (element, filter, elementsOnly, firstLevelOnly, findFirst) => {
+			const a = [];
+			const find = el => {
+				const nodeList = elementsOnly ? el.childNodes : el.children;
+				for(var i = 0; i < nodeList.length; i++){
+					let item = nodeList[i];
+					if(!item._minimoInstance){
+						if(filter(item)){
+							a.push(item);
+						}
+						if(!firstLevelOnly && (!findFirst || a.length == 0)){
+							find(item);
+						}
+					}
+				}
 			}
+			find(_checkElement(element));
+			return a;
 		}
-		return null;
+		
+		const _findChildNodes = (e, filter, firstLevelOnly = false) => _findNodes(e, filter, true, firstLevelOnly, false);
+		
+		const _findChildren = (e, filter, firstLevelOnly = false) => _findNodes(e, filter, false, firstLevelOnly, false);
+		
+		const _findFirstChildNode = (e, filter, firstLevelOnly = false) => clientUtil.first(_findNodes(e, filter, true, firstLevelOnly, true));
+		
+		const _findFirstChild = (e, filter, firstLevelOnly = false) => clientUtil.first(_findNodes(e, filter, false, firstLevelOnly, true));
+		
+		const _findChildNodesByAttribute = (e, attrName, findFirst, filter) => 
+			_findNodes(e, node => {
+				const att = _attr(node, attrName);
+				return att.isPresent() && filter(att.value);
+			}, true, firstLevelOnly, findFirst);
+		
+		const _findChildNodesByTagName = (e, name, filter, findFirst) => 
+			_findNodes(e, node => node.nodeName == name.toUpperCase() && filter(node), true, findFirst);
+		
+		const _findNodesByProperty = (e, property, filter, findFirst) => 
+			_findNodes(e, node => node[property] != null && filter(node[property]), true, findFirst);
+		
+		const _findInParent = (element, filter) => {
+			const find = (el) => { 
+				if(el != document && !el._minimoInstance){
+					if(filter(el)){
+						return el;
+					}else if(el.parentElement){
+						return find(el.parentElement);
+					}
+				}
+				return null;
+			}
+			_checkElement(element);
+			return find(element.parentElement);
+		}
+		this.getElementById = (id) => _byId(id, doc).optionMap(el => this.isInThisContext(el) ? el : null);
+		
+		this.getElementsByName = (name) => _byName(name).filter(el => this.isInThisContext(el));
+	
+		this.getElementsByTagNames = (...names) => {
+			let uNames = names.map(n => n.toUpperCase());
+			return _findChildren(_root, i => {
+				if(uNames.find(name => i.nodeName == name)){
+					return true;
+				}
+			});
+		}
+	
+		this.getElementsByAttribute = (attrName, filter = () => true) => 
+			_findChildNodesByAttribute(_root, attrName, false, filter);
+			
+		this.findFirstElementByAttribute = (attrName, filter) => 
+			_findChildNodesByAttribute(_root, attrName, true, false);
+	
+		this.getInputs = () => this.getElementsByAttribute('onclick')
+			.concat(this.getElementsByTagNames('input', 'button', 'select', 'textarea')
+				.filter(e => !_attr(e, "onclick").isPresent()));
+	
+		this.findNodesByTagName = (element, name, filter) => _findChildNodesByTagName(_root, filter, false);
+	
+		this.findChildNodesByProperty = (el, property, filter) => _findNodesByProperty(_checkElement(el), property, filter);
+	
+		this.findFirstIteratorWithNoneStatus = () => 
+			_findNodesByProperty(_root, 'xiteratorStatus', v => 'none');
+	
+		this.findParentWithAttribute = (el, attName, filter = () => true) => _findInParent(el, e => _attr(e, attName).map(v => filter(v)));
+	
+		this.findParentWithProperty = (el, name, filter = () => true) => _findInParent(el, el => el[name] && filter(el[name]));
 	}
-
-	this.findParentWithProperty = (el, name, filter = () => true) => 
-		_findPropInParent(el.parentElement, el => el[name] && filter(el[name]));
-
+	get rootElement() {
+		return this._root;
+	}
 }
 
 module.exports = {
