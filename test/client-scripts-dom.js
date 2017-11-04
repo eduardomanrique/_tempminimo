@@ -13,9 +13,9 @@ describe('Client scripts - dom.js', () => {
         document.body.innerHTML = `
             <div id="rootInstance">
                 <span>
-                    <div id="test" class="cl2"></div>
+                    <div id="test" class="cl2" name="x"></div>
                 </span>
-                <div class="test" name="c"></div>
+                <div class="test" name="c" id="y"></div>
                 <span class="cl" name="c"></span>
                 <div id="innerInstance">
                     <div>
@@ -27,6 +27,7 @@ describe('Client scripts - dom.js', () => {
                         <span id="test3" name="c"></span>
                         <span id="test4" name="c"></span>
                         <span id="test5" name="c"></span>
+                        <span id="test6" v="x"></span>
                     </div>
                 </div>
             </div>`;
@@ -66,6 +67,22 @@ describe('Client scripts - dom.js', () => {
 
         dom1.getElementsByTagNames("div", "span").should.have.lengthOf(4);
         dom2.getElementsByTagNames("div", "span").should.have.lengthOf(2);
-        dom3.getElementsByTagNames("div", "span").should.have.lengthOf(4);
+        dom3.getElementsByTagNames("div", "span").should.have.lengthOf(5);
+    });
+
+    it('DOM by attribute', () => {
+        dom1.getElementsByAttribute("name").should.have.lengthOf(3);
+        dom2.getElementsByAttribute("name").should.have.lengthOf(1);
+        dom3.getElementsByAttribute("name").should.have.lengthOf(3);
+
+        dom1.getElementsByAttribute("name", v => v == 'x').should.have.lengthOf(1);
+    });
+
+    it('DOM first by attribute', () => {
+        dom1.findFirstElementByAttribute("name").getAttribute("id").should.eq("test");
+        dom2.findFirstElementByAttribute("name").getAttribute("id").should.eq("test2");
+        dom3.findFirstElementByAttribute("name").getAttribute("id").should.eq("test3");
+
+        dom1.findFirstElementByAttribute("name", v => v == 'c').getAttribute("id").should.eq("y");
     });
 });
