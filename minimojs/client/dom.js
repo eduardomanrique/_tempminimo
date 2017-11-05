@@ -30,7 +30,8 @@ class DOM {
 		this._root = _root;
 		this._root._minimoInstance = this;
 
-		const _checkElement = (e) => {
+		const _checkElement = (element) => {
+			const e = util.getValue(element);
 			if(e !== _root && !this.isInThisContext(e)){
 				throw new Error('Invalid context for element');
 			}
@@ -126,12 +127,11 @@ class DOM {
 			.concat(this.getElementsByTagNames('input', 'button', 'select', 'textarea')
 				.filter(e => !_attr(e, "onclick").isPresent()));
 	
-		this.findNodesByTagName = (element, name, filter) => _findChildNodesByTagName(_root, filter, false);
+		this.findChildNodesByTagName = (element, name, filter = () => true) => _findChildNodesByTagName(element || _root, name, filter, false);
 	
-		this.findChildNodesByProperty = (el, property, filter) => _findNodesByProperty(_checkElement(el), property, filter);
-	
-		this.findFirstIteratorWithNoneStatus = () => 
-			_findNodesByProperty(_root, 'xiteratorStatus', v => 'none')[0];
+		this.findChildNodesByAttribute = (el, attribute, filter = () => true) => _findChildNodesByAttribute(el ? _checkElement(el) : _root, attribute, false, filter);
+
+		this.findChildNodesByProperty = (el, property, filter = () => true) => _findNodesByProperty(el ? _checkElement(el) : _root, property, filter);
 	
 		this.findParentWithAttribute = (el, attName, filter = () => true) => _findInParent(el, e => _attr(e, attName).map(v => filter(v)));
 	

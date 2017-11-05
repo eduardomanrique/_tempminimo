@@ -1,3 +1,5 @@
+this.findFirstIteratorWithNoneStatus = () => 
+_findNodesByProperty(_root, 'xiteratorStatus', v => 'none')[0];
 //finds the parent iterator (nested) if any
 function findParentIterator(el){
     return _findParentIteratorAux(el, el.xiterId)

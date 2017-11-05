@@ -79,6 +79,8 @@ const optionOf = (val) => val ? new Option(val) : (() => {
 const nullableOption = (val) => new Option(val);
 const emptyOption = () => new Option(null);
 const firstOption = (array) => nullableOption(_.first(array));
+const isOption = (o) => o instanceof Option;
+const getValue = (o) => isOption(o) ? o.value : o;
 
 Array.prototype.toPromise = Array.prototype.toPromise || function () {
     return Promise.all(this);
@@ -108,5 +110,7 @@ module.exports = {
     emptyOption: emptyOption,
     firstOption: firstOption,
     toPromise: toPromise,
-    outdent: outdent
+    outdent: outdent,
+    isOption: isOption,
+    getValue: getValue
 }
