@@ -153,9 +153,9 @@ function prepareComponentContext(e, compCtxSuffix, ctx, postScript){
 	}
 }
 
-//disable input or component by data-xbind
+//disable input or component by data-bind
 function disable(varName){
-	var elements = xdom.getElementsByAttribute('data-xbind', varName, true);
+	var elements = xdom.getElementsByAttribute('data-bind', varName, true);
 	xutil.each(elements, function(item){
 		xdom.setAtt(item, "disabled", true);
 	});

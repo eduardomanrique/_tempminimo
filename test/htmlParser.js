@@ -10,7 +10,7 @@ const _htmlParser = rewire('../minimojs/htmlparser');
 
 describe('Test html parser', function () {
   it('Test private functions', () => {
-    let textWitScript = _htmlParser.__get__('_prepareXScriptsValues')('Test 123 ${fn(1,2,"3") + "x"}, lorem');
+    let textWitScript = _htmlParser.__get__('_prepareMScriptsValues')('Test 123 ${fn(1,2,"3") + "x"}, lorem');
     expect(textWitScript).is.equal('Test 123 <xscr scr="fn(1,2,&quot;3&quot;) + &quot;x&quot;"></xscr>, lorem');
     //_htmlParser._isEmptyText
     expect(_htmlParser.__get__('_eqIgnoreCase')('asdf', 'ASdf')).is.equal(true);
@@ -164,6 +164,7 @@ describe('Test html parser', function () {
 
     discardEmptyText();
     assert(!node, 'Node should be empty');
+    //console.log(JSON.stringify(doc.toJson()))
   });
   it('Test find elements', () => {
     let parser = new htmlParser.HTMLParser();

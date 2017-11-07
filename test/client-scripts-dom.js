@@ -165,4 +165,35 @@ describe('Client scripts - dom.js', () => {
         }catch(e){
         }
     });
+    it('DOM createElement', () => {
+        const div = dom1.createElement('div');
+        div.setAttribute("id", "created");
+        div.setAttribute("test", "ok");
+        document.getElementById("rootInstance").appendChild(div);
+        dom1.getElementById('created').value.getAttribute("test").should.eq("ok");
+    });
+    it('DOM Listerner', () => {
+        const listener = {
+            inputs: [],
+            links: [],
+            onCreateInput: i => listener.inputs.push(i),
+            onCreateLink: l => listener.links.push(l)
+        }
+        const listener2 = {
+            texts: [],
+            links: [],
+            onCreateText: i => listener2.texts.push(i),
+            onCreateLink: l => listener2.links.push(l)
+        }
+        dom1.addListener(listener, listener2);
+        dom1.createElement('input');
+        dom1.createElement('button');
+        dom1.createElement('a');
+        dom1.createTextNode(dom1.getElementById("sp").value, 'input', false);
+
+        listener.inputs.should.have.lengthOf(2);
+        listener.links.should.have.lengthOf(1);
+        listener2.links.should.have.lengthOf(1);
+        listener2.texts.should.have.lengthOf(1);
+    });
 });

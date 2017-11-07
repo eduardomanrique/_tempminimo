@@ -108,7 +108,7 @@ class Minimo {
     }
     _loadObjects() {
         this._mobj.updateAllObjects(m);
-        this._mobj.updateXScripts(m);
+        this._mobj.updateMScripts(m);
     }
     addAfterCheck(f) {
         this._afterCheck.push(f);
@@ -137,7 +137,7 @@ class Minimo {
         this._mobj.updateInputs();
         this._dom.updateElementsAttributeValue();
         this._inputs.configEvents();
-        this._mobj.updateXScripts();
+        this._mobj.updateMScripts();
         this._updating = false
     }
     addChild (childInstance) {

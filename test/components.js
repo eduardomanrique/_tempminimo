@@ -7,10 +7,11 @@ const expect = require('chai').expect;
 const _ = require('underscore');
 const assert = require('assert');
 const startComponents = require('../minimojs/components').startComponents;
+const componentTypes = require('../minimojs/component-types');
 const _childInfoHtmxFormat = require('../minimojs/components')._childInfoHtmxFormat;
 const _findDeepestComponent = require('../minimojs/components')._findDeepestComponent;
 const buildComponentsOnPage = require('../minimojs/components').buildComponentsOnPage;
-const setUpGetterForAttributes = require('../minimojs/components').setUpGetterForAttributes
+const _setUpGetterForAttributes = require('../minimojs/components').getSetUpGetterForAttributesScript()
 const loadComponents = require('../minimojs/components').loadComponents;
 const ctx = require('../minimojs/context');
 const _components = rewire('../minimojs/components');
@@ -36,7 +37,7 @@ before(() => loadComponents().then(c => resources.readModuleFile('../minimojs/co
 					${componentTypes}
 					return module.exports;
 				})();
-				${setUpGetterForAttributes}
+				${_setUpGetterForAttributes}
         var m = {generatedId: function(){return '123'}, _addExecuteWhenReady: function(){}};
         ${c.scripts}
         _test.components = components;`);
@@ -48,48 +49,6 @@ before(() => loadComponents().then(c => resources.readModuleFile('../minimojs/co
 
 
 describe('Test component', function () {
-	it('Old type', () => {
-		expect(components.oldtype.getHtml()).is.equal('<input type="text">');
-		// expect(components.oldtype.method1()).is.equal('method1');
-		// expect(components.oldtype.method2()).is.equal('method2');
-	});
-	it('Actiontable', () => {
-		var listVal = [{
-			id: 1,
-			name: 'One'
-		}, {
-			id: 2,
-			name: 'Two'
-		}];
-		let attrs = {
-			id: ["at", {s: "1+1"}],
-			column: [{
-				"title": "t1",
-				"content": "<b>${v.id}"
-			}, {
-				"title": "t2",
-				"content": "<b>${v.name}"
-			}],
-			list: "listVal"
-		};
-
-		function _evalFn(f) {
-			try {
-				return eval(f);
-			} catch (e) {
-				throw new Error('Error executing script component ' + this._compName + '. Script: ' + f + '. Cause: ' + e.message);
-			}
-		};
-		var instance = new components.htmxstyle.actiontable.htmxContext(attrs, _evalFn);
-		instance._compName.should.equal('htmxstyle.actiontable');
-		instance.list = instance._xcompEval(attrs.list);
-		instance.list.should.have.lengthOf(2);
-		instance.remove(0);
-		instance.list.should.have.lengthOf(1);
-		instance.list[0].id.should.equal(2);
-		instance.id.should.equal('at2')
-		info.htmxSources["components['htmxstyle']['actiontable']"].should.startWith('<table');
-	});
 	it('_childInfoHtmxFormat', () =>
 		startComponents().then(() => {
 			const doc = new htmlParser.HTMLParser().parse(
@@ -178,4 +137,7 @@ describe('Test component', function () {
 
 			wrapper.c[0].c[1].c[1].cn.should.equal('htmxstyle.actiontable');
 		}));
+	it('Actiontable', () => {
+		info.htmxSources["components['htmxstyle']['actiontable']"].should.startWith('<table');
+	});
 });

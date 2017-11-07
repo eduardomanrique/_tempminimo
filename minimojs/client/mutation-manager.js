@@ -14,8 +14,8 @@ const _checkMutation = () => {
                     this._xsetAttribute(n, v);
                     if(n.startsWith('on')){
                         this._minimo_instance.configureEvent(n.substring(2), this);
-                    } else if(n == 'data-xbind'){
-                        this._minimo_instance.addXBind(this);
+                    } else if(n == 'data-bind'){
+                        this._minimo_instance.addBind(this);
                     }
                 }
             }
@@ -23,7 +23,7 @@ const _checkMutation = () => {
                 _instance.addInput(el);
                 _instance.configureAutocomplete(el);
             } else if(nodeName == 'mscr'){
-                _instance.addXScript(el);
+                _instance.addMScript(el);
             } else if(nodeName == 'a'){
                 _instance.configureHref(a);
                 _instance.addA(el);

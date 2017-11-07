@@ -396,7 +396,7 @@ function findFirstElementByAttribute(attrName, value, like){
 
 function findFirstIteratorWithNoneStatus(){
 	var result = [];
-	_findNodesByProperty('xiteratorStatus', 'none', _rootElement(), false, true, result);
+	_findNodesByProperty('_iteratorStatus', 'none', _rootElement(), false, true, result);
 	return result.length == 0 ? null : result[0];
 }
 
@@ -686,23 +686,20 @@ function _createHTML(json, insertPoint, index, onFinish, compCtxSuffix){
 				_createTextNode(insertPoint, child, json.n.toUpperCase() == 'SCRIPT');
 				_createHTML(json, insertPoint, index+1, onFinish, compCtxSuffix);
 			}else if(child.x){
-				//xscript
-				_createXScriptNode(insertPoint, child, compCtxSuffix);
+				//mscript
+				_createMScriptNode(insertPoint, child, compCtxSuffix);
 				_createHTML(json, insertPoint, index+1, onFinish, compCtxSuffix);
 			}else{
 				//element
 				var e;
-				var dynId = xutil.generateId();
 				var isIterator = _isIterator(child);
 				var hiddenIterator = false;
 				if(child.n.toLowerCase() == 'xiterator'){//invisible iterator
 					hiddenIterator = true;
 					e = document.createTextNode('');
-					e.dynId = dynId;
 					e._iteratorOpenNode = true;
 				}else{
 					e = createElement(child.n);
-					_setAttributesOnElement(e, child, dynId, true);
 					_checkDynOutAttributesOnElement(e, child, dynId);
 				}
 				_setHiddenAttributesOnElement(e, child);
@@ -715,11 +712,10 @@ function _createHTML(json, insertPoint, index, onFinish, compCtxSuffix){
 						var ce = document.createTextNode('');
 						e._closeNodeRef = ce;
 						ce._openNodeRef = e;
-						ce.dynId = dynId;
 						ce.xiteratorCloseNode = true;
 						insertPoint.appendChild(ce);
 					}
-					e.xiteratorStatus = 'none';
+					e._iteratorStatus = 'none';
 					_createHTML(json, insertPoint, index+1, onFinish, compCtxSuffix);
 				}else{
 					_createHTML(child, e, 0, function(){
@@ -803,17 +799,17 @@ function createElement(name){
     var lName = name.toLowerCase();
     if(['input', 'button', 'select', 'textarea'].indexOf(lName) >= 0){
         xobj.addInput(el);
-    } else if(lName == 'xscript'){
-        xobj.addXScript(el);
+    } else if(lName == 'mscript'){
+        xobj.addMScript(el);
     } else if(lName == 'a'){
         xobj.addA(el);
     }
     return el;
 }
 
-function _createXScriptNode(insertPoint, child, compCtxSuffix){
-	e = createElement('xscript');
-	setAtt(e, "data-xscript", child.x);
+function _createMScriptNode(insertPoint, child, compCtxSuffix){
+	e = createElement('mscript');
+	setAtt(e, "data-mscript", child.x);
 	_setHiddenAttributesOnElement(e, child);
 	_checkCompId(e, compCtxSuffix);
 	insertPoint.appendChild(e);			
@@ -959,7 +955,7 @@ function _registerObjects(jsonDynAtt, jsonHiddenAtt, jsonIterators, jsonComp, co
 			openNode.xiterId = iter[0];
 			openNode._iteratorOpenNode = true;
 			openNode.xiteratorElement = true;
-			openNode.xiteratorStatus = 'none';
+			openNode._iteratorStatus = 'none';
 				
 			var closeNode = document.createTextNode('');
 			openNode._closeNodeRef = closeNode;
@@ -986,8 +982,8 @@ function setAtt(el, attName, attValue){
     el.setAttribute(attName, attValue);
     if(attName.indexOf('on') == 0){
         xinputs.configureEvent(attName.substring(2), el);
-    } else if(attName == 'data-xbind'){
-        xobj.addXBind(el);
+    } else if(attName == 'data-bind'){
+        xobj.addBind(el);
     }
 }
 

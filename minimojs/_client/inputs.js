@@ -3,7 +3,7 @@ function setValueOnInput(input, value){
 	if(input === document.activeElement){
 		return;
 	}
-	xlog.debug("_x_input", "xinputs.setValueOnInput " + (input.getAttribute ? "data-xbind: " + input.getAttribute("data-xbind") + ", type: " + input.getAttribute("type") : " no getAttribute ") + ", name: " + input.name + ", valueToSet: " + value + ", id: " + input.id);
+	xlog.debug("_x_input", "xinputs.setValueOnInput " + (input.getAttribute ? "data-bind: " + input.getAttribute("data-bind") + ", type: " + input.getAttribute("type") : " no getAttribute ") + ", name: " + input.name + ", valueToSet: " + value + ", id: " + input.id);
 	if(input.getAttribute("type") == "checkbox"){
 	    //checkbox is a boolean value or a list value (like multiple choice)
 	    var xvalue = input.getAttribute("data-xvalue");
@@ -13,7 +13,7 @@ function setValueOnInput(input, value){
 	        if(!value){
 	            value = [];
 	        }else if(!(value instanceof Array)){
-	            throw Error('Value of ' + input.getAttribute("data-xbind") + ' should be array when using with checkbox with xvalue');
+	            throw Error('Value of ' + input.getAttribute("data-bind") + ' should be array when using with checkbox with xvalue');
 	        }
 	        var cbVal;
             if(cbValueAtt){
@@ -107,7 +107,7 @@ function setValueOnInput(input, value){
 			input.value = value;
 		}
 	}
-	xlog.debug("_x_input", "xinputs.setValueOnInput data-xbind: " + input.getAttribute("data-xbind") + ", END");
+	xlog.debug("_x_input", "xinputs.setValueOnInput data-bind: " + input.getAttribute("data-bind") + ", END");
 }
 
 function _getValFromOption(input, opt){
@@ -149,7 +149,7 @@ function getValueFromInput(input){
         if(xvalue || cbValueAtt){
             //multiple choice
             try{
-                val = thisM.eval(input.getAttribute("data-xbind"));
+                val = thisM.eval(input.getAttribute("data-bind"));
             }catch(e){}
             val = val || [];
             var cbVal;
@@ -175,7 +175,7 @@ function getValueFromInput(input){
             val = input.checked;
         }
 	}else if (type) {
-		xlog.debug("_x_input", "xinputs.getValueFromInput data-xbind: " + input.getAttribute("data-xbind") + ", xtype: " + type);
+		xlog.debug("_x_input", "xinputs.getValueFromInput data-bind: " + input.getAttribute("data-bind") + ", xtype: " + type);
 		if (type == 'imoney'){
 			if(input.value.indexOf(',') < 0 && input.value.indexOf('.') < 0){
 				type = 'int';
@@ -285,7 +285,7 @@ function addEventListener(input, eventName, scr){
 function _fireEventAUX(eventName, input, e, updateInputs){
     xutil.markFocused();
     xobj.updateObject(input);
-	xlog.debug("_x_event", "Fired Event " + eventName + " of input of data-xbind " + input.getAttribute("data-xbind") + ", id: " + input.id);
+	xlog.debug("_x_event", "Fired Event " + eventName + " of input of data-bind " + input.getAttribute("data-bind") + ", id: " + input.id);
 	var fn = input.getAttribute("data-xon" + eventName);
 	if(fn){
 		xlog.debug("_x_event", "Firing ev: " + eventName + ", function: " + fn);
@@ -303,7 +303,7 @@ function _fireEventAUX(eventName, input, e, updateInputs){
 			console.error('Error firing ' + eventName + ' script: ' + fn, e);
 		}
 		xsetCurrentEvent(null);
-		xlog.debug("_x_event", "After fired ev: " + eventName + " data-xbind: " + input.getAttribute("data-xbind") + " val: " + input.value);
+		xlog.debug("_x_event", "After fired ev: " + eventName + " data-bind: " + input.getAttribute("data-bind") + " val: " + input.value);
 	}
 	M$._update();
     updateDisabled = false;
@@ -313,7 +313,7 @@ function _fireEventAUX(eventName, input, e, updateInputs){
         c();
     }
 
-	xlog.debug("_x_event", "After updateObjectects ev: " + eventName + " data-xbind: " + input.getAttribute("data-xbind") + " val: " + input.value);
+	xlog.debug("_x_event", "After updateObjectects ev: " + eventName + " data-bind: " + input.getAttribute("data-bind") + " val: " + input.value);
 	var result = xmask.mask(e);
 	if(result != undefined && result == false || result == true){
 		return result;

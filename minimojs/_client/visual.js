@@ -138,7 +138,7 @@ function onPushStateSpa(newUrl, skipUpdateState){
 //set visible or not the modal (not popup)
 function toggleModal(obj, callback){
 	xobj.updateAllObjects();
-	xobj.updateXScripts();
+	xobj.updateMScripts();
 	if(obj.showLoading){
 		thisM.showLoading();
 	}
@@ -306,7 +306,7 @@ function _iterHighlightFields(fields, each){
 	fields = fields instanceof Array ? fields : [fields]
 	xutil.each(fields, function(field){
 		if(typeof(field) == 'string'){
-			xutil.each(xdom.getElementsByAttribute('data-xbind', field), function(item){
+			xutil.each(xdom.getElementsByAttribute('data-bind', field), function(item){
 				each.call(null, item);
 			});
 		}else{
@@ -367,7 +367,7 @@ function updateIterators(){
 			try{
 				elArray.push(iterEl);
 				var iid = iterEl.xiterId;
-				iterEl.xiteratorStatus = "updating";
+				iterEl._iteratorStatus = "updating";
 				var parentIteratorsArray = [];
 				var indexes = [];
 				var parent;
@@ -498,7 +498,7 @@ function updateIterators(){
 		console.error("xiterator: Error updating iterators", e);
 	}
 	for(var i = 0; i < elArray.length; i++){
-		elArray[i].xiteratorStatus = "none";
+		elArray[i]._iteratorStatus = "none";
 	}
 	updatingIterators = false;
 }
@@ -579,7 +579,7 @@ function _updateIterElementAttributes(el, html, ctx, xiterId){
 	var children = xdom._getChildren(el);
 	main: for(var j = 0; j < children.length; j++){
 		var e = children[j];
-		if(e.nodeName.toUpperCase() == 'XSCRIPT' || e.xscript){
+		if(e.nodeName.toUpperCase() == 'XSCRIPT' || e.mscript){
 			continue;
 		}
 		var c;
@@ -624,7 +624,7 @@ function _updateIterElementAttributes(el, html, ctx, xiterId){
 			val = val.join('');
 			if(attName == 'href' && val.indexOf('javascript:') == 0 && e.getAttribute("data-x_event_hrefclick") == 'true'){
                 e.href = 'javascript:;';
-            }else if(attName == 'data-xbind'){
+            }else if(attName == 'data-bind'){
 				var t = ctx.translate(val);
 				if(!t){
 					t = val;
@@ -651,7 +651,7 @@ function _updateIterElementAttributes(el, html, ctx, xiterId){
 
 //update scripts in an element iterator
 function _updateIterElementScripts(el, ctx, xiterId){
-	var array = xdom.findChildNodesByProperty(el, "xscript", true, false, false);
+	var array = xdom.findChildNodesByProperty(el, "mscript", true, false, false);
 	for(var i = 0; i < array.length; i++){
 		var node = array[i];
 		if(node.xcontentIterId == xiterId){
@@ -659,11 +659,11 @@ function _updateIterElementScripts(el, ctx, xiterId){
 			var fnCtx;
 			if(node._compCtx){
 				fnCtx = function(){
-				    return ctx.eval("(function(){return " + node.xdataXScript + "})").call(node._compCtx);
+				    return ctx.eval("(function(){return " + node.xdataMScript + "})").call(node._compCtx);
 				}
 			}else{
 			    fnCtx = function(){
-			        return ctx.eval(node.xdataXScript);
+			        return ctx.eval(node.xdataMScript);
 			    }
 			}
 			var html;
@@ -725,8 +725,8 @@ function _createHTML(html, parent, index, xid, level, compCtxSuffix, ctx){
 			xdom._insertBefore(parent, node, insertBeforeElement);
 		}else if(child.x){
 			node = parent.nodeName != 'OPTION' ? xdom.createElement('span') : document.createTextNode('');
-			node.xdataXScript = child.x;
-			node.xscript = true;
+			node.xdataMScript = child.x;
+			node.mscript = true;
 			node.xiterIndex = index;
 			node.xcontentIterId = xid;
 			node.xnodeId = xutil.generateId();
@@ -760,7 +760,7 @@ function _createHTML(html, parent, index, xid, level, compCtxSuffix, ctx){
 				_createHTML(child, node, index, xid, level + 1, compCtxSuffix, ctx);
 			}else{
 				node.xiteratorElement = true;
-				node.xiteratorStatus = "none";
+				node._iteratorStatus = "none";
 				node.xiterId = node.xiterId || child.xiterid;
 				if(!_x_iterators[node.xiterId]){
 				    __registerIterator(node.xiterId, child.a.list ? child.a.list[0] : child.a.count[0], child.a['var'] ? child.a['var'][0] : '_x', child.a.indexvar ? child.a.indexvar[0] : "_ix", child, child.a.list != null);

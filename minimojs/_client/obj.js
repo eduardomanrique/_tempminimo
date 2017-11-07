@@ -4,22 +4,22 @@ var controllers = {};
 var inputsByObj;
 var inputsByProperty;
 var inputArray;
-var xscriptArray;
+var mscriptArray;
 var aArray;
 var objCacheInitialized = false;
 function _initializeInputMaps(){
     inputsByObj = {};
     inputsByProperty = {};
     inputArray = [];
-    xscriptArray = [];
+    mscriptArray = [];
     objCacheInitialized = true;
-    var inputs = xdom.getElementsByAttribute('data-xbind');
+    var inputs = xdom.getElementsByAttribute('data-bind');
     for(var i = 0; i < inputs.length; i++){
         var input = inputs[i];
-        addXBind(input);
+        addBind(input);
     }
     inputArray = xdom.getInputs();
-    xscriptArray = xdom.getElementsByTagNames("xscript");
+    mscriptArray = xdom.getElementsByTagNames("mscript");
     aArray = xdom.getElementsByTagNames('a');
 }
 
@@ -29,7 +29,7 @@ function clearObjects(){
         _cleanerMapAux(inputsByObj);
         _cleanerMapAux(inputsByProperty);
         _cleanerListAux(inputArray);
-        _cleanerListAux(xscriptArray);
+        _cleanerListAux(mscriptArray);
         _cleanerListAux(aArray);
     }
 }
@@ -50,15 +50,15 @@ function _cleanerListAux(l){
     }
 }
 
-function addXScript(xscript){
+function addMScript(mscript){
     if(xdom.isCreatingHtml()){
         return;
     }
     if(!objCacheInitialized){
         _initializeInputMaps();
     }
-    if(xscriptArray.indexOf(xscript) < 0){
-        xscriptArray.push(xscript);
+    if(mscriptArray.indexOf(mscript) < 0){
+        mscriptArray.push(mscript);
     }
 }
 
@@ -86,14 +86,14 @@ function addInput(input){
     }
 }
 
-function addXBind(input){
+function addBind(input){
     if(xdom.isCreatingHtml()){
         return;
     }
     if(!objCacheInitialized){
         _initializeInputMaps();
     }
-    var bind = input.getAttribute('data-xbind');
+    var bind = input.getAttribute('data-bind');
     if(!inputsByProperty[bind]){
         inputsByProperty[bind] = [];
     }
@@ -109,14 +109,14 @@ function addXBind(input){
     }
 }
 
-function _getXScripts(){
+function _getMScripts(){
     if(xdom.isCreatingHtml()){
         return [];
     }
     if(!objCacheInitialized){
         _initializeInputMaps();
     }
-    return xscriptArray;
+    return mscriptArray;
 }
 
 function getInputArray(){
@@ -180,7 +180,7 @@ function _loadObjIntInputs(objName) {
 
 			var value = null;
 			try{
-				value = thisM.eval(inputArray[i].getAttribute("data-xbind"));
+				value = thisM.eval(inputArray[i].getAttribute("data-bind"));
 			}catch(e){}
 
 			if (!value) {
@@ -251,7 +251,7 @@ function _buildObjFromInputs(name, isSimpleVar) {
 			result = isSimpleVar ? null : {};
 		var isRadio = inputArray[i].getAttribute
 				&& inputArray[i].getAttribute("type") == 'radio';
-		var dataXBind = inputArray[i].getAttribute("data-xbind")
+		var dataXBind = inputArray[i].getAttribute("data-bind")
 		if (inputArray[i].getAttribute && dataXBind && (!isRadio || inputArray[i].checked)) {
 			currentObject = result;
 			if (!isSimpleVar) {
@@ -321,7 +321,7 @@ function _setValueOnObjFromInput(input) {
 
     var isRadio = input.getAttribute
             && input.getAttribute("type") == 'radio';
-    var dataXBind = input.getAttribute("data-xbind");
+    var dataXBind = input.getAttribute("data-bind");
 
     var isSimpleVar = false;
     var objName = dataXBind.split(".");
@@ -437,13 +437,13 @@ function updateObject(input) {
 	if (input.getVar) {
 		v = input.getVar();
 	} else {
-		v = input.getAttribute('data-xbind');
+		v = input.getAttribute('data-bind');
 	}
 	if (v) {
-		xlog.debug("updateObject", "Input data-xbind: " + v + ", value: " + input.value
+		xlog.debug("updateObject", "Input data-bind: " + v + ", value: " + input.value
 				+ ", id: " + input.id);
 		if (input.getAttribute && input.getAttribute("type") == 'checkbox' && !input.getAttribute("data-xvalue")) {
-			xlog.debug("updateObject", "Input data-xbind: " + v
+			xlog.debug("updateObject", "Input data-bind: " + v
 					+ ", checkbox checked: " + input.checked);
 			try{
 				thisM.eval(v + ' = ' + input.checked);
@@ -451,7 +451,7 @@ function updateObject(input) {
 			}
 		} else if (input.getAttribute && input.getAttribute("type") == 'radio') {
 			var elarray = xdom.getElementsByName(input.getAttribute("name"));
-			xlog.debug("updateObject", "Input data-xbind: " + v + ", radio name: "
+			xlog.debug("updateObject", "Input data-bind: " + v + ", radio name: "
 					+ input.getAttribute("name") + ", len: " + elarray.length);
 			var objVal = input;
 			for ( var i = 0; i < elarray.length; i++) {
@@ -461,7 +461,7 @@ function updateObject(input) {
 				}
 			}
 			thisM._temp['__temp_var__'] = xinputs.getValueFromInput(objVal);
-			xlog.debug("updateObject", "Input data-xbind: " + v
+			xlog.debug("updateObject", "Input data-bind: " + v
 					+ ", radio valFromInput: " + thisM._temp['__temp_var__']);
 			var lastDot = v.lastIndexOf(".");
 			if(lastDot > 0){
@@ -473,7 +473,7 @@ function updateObject(input) {
 			}
 			delete thisM._temp['__temp_var__'];
 		} else {
-			xlog.debug("updateObject", "Input data-xbind: " + v + ", normal input");
+			xlog.debug("updateObject", "Input data-bind: " + v + ", normal input");
 
 			var newVal;
 			if (input.getValue) {
@@ -481,7 +481,7 @@ function updateObject(input) {
 			} else {
 				newVal = xinputs.getValueFromInput(input);
 			}
-			xlog.debug("updateObject", "Input data-xbind: " + v + ", new value " + newVal);
+			xlog.debug("updateObject", "Input data-bind: " + v + ", new value " + newVal);
 			var array = _getInputsByProperty(v);
 			for ( var i in array) {
 				var item = array[i];
@@ -492,7 +492,7 @@ function updateObject(input) {
 			}
 			_setValueOnObjFromInput(input);
 		}
-		xlog.debug("updateObject", "Input data-xbind: " + v + ", value: " + input.value
+		xlog.debug("updateObject", "Input data-bind: " + v + ", value: " + input.value
 				+ ", END");
 	}
 	xlog.debug("updateObject", "end update input");
@@ -598,10 +598,10 @@ function updateAllObjects() {
 			if (input.getBoundVar) {
 				v = input.getBoundVar();
 			} else if(input.getAttribute){
-				v = input.getAttribute('data-xbind');
+				v = input.getAttribute('data-bind');
 			}
 			if (v) {
-				xlog.debug("updateAllObjects", "Each data-xbind: " + v + ", id: "
+				xlog.debug("updateAllObjects", "Each data-bind: " + v + ", id: "
 						+ input.id);
 				var split = v.split('.');
 				var objName = split[0];
@@ -654,9 +654,9 @@ function updateInputs() {
 	var inputList = getInputArray();
 	for(var i = 0; i < inputList.length; i++){
 		var input = inputList[i];
-		var v = input.getVar ? input.getVar() : input.getAttribute('data-xbind');
+		var v = input.getVar ? input.getVar() : input.getAttribute('data-bind');
 		if (v) {
-			xlog.debug("updateInputs", "Each data-xbind: " + v + ", value: "
+			xlog.debug("updateInputs", "Each data-bind: " + v + ", value: "
 					+ input.value + ", id: " + input.id);
 			var objName = v.split('.')[0];
 			if (!updated[objName]) {
@@ -667,21 +667,21 @@ function updateInputs() {
 					console.error("Error updating input on var " + objName + " of " + (input.getAttribute("id") || input) + ".", e);
 				}
 			}
-			xlog.debug("updateInputs", "Each END data-xbind: " + v + ", value: "
+			xlog.debug("updateInputs", "Each END data-bind: " + v + ", value: "
 					+ input.value);
 		}
 	}
-	updateXScripts();
+	updateMScripts();
 	xlog.debug("updateInputs", "end update inputs");
 }
 
-function updateXScripts() {
+function updateMScripts() {
 	if(thisM.isImport){
 		return;
 	}
-	var elements = _getXScripts();
+	var elements = _getMScripts();
 	xutil.each(elements, function(el) {
-		var scr = el.getAttribute("data-xscript");
+		var scr = el.getAttribute("data-mscript");
 		if(scr){
 			var v = scr;
 			try {
@@ -701,17 +701,17 @@ function updateXScripts() {
 }
 
 function bindTo(id, dataXbind){
-	xdom.setAtt(m._(id), "data-xbind", dataXbind);
+	xdom.setAtt(m._(id), "data-bind", dataXbind);
 }
 
 _expose(updateObject);
 _expose(updateAllObjects);
-_expose(updateXScripts);
+_expose(updateMScripts);
 _expose(updateInputs);
 _external(bindTo);
-_external(addXBind);
+_external(addBind);
 _external(addInput);
-_external(addXScript);
+_external(addMScript);
 _expose(getInputArray);
 _expose(getAArray);
 _expose(clearObjects);

@@ -61,8 +61,8 @@ const _Mimimo$ = (function(){
 						this._xsetAttribute(n, v);
 						if(n.startsWith('on')){
 							this._minimo_instance.configureEvent(n.substring(2), this);
-						} else if(n == 'data-xbind'){
-							this._minimo_instance.addXBind(this);
+						} else if(n == 'data-bind'){
+							this._minimo_instance.addBind(this);
 						}
 					}
 				}
@@ -70,7 +70,7 @@ const _Mimimo$ = (function(){
 					_instance.addInput(el);
 					_instance.configureAutocomplete(el);
 				} else if(nodeName == 'mscr'){
-					_instance.addXScript(el);
+					_instance.addMScript(el);
 				} else if(nodeName == 'a'){
 					_instance.configureHref(a);
 					_instance.addA(el);
@@ -401,7 +401,7 @@ var _Minimo = function(parent, isSpa) {
 	}
 	this._loadObjects = function(){
 	    xobj.updateAllObjects();
-        xobj.updateXScripts();
+        xobj.updateMScripts();
 	};
 	function addModule(moduleFunction){
 		return new moduleFunction(thisM);
@@ -628,7 +628,7 @@ var _Minimo = function(parent, isSpa) {
 		xobj.updateInputs();
 		xdom.updateElementsAttributeValue();
 		xinputs.configEvents();
-		xobj.updateXScripts();
+		xobj.updateMScripts();
 		_updating =false
 	};
 	var event; 

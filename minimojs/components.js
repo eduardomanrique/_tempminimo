@@ -13,48 +13,53 @@ let _componentsScript;
 let _componentsInfo;
 let _componentsCtx = {};
 let _componentsHtmxSources;
+let _componentTypes;
 
 const _generateId = (prefix) => (prefix || "id_") + parseInt(Math.random() * 999999);
 
-const __setUpGetterForAttributes = `var __setUpGetterForAttributes = function(obj, evaluator, __instanceProperties, _attrs) {
+const __setUpGetterForAttributes = `var __setUpGetterForAttributes = function(obj, evaluator, __instanceProperties, _attrs, __types) {
   function _createProperty(obj, k, a){
     Object.defineProperty(obj, k, { get: function () {
-      return a.map(i => typeof(i) == 'string' ? i : evaluator(i.s)).join('');
+      return a instanceof Array ? a.map(i => typeof(i) == 'string' ? i : evaluator(i.s)).join('') : evaluator(a);
     }});
   }
   for(var k in __instanceProperties) {
-    if(__instanceProperties[k] != __types.types.boundVariable && __instanceProperties[k] != __types.types.mandatory.boundVariable){
-      if(__types.isComponentType(__instanceProperties[k])){
-        _createProperty(obj, k, _attrs[k])
-      }else{
-        obj[k] = obj[k] || [];
-        _attrs[k].forEach(v => {
-          var objk = {};
-          obj[k].push(objk)
-          __setUpGetterForAttributes(objk, evaluator, __instanceProperties[k], v)
-        });
-      }
+    if(__types.isComponentType(__instanceProperties[k])){
+      _createProperty(obj, k, _attrs[k])
+    }else{
+      obj[k] = obj[k] || [];
+      _attrs[k].forEach(v => {
+        var objk = {};
+        obj[k].push(objk)
+        __setUpGetterForAttributes(objk, evaluator, __instanceProperties[k], v, __types)
+      });
     }
   }
 }`;
 
 const startComponents = () => loadComponents().then(componentsInfo => {
-  _componentsScript = componentsInfo.scripts;
   _componentsInfo = componentsInfo.info;
   _componentsHtmxSources = componentsInfo.htmxSources
   return resources.readModuleFile('./component-types.js').then((componentTypes) => {
+    //for client
+    _componentTypes = `(function(){
+      var module = {};
+      ${componentTypes}
+      return module.exports;
+    })()`;
+    _componentsScript = `(function(){
+      ${componentsInfo.scripts}
+      return components;
+      })()`;
+    //for compiler
     const script = `(function(){
-      var __types = (function(){
-        var module = {};
-        ${componentTypes}
-        return module.exports;
-      })();
+      var __types = ${_componentTypes};
       ${__setUpGetterForAttributes}
       var m = {generatedId: function(){return 'ID${parseInt(Math.random() * 999999)}';}, _addExecuteWhenReady: function(){}};
-      ${_componentsScript}
+      ${componentsInfo.scripts}
       _componentsCtx.components = components;
       })();`;
-      eval(script);
+    eval(script);
   });
 });
 
@@ -150,10 +155,12 @@ const _createOldTypeComponent = (compJS, varPath) =>
 
 const _createHtmxComponent = (compJs = "", varPath, compName) =>
   `${varPath} = new function(){
-     this.htmxContext = function(_attrs, _evalFn){
+     this.htmxContext = function(_attrs, __types){
        var selfcomp = this;
        this._compName = '${compName}';
-       this._xcompEval = _evalFn;
+       this.eval = function(s){
+          return eval(s);
+       };
        ${compJs};
        ${_exposeFunctions(compJs)};
        var __defineAttributes;
@@ -162,7 +169,7 @@ const _createHtmxComponent = (compJs = "", varPath, compName) =>
        }catch(e){__defineAttributes=function(){}}
        var __instanceProperties = __defineAttributes(__types.types);
        if(_attrs && __instanceProperties){
-        __setUpGetterForAttributes(selfcomp, _evalFn, __instanceProperties, _attrs);
+        __setUpGetterForAttributes(selfcomp, this.eval, __instanceProperties, _attrs, __types);
        }
        var generateId = m.generateId;
      }
@@ -198,7 +205,7 @@ const _prepareDefinedAttributes = (element, definedAttributes, boundVars) => {
 const _childInfoHtmxFormat = (componentName, element) => {
     const boundVars = {}
     let _defAttrib;
-    eval(`_defAttrib = new _componentsCtx.${componentName}.htmxContext(null, null).defineAttributes`);
+    eval(`_defAttrib = new _componentsCtx.${componentName}.htmxContext(null, ${_componentTypes}).defineAttributes`);
     return [_defAttrib ? _prepareDefinedAttributes(element, _defAttrib(types), boundVars) : {}, boundVars];
 }
 const _removeHTML = (instanceProperties) => {
@@ -301,7 +308,8 @@ module.exports = {
   startComponents: startComponents,
   _childInfoHtmxFormat: _childInfoHtmxFormat,
   _findDeepestComponent: _findDeepestComponent,
-  setUpGetterForAttributes: __setUpGetterForAttributes,
+  getSetUpGetterForAttributesScript: () => __setUpGetterForAttributes,
+  getComponentTypes: () => _componentTypes,
   forEachComponent: (fn) => _componentsInfo.forEach(fn),
   getScripts: () => _componentsScript
 }

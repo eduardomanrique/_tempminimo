@@ -335,6 +335,7 @@ describe('Test compiler', function () {
                         }
                     };
                     eval(compiled.js);
+                    //console.log(compiled.js)
                     expect(compiled.globalJs).to.be.undefined;
                     var bindV;
                     instance.__eval__('bindV = 1');

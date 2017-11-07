@@ -25,10 +25,12 @@ const oneline = (s, ...args) => {
     const iter = toIterable(args);
     return s.map(v => v.split('\n').concat(iter.next().value).map(v => `${v || ''}`.trim()).join('')).join('').trim();
 };
+const tail = a => a.filter((v, i) => i > 0);
 module.exports = {
     flatten: flatten,
     nodeListToArray: nodeListToArray,
     toIterable: toIterable,
     oneline: oneline,
-    first: first
+    first: first,
+    tail: tail
 };

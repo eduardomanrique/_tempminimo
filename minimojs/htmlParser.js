@@ -3,7 +3,7 @@ const esprima = require('esprima');
 const context = require('./context');
 const util = require('./util');
 
-const _prepareXScriptsValues = (value) => {
+const _prepareMScriptsValues = (value) => {
   let last = value;
   if (value != null) {
     let pattern = /\$\{(?:(?!\$\{|}).)*}/g;
@@ -34,7 +34,7 @@ const _getAllTextNodes = (element) =>
     return list;
   }));
 
-const _generateId = (prefix) => (prefix || "id_") + parseInt(Math.random() * 999999);
+const _generateId = (prefix = "id_") => `${prefix}${parseInt(Math.random() * 999999)}`;
 
 const _isEmptyText = (node) => node instanceof Text && !(node instanceof Comment) && node.text.trim() == '';
 
@@ -498,7 +498,7 @@ class TemplateScript extends Element {
       xv: this._iterateVariable,
       xi: this._indexVariable,
       h: this._hiddenAttributes,
-      c: this.children.toJson
+      c: this.children.map(c => c.toJson())
     });
   }
 }
