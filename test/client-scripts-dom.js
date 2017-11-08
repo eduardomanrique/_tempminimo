@@ -8,7 +8,7 @@ const dom = require('../minimojs/client/dom.js');
 let dom1, dom2, dom3;
 
 describe('Client scripts - dom.js', () => {
-    jsdom()
+    jsdom({ skipWindowCheck: true });
     before(() => {
         document.body.innerHTML = `
             <div id="rootInstance">

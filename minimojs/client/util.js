@@ -26,11 +26,29 @@ const oneline = (s, ...args) => {
     return s.map(v => v.split('\n').concat(iter.next().value).map(v => `${v || ''}`.trim()).join('')).join('').trim();
 };
 const tail = a => a.filter((v, i) => i > 0);
+const genId = () => `ID_${parseInt(Math.random()*9999999)}`;
+const keyValues = (obj) => {
+    const result = [];
+    for(let k in obj){
+        result.push([k, obj[k]]);
+    }
+    return result;
+}
+const values = (obj) => {
+    const result = [];
+    for(let k in obj){
+        result.push(obj[k]);
+    }
+    return result;
+}
 module.exports = {
     flatten: flatten,
     nodeListToArray: nodeListToArray,
     toIterable: toIterable,
     oneline: oneline,
     first: first,
-    tail: tail
+    tail: tail,
+    generateId: genId,
+    keyValues: keyValues,
+    values: values
 };

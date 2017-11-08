@@ -25,7 +25,7 @@ before(() => startComponents()
 
 describe('Client scripts - components.js', () => {
     it('createComponentContext', () => {
-        const ctx = new function () {
+        const m = new function () {
             var obj = {
                 id: 1234
             };
@@ -56,7 +56,7 @@ describe('Client scripts - components.js', () => {
                 list: "listVal"
             }
         };
-        const instance = createComponentCtx(info, ctx, m);
+        const instance = createComponentCtx(info, m);
         instance.eval('listVal').should.have.lengthOf(2);
         instance.list.should.have.lengthOf(2);
         instance.id.should.eq('at2');

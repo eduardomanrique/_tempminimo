@@ -6,7 +6,7 @@ const jsdom = require('mocha-jsdom');
 const util = require('../minimojs/client/util.js');
 
 describe('Client scripts - util.js', () => {
-    jsdom()
+    jsdom({ skipWindowCheck: true });
     before(() => {
         document.body.innerHTML = `
             <div data-mroot-ctx="i1" id="rootInstance">

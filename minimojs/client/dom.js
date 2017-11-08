@@ -3,10 +3,6 @@ const clientUtil = require('./util.js');
 
 const _attr = (el, name) => util.nullableOption(el && el.getAttribute ? el.getAttribute(name) : null);
 
-const _insertBefore = (parent, e, beforeElement) => {
-	(parent._iteratorOpenNode ? parent.parentElement : parent).insertBefore(e, beforeElement);
-}
-
 const _byId = (id, _doc = document) => util.nullableOption(_doc.getElementById(id));
 const _byClass = (classes, _doc = document) => clientUtil.flatten(classes.split(' ')
 	.map(c => clientUtil.nodeListToArray(_doc.getElementsByClassName(c))));
@@ -158,7 +154,9 @@ class DOM {
 			const textNode = this._doc.createTextNode(text);
 			insertPoint.appendChild(textNode);
 			this._elementsListener.forEach(l => l.onCreateText && l.onCreateText(textNode));
+			return util.optionOf(textNode);
 		}
+		return util.emptyOption();
 	}
 	createElement(name) {
 		const el = this._doc.createElement(name);
