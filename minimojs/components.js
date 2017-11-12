@@ -17,25 +17,29 @@ let _componentTypes;
 
 const _generateId = (prefix) => (prefix || "id_") + parseInt(Math.random() * 999999);
 
-const __setUpGetterForAttributes = `var __setUpGetterForAttributes = function(obj, evaluator, __instanceProperties, _attrs, __types) {
-  function _createProperty(obj, k, a){
+function __setUpGetterForAttributes(obj, evaluator, internalEval, __instanceProperties, _attrs, __types) {
+  function _createProperty(obj, k, tp, a){
     Object.defineProperty(obj, k, { get: function () {
-      return a instanceof Array ? a.map(i => typeof(i) == 'string' ? i : evaluator(i.s)).join('') : evaluator(a);
+      if(tp.getTypeName() == 'boundVariable'){
+        return evaluator.eval(a);
+      }else if(tp.getTypeName() == 'bind'){
+        return a;
+      }else{
+        var val = (a instanceof Array ? a : [a]).map(i => typeof(i) == 'string' ? i : internalEval.eval(i.s)).join('');
+        return tp.convert(val);
+      }
     }});
   }
   for(var k in __instanceProperties) {
-    if(__types.isComponentType(__instanceProperties[k])){
-      _createProperty(obj, k, _attrs[k])
+    var tp = __instanceProperties[k];
+    if(__types.isComponentType(tp)){
+      _createProperty(obj, k, tp, _attrs[k])
     }else{
-      obj[k] = obj[k] || [];
-      _attrs[k].forEach(v => {
-        var objk = {};
-        obj[k].push(objk)
-        __setUpGetterForAttributes(objk, evaluator, __instanceProperties[k], v, __types)
-      });
+      obj[k] = obj[k] || {};
+      __setUpGetterForAttributes(obj[k], evaluator, internalEval, tp, _attrs[k], __types)
     }
   }
-}`;
+}
 
 const startComponents = () => loadComponents().then(componentsInfo => {
   _componentsInfo = componentsInfo.info;
@@ -54,7 +58,7 @@ const startComponents = () => loadComponents().then(componentsInfo => {
     //for compiler
     const script = `(function(){
       var __types = ${_componentTypes};
-      ${__setUpGetterForAttributes}
+      ${__setUpGetterForAttributes.toString()}
       var m = {generatedId: function(){return 'ID${parseInt(Math.random() * 999999)}';}, _addExecuteWhenReady: function(){}};
       ${componentsInfo.scripts}
       _componentsCtx.components = components;
@@ -114,7 +118,7 @@ const _loadComponents = (groupedResources) => {
       htmxSources[varPath] = value.htmx;
       js.push(_createHtmxComponent(value.js, varPath, compName));
     } else {
-      js.push(_createOldTypeComponent(value.js, varPath));
+      throw new Error('Must have htmx for now');
     }
     if (!compName.startsWith("_")) {
       js.push(`components['${compName}']=${varPath};`);
@@ -135,31 +139,14 @@ const _exposeFunctions = (js) => {
     return esprimaUtil.getFirstLevelFunctions(parsed).map(e => `this.${e} = ${e};`).join('\n');
 }
 
-const _createOldTypeComponent = (compJS, varPath) =>
-  `${varPath} = new function(){
-      var toBind = {};
-      this.get = function(id) {return Object.assign({id:id}, toBind)};
-      var bindToHandle = function(obj) {return Object.assign(toBind, obj)};
-      var expose = function(name, fn)  {${varPath}[name] = fn};
-      var load;
-      ${compJS};
-      try{ this.context = context; }catch(e){};
-      this.getHtml = getHtml;
-      try{ this.getBindingMethods = getBindingMethods; }catch(e){};
-      var generateId = m.generateId;
-      try{ this.childElementsInfo = childElementsInfo; }catch(e){ this.childElementsInfo = function(){return {}} };
-      try{ m._addExecuteWhenReady(load); }catch(e){};
-      try{ this.onReady = onReady; }catch(e){};
-      try{ this.onVisible = onVisible; }catch(e){};
-    };`;
-
 const _createHtmxComponent = (compJs = "", varPath, compName) =>
   `${varPath} = new function(){
-     this.htmxContext = function(_attrs, __types){
+     this.htmxContext = function(_attrs, __m, __types){
        var selfcomp = this;
        this._compName = '${compName}';
        this.eval = function(s){
-          return eval(s);
+          var r = eval(s);
+          return r;
        };
        ${compJs};
        ${_exposeFunctions(compJs)};
@@ -169,7 +156,7 @@ const _createHtmxComponent = (compJs = "", varPath, compName) =>
        }catch(e){__defineAttributes=function(){}}
        var __instanceProperties = __defineAttributes(__types.types);
        if(_attrs && __instanceProperties){
-        __setUpGetterForAttributes(selfcomp, this.eval, __instanceProperties, _attrs, __types);
+        __setUpGetterForAttributes(selfcomp, __m, this, __instanceProperties, _attrs, __types);
        }
        var generateId = m.generateId;
      }
@@ -205,7 +192,7 @@ const _prepareDefinedAttributes = (element, definedAttributes, boundVars) => {
 const _childInfoHtmxFormat = (componentName, element) => {
     const boundVars = {}
     let _defAttrib;
-    eval(`_defAttrib = new _componentsCtx.${componentName}.htmxContext(null, ${_componentTypes}).defineAttributes`);
+    eval(`_defAttrib = new _componentsCtx.${componentName}.htmxContext(null, {}, ${_componentTypes}).defineAttributes`);
     return [_defAttrib ? _prepareDefinedAttributes(element, _defAttrib(types), boundVars) : {}, boundVars];
 }
 const _removeHTML = (instanceProperties) => {
@@ -239,7 +226,7 @@ const _buildComponentOnPage = (compInfo, element, doc, boundVars, boundModals) =
   // get declared properties in doc tag - finish
   // generate html
   const newHTML = _componentsHtmxSources[componentName].replace(/\{mContent}/, "<_temp_x_body/>");
-  const parser = new htmlParser.HTMLParser();
+   const parser = new htmlParser.HTMLParser();
   const componentDoc = parser.parse(newHTML);
   _configComponentBinds(componentDoc, htmxBoundVars);
   
@@ -266,7 +253,9 @@ const _findDeepestComponent = (doc) => {
   const _findDeepest = (e, currentFoundComponent, comp, compList) => {
     const deepest = e.findDeepestChild(comp.resourceName);
     if(_.isEmpty(compList)){
-      return currentFoundComponent ? util.optionOf([deepest||e, currentFoundComponent]) : util.emptyOption();
+      return deepest ? util.optionOf([deepest, comp]) : 
+        currentFoundComponent ? util.optionOf([e, currentFoundComponent]) : 
+        util.emptyOption();
     }
     return _findDeepest(deepest || e, deepest ? comp : currentFoundComponent, _.first(compList), _.rest(compList));
   }
@@ -308,7 +297,7 @@ module.exports = {
   startComponents: startComponents,
   _childInfoHtmxFormat: _childInfoHtmxFormat,
   _findDeepestComponent: _findDeepestComponent,
-  getSetUpGetterForAttributesScript: () => __setUpGetterForAttributes,
+  getSetUpGetterForAttributesScript: () => __setUpGetterForAttributes.toString(),
   getComponentTypes: () => _componentTypes,
   forEachComponent: (fn) => _componentsInfo.forEach(fn),
   getScripts: () => _componentsScript

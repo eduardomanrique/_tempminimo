@@ -3,7 +3,7 @@ const util = require('./util.js');
 
 const _findChildInStruct = (json, name, remove) => {
     const lcName = name.toLowerCase();
-    for (let i = 0; i < json.c.length; i++) {
+    for (let i = 0; json.c && i < json.c.length; i++) {
         const c = json.c[i];
         if (c.n && c.n.toLowerCase() == lcName) {
             if (remove) {
@@ -21,10 +21,9 @@ const _checkHoldJQuery = () => {
 }
 const _getAttributeFromStruct = (html, attname) => html.a ? html.a[attname] : null;
 class HtmlBuilder {
-    constructor(minimoInstance, dom, components) {
+    constructor(minimoInstance, dom, createComponentCtx) {
         this._m = minimoInstance;
         this._dom = dom;
-        this._comp = components;
         this._dynAttribs = {};
         this._iterators = {};
         this._mscripts = {}
@@ -54,7 +53,7 @@ class HtmlBuilder {
                         }
                     } else {
                         if (attName == 'id' && att.length) {
-                            att = att.replace('#modal:', `${m.CTX}:`);
+                            att = att.replace('#modal:', `${minimoInstance.CTX}:`);
                         }
                         dom.setAttribute(e, attName, att);
                     }
@@ -93,10 +92,10 @@ class HtmlBuilder {
             }
             closure(requiredSources);
         });
-        this._createHTML = (htmlStruct, rootInsertPoint, ctx = minimoInstance) => new Promise((resolve, reject) => {
-            const closure = (json, insertPoint) => {
+        this._createHTML = (htmlStruct, rootInsertPoint, defaultContext = minimoInstance) => new Promise((resolve, reject) => {
+            const closure = (json, insertPoint, ctx) => {
                 if (json.ci) { //component
-                    json.ctx = components.createComponentContext(jsoin.ip, ctx);
+                    json.ctx = createComponentCtx(json, ctx);
                 } else {
                     json.ctx = ctx;
                 }
@@ -107,7 +106,7 @@ class HtmlBuilder {
                         //modals.setModalInfo(child);
                     } else if (child.t) {
                         //text
-                        dom.createTextNode(insertPoint, child, json.n.toUpperCase() == 'SCRIPT')
+                        dom.createTextNode(insertPoint, child.t, json.n.toUpperCase() == 'SCRIPT')
                             .ifPresent(node => child._n = node);
                     } else if (child.x) {
                         //mscript
@@ -124,30 +123,38 @@ class HtmlBuilder {
                         child._n = e;
                     } else {
                         const isIterator = _isIterator(child);
-                        const e = isIterator ? document.createTextNode('') : dom.createElement(child.n);
-                        this._setHiddenAttributesOnElement(e, child);
-                        insertPoint.appendChild(e);
-                        if (isIterator) {
-                            child._n = e;
-                            const id = util.generateId();
-                            child._id = id;
-                            this._iterators[id] = child;
+                        if (child.ci) {
+                            closure(child, insertPoint, json.ctx);
                         } else {
-                            this._setAttributesOnElement(e, child);
-                            closure(child, e);
+                            const e = isIterator ? document.createTextNode('') : dom.createElement(child.n);
+                            this._setHiddenAttributesOnElement(e, child);
+                            insertPoint.appendChild(e);
+                            if (isIterator) {
+                                child._n = e;
+                                const id = util.generateId();
+                                child._id = id;
+                                this._iterators[id] = child;
+                            } else {
+                                this._setAttributesOnElement(e, child);
+                                closure(child, e, json.ctx);
+                            }
                         }
+
                     }
                 }
             }
-            closure(htmlStruct, rootInsertPoint);
+            closure(htmlStruct, rootInsertPoint, defaultContext);
             resolve();
         });
     }
     createElements(json, insertPoint) {
         var required = _findChildInStruct(json, 'xrs', true);
-        json.ctx = this._m;
+        var root = {
+            ctx: json._m,
+            c: [json]
+        };
         return this._createRequiredSources(required, insertPoint)
-            .then(this._createHTML({c:[json]}, insertPoint))
+            .then(this._createHTML(root, insertPoint))
             .then(() => new HtmlUpdater(this));
     }
 }
@@ -181,7 +188,8 @@ class HtmlUpdater {
         if (!this._builder._m.isImport) {
             util.values(this._builder._mscripts).forEach(value => {
                 try {
-                    value._n.nodeValue = value.j.ctx.eval(value.x);
+                    const evaluated = (value.ctx || value._p.ctx).eval(value.x);
+                    value._n.nodeValue = evaluated;
                 } catch (ex) {
                     console.error("Error updating attribute " + attName + " of " + (e.getAttribute("id") || e) + ".", ex);
                 }

@@ -1,1 +1,1 @@
-<div test="1">Wrapper: <div test="2">{mContent}</div></div>
+<div test="1">Wrapper: <div test="">{mContent}</div></div>

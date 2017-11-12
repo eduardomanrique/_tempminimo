@@ -57,12 +57,11 @@ describe('Client scripts - components.js', () => {
             }
         };
         const instance = createComponentCtx(info, m);
-        instance.eval('listVal').should.have.lengthOf(2);
         instance.list.should.have.lengthOf(2);
         instance.id.should.eq('at2');
         instance._compName.should.equal('htmxstyle.actiontable');
 		instance.remove(0);
 		instance.list.should.have.lengthOf(1);
-		instance.eval('listVal').should.have.lengthOf(1);
+		m.eval('listVal').should.have.lengthOf(1);
     });
 });
