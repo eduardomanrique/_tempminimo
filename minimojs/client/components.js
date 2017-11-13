@@ -1,4 +1,3 @@
-
 var __types = '%component-types%';
 const components = '%components%';
 

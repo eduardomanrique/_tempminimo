@@ -3,8 +3,6 @@ const components = require('./components');
 const context = require('./context');
 const util = require('./util');
 const _ = require('underscore');
-const esprima = require('esprima');
-const esprimaUtil = require('./esprimaUtil');
 const fs = require('fs');
 
 let minimoJs;
