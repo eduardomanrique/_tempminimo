@@ -184,7 +184,17 @@ describe('Client scripts - html-builder.js', () => {
                     }, {
                         "t": " - "
                     }, {
-                        "x": "obj.id"
+                        "n": "span",
+                        "a": {
+                            "id": "sp2"
+                        },
+                        "c": [{
+                            "x": "this.innerattribute.test"
+                        }, {
+                            "t": "-"
+                        }, {
+                            "x": "obj.id"
+                        }]
                     }]
                 }
             },
@@ -206,7 +216,7 @@ describe('Client scripts - html-builder.js', () => {
         };
         const insertPoint = document.body;
         const obj = {
-            id: 'pageobj'
+            id: 'objid'
         }
         const minimo = {
             eval: function (s) {
@@ -219,8 +229,10 @@ describe('Client scripts - html-builder.js', () => {
             .then(updater => {
                 updater.updateAttributes();
                 updater.updateMScripts();
+                console.log(document.body.innerHTML)
                 expect(document.getElementById("wid_test")).not.be.null;
                 document.getElementById("sp").innerHTML.should.eq("spanvalue");
+                document.getElementById("sp2").innerHTML.should.eq("wid_test-objid");
             })
     });
 });

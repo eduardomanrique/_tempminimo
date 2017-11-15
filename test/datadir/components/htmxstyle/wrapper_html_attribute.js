@@ -8,3 +8,7 @@ function defineAttributes(types){
     }
   }
 }
+
+function getValue(){
+  return "methodval";
+}

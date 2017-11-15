@@ -1,8 +1,7 @@
 const esprima = require('esprima');
-
-function Evaluator() {
-    this._cache = {};
-
+const _cache = {}
+function Evaluator(ctxList){
+    this._ctxList = ctxList;
     function getIdentifiers(e, a){
         switch(e.type){
             case "BinaryExpression": 
@@ -23,25 +22,24 @@ function Evaluator() {
         }
     }
     
-    this.eval = function (exp, ctxList) {
+    this.eval = function (exp) {
         var cache = this._getVariables(exp);
         var variables = [];
         for(var i = 0; i < cache.variables.length; i++){
-            for(var j = 0; j < ctxList.length; j++){
+            for(var j = 0; j < this._ctxList.length; j++){
                 try{
-                    var obj = ctxList[j].eval(cache.variables[i]);
+                    var obj = this._ctxList[j].eval(cache.variables[i]);
                     variables.push(obj);
                     break;
                 }catch(e){
-                    console.log(e);
                 }
             }
         }
         var wrapperCtx = new (Function.prototype.bind.apply(cache.fn, [null].concat(variables)));
-        return wrapperCtx.eval.bind(ctxList[0])(exp);
+        return wrapperCtx.eval.bind(this._ctxList[0])(exp);
     }
     this._getVariables = function (exp) {
-        var cached = this._cache[exp];
+        var cached = _cache[exp];
         if (!cached) {
             var parsed = esprima.parse(exp);
             if (parsed.body[0].type != "ExpressionStatement") {
@@ -59,7 +57,7 @@ function Evaluator() {
                     }
                 }
             };_evaluator`);
-            this._cache[exp] = cached;
+            _cache[exp] = cached;
         }
         return cached;
     }

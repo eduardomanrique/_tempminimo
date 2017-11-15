@@ -7,7 +7,7 @@ const Evaluator = require('../minimojs/client/evaluator.js').Evaluator;
 describe('Test Evaluator', () => {
     it('Test get variables', () => {
         var eval = new Evaluator();
-        var varList = eval._getVariables('a + 1 + this.test + "asdf" + b.cc.dd + (d || c || (e || f)).test + (x ? y : z)');
+        var varList = eval._getVariables('a + 1 + this.test + "asdf" + b.cc.dd + (d || c || (e || f)).test + (x ? y : z)').variables;
         varList.should.contain('a');
         varList.should.contain('b');
         varList.should.contain('a');
@@ -48,8 +48,8 @@ describe('Test Evaluator', () => {
                 return eval(s);
             }
         }
-        var _eval = new Evaluator();
-        var result = _eval.eval('a1.a + b1.x.c + a2 + c1 + a1.x', [ca, cb, cc]);
+        var _eval = new Evaluator([ca, cb, cc]);
+        var result = _eval.eval('a1.a + b1.x.c + a2 + c1 + a1.x');
         result.should.eq(119);
     });
 });

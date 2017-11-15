@@ -1,4 +1,5 @@
 const util = require('./util.js');
+const Evaluator = require('./evaluator.js').Evaluator;
 //const modals = require('./modal.js');
 
 const _findChildInStruct = (json, name, remove) => {
@@ -161,6 +162,19 @@ class HtmlBuilder {
 class HtmlUpdater {
     constructor(htmlBuilder) {
         this._builder = htmlBuilder;
+        this._getEvaluator = (value) => {
+            if (!value._evaluator) {
+                value._evaluator = [];
+                let cVal = value.j || value;
+                do {
+                    if (cVal.ctx) {
+                        value._evaluator.push(cVal.ctx);
+                    }
+                    cVal = cVal._p;
+                } while (cVal);
+            }
+            return new Evaluator(value._evaluator);
+        }
     }
     //update dynamic attributes
     updateAttributes() {
@@ -168,7 +182,7 @@ class HtmlUpdater {
             util.values(this._builder._dynAttribs).forEach(value => {
                 const att = value.a;
                 try {
-                    const val = att.map(item => item.s ? value.j.ctx.eval(item.s) : item).join('');
+                    const val = att.map(item => item.s ? this._getEvaluator(value).eval(item.s) : item).join('');
                     const attName = value.n;
                     const e = value.e;
                     if (attName == 'checked') {
@@ -179,7 +193,7 @@ class HtmlUpdater {
                         this._builder._dom.setAttribute(e, attName, val);
                     }
                 } catch (ex) {
-                    console.error("Error updating attribute " + attName + " of " + (e.getAttribute("id") || e) + ".", ex);
+                    console.error(`Error updating attribute ${value.n}.`, ex);
                 }
             });
         }
@@ -188,10 +202,10 @@ class HtmlUpdater {
         if (!this._builder._m.isImport) {
             util.values(this._builder._mscripts).forEach(value => {
                 try {
-                    const evaluated = (value.ctx || value._p.ctx).eval(value.x);
+                    const evaluated = this._getEvaluator(value).eval(value.x);
                     value._n.nodeValue = evaluated;
                 } catch (ex) {
-                    console.error("Error updating attribute " + attName + " of " + (e.getAttribute("id") || e) + ".", ex);
+                    console.error(`Error updating script expression ${value.x}.`, ex);
                 }
             });
         }
