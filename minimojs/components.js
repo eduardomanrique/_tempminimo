@@ -150,14 +150,16 @@ const _createHtmxComponent = (compJs = "", varPath, compName) =>
        };
        ${compJs};
        ${_exposeFunctions(compJs)};
-       var __defineAttributes;
        try{
-         __defineAttributes = defineAttributes;
-       }catch(e){__defineAttributes=function(){}}
-       var __instanceProperties = __defineAttributes(__types.types);
-       if(_attrs && __instanceProperties){
-        __setUpGetterForAttributes(selfcomp, __m, this, __instanceProperties, _attrs, __types);
-       }
+         this.__defineAttributes = function(){
+           var r = defineAttributes(__types.types);
+           if(_attrs && __instanceProperties){
+            __setUpGetterForAttributes(selfcomp, __m, this, __instanceProperties, _attrs, __types);
+           }
+           return r;
+         }
+       }catch(e){this.__defineAttributes=function(){}}
+
        var generateId = m.generateId;
      }
    };`

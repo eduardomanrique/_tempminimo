@@ -1,6 +1,249 @@
+import { posix } from 'path';
+
 const util = require('./util.js');
 const Evaluator = require('./evaluator.js').Evaluator;
+const esprima = require('esprima');
 //const modals = require('./modal.js');
+
+const VirtualDomManager = function(mimimoInstance){
+    const _dom = new dom.Dom(mimimoInstance);
+    const _cache = {};
+    let _countCtx = 0;
+    const _ctxMap = {};
+    const _ctxVarMap = {};
+    const _evaluatorCtxVarMap = {};
+    const ContextManager = {
+        add: (ctx) => {
+            if(ctx._id){
+                throw new Error(`Added ctx ${ctx._id} twice`);
+            }
+            ctx._id = _countCtx++;
+            _ctxMap[ctx._id] = ctx;
+        },
+        remove: (ctx) => {
+            delete _ctxMap[ctx._id];
+        },
+        listen: (ctx, varName, container) => {
+            _ctxVarMap[ctx._id] = _ctxVarMap[ctx._id] || {}
+            _ctxVarMap[ctx._id][varName] = _ctxVarMap[ctx._id][varName] || [];
+            _ctxVarMap[ctx._id][varName].push(container);
+            _evaluatorCtxVarMap[container._id] = _evaluatorCtxVarMap[container._id] || [];
+            _evaluatorCtxVarMap[container._id].push(ctx);
+        },
+        containerRemoved: (container) => {
+            const list = _evaluatorCtxVarMap[container._id];
+            delete _evaluatorCtxVarMap[container._id];
+            for(let i = 0; i < list.length; i++){
+                delete _ctxVarMap[list[i]._id];
+            }
+        }
+    }
+    const _findIdentifiersOnScript = (e, a) => {
+        switch(e.type){
+            case "BinaryExpression": 
+            case "LogicalExpression":
+                _findIdentifiersOnScript(e.left, a);
+                _findIdentifiersOnScript(e.right, a);
+                break;
+            case "Identifier": 
+                a.push(e.name);
+                break;
+            case "MemberExpression": 
+                _findIdentifiersOnScript(e.object, a);
+                break;
+            case "ConditionalExpression":
+                _findIdentifiersOnScript(e.test, a);
+                _findIdentifiersOnScript(e.consequent, a);
+                _findIdentifiersOnScript(e.alternate, a);
+        }
+    }
+    const _findCtxList = (container) => {
+        const list = [];
+        const find = (_c) => {
+            if(_c instanceof ComponentContainer){
+                list.push(_c.getLocalContext());
+            }
+            if(_c.parent){
+                find(_c.parent);
+            }
+        }
+        find(container);
+        list.push(mimimoInstance);
+        return list;
+    }
+    class Evaluator{
+        constructor(container){
+            this._container = container;
+            this._ctxList = _findCtxList(container);
+        }
+        eval (exp) {
+            if(!this._wrapperCtx){
+                const cache = this.getVariables(exp);
+                const variables = [];
+                for(let i = 0; i < cache.variables.length; i++){
+                    const varName = cache.variables[i];
+                    for(let j = 0; j < this._ctxList.length; j++){
+                        const ctx = this._ctxList[i];
+                        try{
+                            var obj = ctx.eval(varName);
+                            variables.push(obj);
+                            ContextManager.listen(ctx, varName, this._container);
+                            break;
+                        }catch(e){
+                        }
+                    }
+                }
+                this._wrapperCtx = new (Function.prototype.bind.apply(cache.fn, [null].concat(variables)));
+            }
+            return wrapperCtx.eval.bind(this._ctxList[0])(exp);
+        }
+        getVariables(exp) {
+            var cached = EvaluatorManager._cache[exp];
+            if (!cached) {
+                var parsed = esprima.parse(exp);
+                if (parsed.body[0].type != "ExpressionStatement") {
+                    throw new Error("Invalid expression " + exp);
+                }
+                var expression = parsed.body[0].expression;
+                var cached = {
+                    variables: []
+                };
+                _findIdentifiersOnScript(expression, cached.variables);
+                cached.fn = eval(`function _evaluator(${cached.variables.join(',')}){
+                    return {
+                        eval: function(s){
+                            return eval(s);
+                        }
+                    }
+                };_evaluator`);
+                EvaluatorManager._cache[exp] = cached;
+            }
+            return cached;
+        }
+    }
+
+    class Container {
+        constructor(struct){
+            this._htmlStruct = htmlStruct;
+            this._child = [];
+        }
+        addChild(child) {
+            this._child.push(child);
+            child._parent = this;
+        }
+        remove() {
+            this.removeChild();
+            ContextManager.containerRemoved(this);
+        }
+        removeChild(){
+            this._child.forEach(c => c.remove());
+        }
+        forEachChild(fn){
+            this._child.forEach(fn);
+        }
+        update(){}
+    }
+    class ContextContainer extends Container {
+        constructor(struct, ctx){
+            super(struct, ctx);
+            ContextManager.add(ctx);
+            this._ctx = ctx;
+        }
+    }
+    class ComponentContainer extends ContextContainer {
+        constructor(struct, ctx){
+            super(struct, ctx);
+            parametersDefinition = ctx.__defineAttributes();
+            render once the comp is created
+                create virtualdom from htmlstruct
+        }
+    }
+    class EvaluatorContainer extends EvaluatorContainer {
+        constructor(struct, ctx){
+            super(struct, ctx);
+            this._evaluator = new Evaluator(this);
+        }
+    }
+    class IfContainer extends EvaluatorContainer {
+        constructor(struct, ctx, conditionScript){
+            super(struct, ctx);
+            this._condition = conditionScript; 
+            this._last = null;
+        }
+        update(){
+            const val = this._evaluator.eval(this._condition);
+            if(val != this._last){
+                this._last = val;
+                if(val){
+                    create virtualdom from htmlstruct
+                }else{
+                    this.removeChild();
+                }
+            }
+        }
+    }
+    class ListIteratorContainer extends EvaluatorContainer {
+        constructor(struct, ctx, listName){
+            super(struct, ctx);
+            this._listName = listName;
+            this._lastList = [];
+        }
+        update(){
+            let list = this._evaluator.eval(listName);
+            make a diff between list and _lastList   
+                if add, add to child in the same pos
+                if removed remove the child from the same pos
+                if is the same check the modifications but dont change the browser dom
+            this._lastList = [].concat(list);
+        }
+    }
+
+    class ElementContainer extends EvaluatorContainer {
+        constructor(struct, ctx){
+            super(struct, ctx);
+            this._dynAtt = get form struct...
+            this._e = dom.createElement ...
+            trigger create element
+            set defineAttributes
+            intercept if atrivute was added
+            hold de events
+                trigger create event
+                all the events will pass here
+                after triggered: miminoInstance.update()
+        }
+        update(){
+            update dynAtt
+        }
+        appendToDomElement(element){
+            element.appendChild(this._e);
+            this.forEachChild((c) => c.appendToDomElement(this._e));
+        }
+    insideComponent - set once
+        true if it is a html comp type ou mbody and there is a parent comp
+        if true then partOfComponet=false
+        if false then partOfComponet = false or true
+    partOfComponet - set once
+        true if it is part of htmlstruct of a comp
+        if true then insideComponent=false
+        if false then insideComponent = false or true
+    getComponent - set once - check just if insideComponent or partOfComponet
+        finds in parent chain till find component
+    getEvaluator - create just the first exec
+        if insideComponent get the chain of component + minimo.
+        if partOfComponet get just the parentcomponent.getLocalContext
+        if not insideComponent and not partOfComponet get mimimo
+    parent
+    dynAttribs
+        on update minimo
+            getEvaluator().eval(script)
+                if changed from last time e.setAttribute
+    child
+    remove
+        remove itself and its child
+        must call remove on child first
+        trigger remove event
+    }
+}
 
 const _findChildInStruct = (json, name, remove) => {
     const lcName = name.toLowerCase();
@@ -213,5 +456,6 @@ class HtmlUpdater {
 }
 
 module.exports = {
-    HtmlBuilder: HtmlBuilder
+    HtmlBuilder: HtmlBuilder,
+    EvaluatorManager: EvaluatorManager
 }

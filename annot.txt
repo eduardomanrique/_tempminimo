@@ -1,69 +1,18 @@
+classes globais (ficarao no Mimimo$)
+    ContextManager
+    EvaluatorManager
 pensar melhor
     html
         json
             evaluator
-                eval
-                    first time, parse and cache globally
-                    first find context of variables
-                        start to listen to changes to that var in that context
-                onchanged var
-                    call its element to update
-                getvariable context
             container
-                parentelement
-                getLocalContext = new fn(minimo...)
-                htmlStruct
-                parameters = from htmlStruct
-                directChild - first level child list
-                remove - remove all directChild and the others that are in the midle of them
-                
             component > container
-                getLocalContext = new fncomponent(minimo...)
-                parametersDefinition = getLocalContext.defineAtt
-                render once the comp is created
-                    create virtualdom from htmlstruct
+
                 
             virtualdomIterator > container
-                hold the condition or list
-                render every time condition changes
-                    create virtualdom from htmlstruct
-                    for every item of iteration a new container
-                    check if the item of the list was changed, deleted or added to improve creation
-                
+                    
             virtualdomElement
-                hold the element
-                    points to virtual dom, se nao é criado fora
-                hold the events
-                render just once
-                    create browserdom
-                    set non dyn attribs
-                    append to parent
-                        if parent not component - add to its element - else add to its parent
-                    trigger create event
-                insideComponent - set once
-                    true if it is a html comp type ou mbody and there is a parent comp
-                    if true then partOfComponet=false
-                    if false then partOfComponet = false or true
-                partOfComponet - set once
-                    true if it is part of htmlstruct of a comp
-                    if true then insideComponent=false
-                    if false then insideComponent = false or true
-                getComponent - set once - check just if insideComponent or partOfComponet
-                    finds in parent chain till find component
-                getEvaluator - create just the first exec
-                    if insideComponent get the chain of component + minimo.
-                    if partOfComponet get just the parentcomponent.getLocalContext
-                    if not insideComponent and not partOfComponet get mimimo
-                parent
-                dynAttribs
-                    on update minimo
-                        getEvaluator().eval(script)
-                            if changed from last time e.setAttribute
-                child
-                remove
-                    remove itself and its child
-                    must call remove on child first
-                    trigger remove event
+                
             virtualdomText
                 hold the text
                     points to virtual dom, se nao é criado fora
