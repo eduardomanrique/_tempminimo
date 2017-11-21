@@ -43,18 +43,28 @@ var _string = {
         return typeof(s) == 'string';
     }
 }
-var _boundVariable = {
+var _testIdentifier = e => {
+    var exec = /[a-zA-Z\$_][a-zA-Z0-9\$_]*/.exec(e);
+    return exec && exec[0] == e;
+}
+
+var _bind = {
     validate: function (v){
         if(v != null && v.trim() != ''){
-            return v.split('.').every(e => {
-                var exec = /[a-zA-Z\$_][a-zA-Z0-9\$_]*/.exec(e);
-                return exec && exec[0] == e;
-            });
+            return v.split('.').every(_testIdentifier);
         }
         return false;
     }
 }
-var _bind = _boundVariable;
+var _boundVariable = {
+    validate: function (v){
+        if(v != null && v.trim() != ''){
+            return _testIdentifier(v);
+        }
+        return false;
+    }
+};
+var _exportedVariable = _boundVariable;
 var _bool = {
     validate: function(v){
         return v.toLowerCase() == 'true' || v.toLowerCase() == 'false';
@@ -73,6 +83,7 @@ module.exports = {
         number: new ComponentType("number", _numeric, false),
         bool: new ComponentType("bool", _bool, false),
         boundVariable: new ComponentType("boundVariable", _boundVariable, false),
+        exportedVariable: new ComponentType("exportedVariable", _exportedVariable, false),
         html: new ComponentType("html", _string, false),
         bind: new ComponentType("bind", _bind, false),
         any: new ComponentType("any", null, false),
@@ -81,6 +92,7 @@ module.exports = {
             number: new ComponentType("number", _numeric, true),
             bool: new ComponentType("bool", _bool, true),
             boundVariable: new ComponentType("boundVariable", _boundVariable, true),
+            exportedVariable: new ComponentType("exportedVariable", _exportedVariable, true),
             html: new ComponentType("html", _string, true),
             bind: new ComponentType("bind", _bind, true),
             any: new ComponentType("any", null, true)

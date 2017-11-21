@@ -137,7 +137,7 @@ describe('Test html parser', function () {
 
     discardEmptyText();
     expect(node).is.instanceof(htmlParser.TemplateScript)
-    expect(node.count).is.eq('(a == 1)?1:0');
+    expect(node.condition).is.eq('a == 1');
     expect(node.children[1].name).is.eq('div');
     expect(node.children[1].getAttribute("att")).is.eq("val");
     expect(node.children[1].getAttribute("dyn")).is.eq("${a.op() + '3'}");

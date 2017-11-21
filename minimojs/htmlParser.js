@@ -452,7 +452,7 @@ class Element extends Node {
 class TemplateScript extends Element {
   constructor() {
     super();
-    this._count = null;
+    this._condition = null;
     this._listVariable = null;
     this._iterateVariable = null;
     this._indexVariable = null;
@@ -464,11 +464,11 @@ class TemplateScript extends Element {
   get id() {
     return this._id;
   }
-  set count(c) {
-    this._count = c;
+  set condition(c) {
+    this._condition = c;
   }
-  get count() {
-    return this._count;
+  get condition() {
+    return this._condition;
   }
   set listVariable(c) {
     this._listVariable = c;
@@ -493,7 +493,7 @@ class TemplateScript extends Element {
   }
   toJson() {
     return _clearObj({
-      xc: this._count,
+      xc: this._condition,
       xl: this._listVariable,
       xv: this._iterateVariable,
       xi: this._indexVariable,
@@ -593,7 +593,7 @@ class HTMLParser {
         this.closeCurrentText();
         //if template script eg: $if(exp){
         const templateIf = new TemplateScript();
-        templateIf.count = `(${templateIfScript})?1:0`;
+        templateIf.condition = `${templateIfScript}`;
         this._currentParent.addChild(templateIf);
         this._currentParent = templateIf;
         this._current = null;

@@ -146,17 +146,14 @@ class DOM {
 	addListener(...listeners) {
 		listeners.forEach(l => this._elementsListener.push(l));
 	}
-	createTextNode(insertPoint, text, isScript) {
-		if (isScript) {
-			insertPoint.innerHTML = text;
-			this._elementsListener.forEach(l => l.onCreateScript && l.onCreateScript(text));
-		} else {
-			const textNode = this._doc.createTextNode(text);
-			insertPoint.appendChild(textNode);
-			this._elementsListener.forEach(l => l.onCreateText && l.onCreateText(textNode));
-			return util.optionOf(textNode);
-		}
-		return util.emptyOption();
+	setScriptText(element, script){
+		element.innerHTML = text;
+		this._elementsListener.forEach(l => l.onCreateScript && l.onCreateScript(text));
+	}
+	createTextNode(text) {
+		const textNode = this._doc.createTextNode(text);
+		this._elementsListener.forEach(l => l.onCreateText && l.onCreateText(textNode));
+		return textNode;
 	}
 	createElement(name) {
 		const el = this._doc.createElement(name);

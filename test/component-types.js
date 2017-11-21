@@ -102,12 +102,12 @@ describe('Test component types', function () {
     it('Test boundVariable', () => {
         expect(types.boundVariable.isMandatory()).is.eq(false);
         expect(types.boundVariable.defaultValue('_a').isMandatory()).is.eq(false);
-        expect(types.boundVariable.defaultValue('a.b').equivalent(types.boundVariable)).is.eq(true);
+        expect(types.boundVariable.defaultValue('a').equivalent(types.boundVariable)).is.eq(true);
         expect(types.boundVariable.hasDefaultValue()).is.eq(false);
         expect(types.boundVariable.defaultValue('$').hasDefaultValue()).is.eq(true);
         expect(types.mandatory.boundVariable.isMandatory()).is.eq(true);
-        expect(types.mandatory.boundVariable.defaultValue('a.a.c').isMandatory()).is.eq(true);
-        expect(types.mandatory.boundVariable.defaultValue('aa.test').equivalent(types.boundVariable)).is.eq(true);
+        expect(types.mandatory.boundVariable.defaultValue('c').isMandatory()).is.eq(true);
+        expect(types.mandatory.boundVariable.defaultValue('aa').equivalent(types.boundVariable)).is.eq(true);
         expect(types.mandatory.boundVariable.hasDefaultValue()).is.eq(false);
         expect(types.mandatory.boundVariable.defaultValue('asdf').hasDefaultValue()).is.eq(true);
 

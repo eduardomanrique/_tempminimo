@@ -189,7 +189,7 @@ describe('Client scripts - dom.js', () => {
         dom1.createElement('input');
         dom1.createElement('button');
         dom1.createElement('a');
-        dom1.createTextNode(dom1.getElementById("sp").value, 'input', false);
+        dom1.getElementById("sp").value.appendChild(dom1.createTextNode('input', false));
 
         listener.inputs.should.have.lengthOf(2);
         listener.links.should.have.lengthOf(1);
