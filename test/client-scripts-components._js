@@ -20,11 +20,11 @@ before(() => startComponents()
                 .replace("'%components%'", comp.getScripts())
                 .replace("'%component-types%'", comp.getComponentTypes())
                 .replace("'%__setUpGetterForAttributes%'", comp.getSetUpGetterForAttributesScript());
-            createComponentCtx = eval(`${script};createComponentContext`);
+            createComponentCtx = eval(`${script};buildComponentBuilderFunction`);
         })));
 
 describe('Client scripts - components.js', () => {
-    it('createComponentContext', () => {
+    it('buildComponentBuilderFunction', () => {
         const m = new function () {
             var obj = {
                 id: 1234

@@ -1,47 +1,54 @@
 const util = require('../util.js');
-const EvaluatorManager = require('./evaluator-manager');
+const EvaluatorManager = require('./evaluator');
 const dom = require('../dom');
 const ContextManager = require('./context-manager');
-const buildComponentBuilderFunction = require('../components.js').buildComponentBuilderFunction;
 //const modals = require('./modal.js');
 
-const VirtualDomManager = function (mimimoInstance) {
-    const _dom = new dom.Dom(mimimoInstance);
+const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFunction) {
     const ctxManager = new ContextManager();
     const evaluatorManager = new EvaluatorManager(mimimoInstance, ctxManager);
     const componentBuilderFunction = buildComponentBuilderFunction(mimimoInstance);
 
     const _buildVirtualDom = (json, parentVDom) => {
-        const vdom = () => {
-            if (json.cn) {
-                return new ComponentContainer(json);
-            } else if (json.xc) {
-                return new IfContainer(json);
-            } else if (json.xl) {
-                return new ListIteratorContainer(json);
-            } else if (json.n) {
-                return new Element(json);
-            } else if (json.x) {
-                return new DynText(json);
-            } else {
-                return new Text(json);
-            }
+        let vdom;
+        if (json.cn) {
+            vdom = new ComponentContainer(json);
+        } else if (json.xc) {
+            vdom = new IfContainer(json);
+        } else if (json.xl) {
+            vdom = new ListIteratorContainer(json);
+        } else if (json.n) {
+            vdom = new Element(json);
+        } else if (json.x) {
+            vdom = new DynText(json);
+        } else {
+            vdom = new Text(json);
         }
-        parentVDom.appendChild(vdom);
         vdom._postBuild();
+        parentVDom.appendChild(vdom);
+        return vdom
     }
 
     const _build = (json, parent) => {
         const vdom = _buildVirtualDom(json, parent);
-        for (let i = 0; i < vdom.struct.c.length; i++) {
-            _build(vdom.struct.c[i], vdom);
+        if (vdom.struct.c) {
+            for (let i = 0; i < vdom.struct.c.length; i++) {
+                _build(vdom.struct.c[i], vdom);
+            }
         }
         return vdom;
     }
 
+    this.build = (json, insertPoint) => {
+        const topElement = new GenericBrowserElement();
+        topElement.element = insertPoint;
+        return new Promise(r => r(_build(json, topElement)));
+    }
+
+
     class VirtualDom {
         constructor(htmlStruct, parent) {
-            this.struct = htmlStruct;
+            this._struct = htmlStruct;
             this._nodeList = [];
             this._childList = [];
         }
@@ -52,18 +59,18 @@ const VirtualDomManager = function (mimimoInstance) {
             return this._parent;
         }
         set ctx(c) {
-            this._ctx = ctx;
+            this._ctx = c;
         }
         get ctx() {
             return this._ctx;
         }
         get struct() {
-            return this.struct;
+            return this._struct;
         }
         get nodeList() {
             return this._nodeList;
         }
-        get childList (){
+        get childList() {
             return this._childList;
         }
         get firstNode() {
@@ -81,20 +88,20 @@ const VirtualDomManager = function (mimimoInstance) {
                 }
             }));
         }
-        eval(s){
+        eval(s) {
             return this.ctx.eval(s);
         }
         removeChild(c) {
             const indNode = this.nodeList.indexOf(c);
             const indChild = this.childList.indexOf(c);
-            if(indNode >= 0){
+            if (indNode >= 0) {
                 this.nodeList.splice(indNode, 1);
                 this.childList.splice(indChild, 1);
                 c._onRemove();
             }
         }
         appendChild(c) {
-            insertBefore(c, null);
+            this.insertBefore(c, null);
         }
         insertBefore(child, vdom) {
             const indNode = this.nodeList.indexOf(vdom);
@@ -107,7 +114,7 @@ const VirtualDomManager = function (mimimoInstance) {
                 this.childList.push(vdom);
             }
             child.parent = this;
-            _insertBefore(child, vdom);
+            this._insertBefore(child, vdom);
         }
         updateDom() {}
         _onRemove() {}
@@ -125,18 +132,29 @@ const VirtualDomManager = function (mimimoInstance) {
                 this._e.appendChild(nodeList[i]);
             }
         }
-        _onRemove(){
+        _onRemove() {
             this._e.remove();
         }
         _createBrowserElement() {}
     }
+    class GenericBrowserElement extends BrowserElement {
+        _createBrowserElement() {
+            return this.element;
+        }
+        set element(e) {
+            this._e = e;
+        }
+        get element() {
+            return this._e;
+        }
+    }
     class Element extends BrowserElement {
         _createBrowserElement() {
             this.ctx = evaluatorManager.build(this);
-            let e = dom.createElement(h.n);
+            let e = dom.createElement(this.struct.n);
             this._dynAtt = {};
-            for (let k in h.a) {
-                let a = h.a[k];
+            for (let k in this.struct.a) {
+                let a = this.struct.a[k];
                 if (a instanceof Array) {
                     this._dynAtt[k] = a;
                 } else {
@@ -194,7 +212,7 @@ const VirtualDomManager = function (mimimoInstance) {
         _insertBefore(child, vdom) {
             this.parent._insertBefore(child, vdom);
         }
-        _postBuildContainer(){}
+        _postBuildContainer() {}
     }
     class ComponentContainer extends Container {
         _postBuildContainer() {
@@ -237,7 +255,7 @@ const VirtualDomManager = function (mimimoInstance) {
                 const pos = list.indexOf(item);
                 if (pos < 0) {
                     this.removeChild(this.childList[i]);
-                }else{
+                } else {
                     currList.push(item);
                 }
             }
@@ -252,7 +270,7 @@ const VirtualDomManager = function (mimimoInstance) {
                     this.insertBefore(child, afterVDom);
                     currList.splice(pos, 1);
                     currList.splice(pos, 0, item);
-                }else if (pos < 0){
+                } else if (pos < 0) {
                     child = new ItemIteratorContainer(this.struct, this);
                     child.item = item;
                 }
@@ -262,7 +280,7 @@ const VirtualDomManager = function (mimimoInstance) {
         }
     }
     class ItemIteratorContainer extends Container {
-        _postBuildContainer(){
+        _postBuildContainer() {
             this._itemVarName = this.struct.xv;
             this._indexVarName = this.struct.xi;
             this._iteratorContext = eval(`new function(){
@@ -280,11 +298,15 @@ const VirtualDomManager = function (mimimoInstance) {
             }`);
             this.ctx = evaluatorManager.buildWith(this, this._iteratorContext);
         }
-        set item(i){
+        set item(i) {
             this._iteratorContext.__set_item(i);
         }
-        set index(i){
+        set index(i) {
             this._iteratorContext.__set_index(i);
         }
     }
+}
+
+module.exports = {
+    VirtualDomManager: VirtualDomManager
 }
