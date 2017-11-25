@@ -67,7 +67,7 @@ describe('Client scripts - virtualdom.js', () => {
                 document.getElementById("s1").getAttribute("src").should.eq("/test.js");
             })
     });
-/*
+
     it('Dyn attrib builder', () => {
         document.body.innerHTML = `
             <html>
@@ -77,8 +77,9 @@ describe('Client scripts - virtualdom.js', () => {
         const json = {
             "n": "div",
             "a": {
+                "id": "checkedDiv",
                 "checked": [{
-                    s: "true"
+                    s: "obj.isChecked"
                 }]
             },
             "c": [{
@@ -99,20 +100,30 @@ describe('Client scripts - virtualdom.js', () => {
             }]
         };
         const insertPoint = document.body;
-        const minimo = {
-            eval: function (s) {
-                const obj = {
-                    id: 1
-                }
+        const minimo = new function(){
+            const obj = {
+                id: 1,
+                isChecked: true
+            }
+            this._obj = obj;
+            this.eval = function (s) {
                 return eval(s);
             }
         }
         const domObj = new dom.DOM(minimo, document.body, document);
-        const builder = new htmlBuilder.HtmlBuilder(minimo, domObj, {});
-        return builder.createElements(json, insertPoint)
-            .then(updater => {
-                updater.updateAttributes();
+        const virtualDomManager = new virtualDom.VirtualDomManager(minimo, domObj, buildComponentBuilderFunction);
+        return virtualDomManager.build(json, insertPoint)
+            .then(vdom => {
+                vdom.update();
                 expect(document.getElementById("ID_2")).not.be.null;
+                document.getElementById("checkedDiv").getAttribute("checked").should.eq("true");
+                minimo._obj.isChecked = false;
+                minimo._obj.id = 2;
+                // console.log(document.body.innerHTML);
+                vdom.update();
+                expect(document.getElementById("ID_3")).not.be.null;
+                expect(document.getElementById("ID_2")).to.be.null;
+                document.getElementById("checkedDiv").getAttribute("checked").should.eq("false");
             })
     });
 
@@ -149,10 +160,10 @@ describe('Client scripts - virtualdom.js', () => {
             eval: function (s) {}
         }
         const domObj = new dom.DOM(minimo, document.body, document);
-        const builder = new htmlBuilder.HtmlBuilder(minimo, domObj, buildComponentBuilderFunction);
-        return builder.createElements(json, insertPoint)
-            .then(updater => {
-                updater.updateAttributes();
+        const virtualDomManager = new virtualDom.VirtualDomManager(minimo, domObj, buildComponentBuilderFunction);
+        return virtualDomManager.build(json, insertPoint)
+            .then(vdom => {
+                vdom.update();
                 expect(document.getElementById("sp")).not.be.null;
                 document.getElementById("sp").innerHTML.should.eq("spanvalue");
             })
@@ -224,15 +235,14 @@ describe('Client scripts - virtualdom.js', () => {
             }
         }
         const domObj = new dom.DOM(minimo, document.body, document);
-        const builder = new htmlBuilder.HtmlBuilder(minimo, domObj, buildComponentBuilderFunction`);
-        return builder.createElements(json, insertPoint)
-            .then(updater => {
-                updater.updateAttributes();
-                updater.updateMScripts();
+        const virtualDomManager = new virtualDom.VirtualDomManager(minimo, domObj, buildComponentBuilderFunction);
+        return virtualDomManager.build(json, insertPoint)
+            .then(vdom => {
+                vdom.update();
                 console.log(document.body.innerHTML)
                 expect(document.getElementById("wid_test")).not.be.null;
                 document.getElementById("sp").innerHTML.should.eq("spanvalue");
                 document.getElementById("sp2").innerHTML.should.eq("wid_test-objid");
             })
-    });*/
+    });
 });

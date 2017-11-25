@@ -62,6 +62,9 @@ const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFu
             this._ctx = c;
         }
         get ctx() {
+            if(!this._ctx && this.parent){
+                return this.parent.ctx;
+            }
             return this._ctx;
         }
         get struct() {
@@ -108,15 +111,21 @@ const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFu
             const indChild = this.childList.indexOf(vdom);
             if (indNode >= 0) {
                 this.nodeList.splice(indNode, 0, child);
-                this.childList.splice(indChild, 0, vdom);
+                this.childList.splice(indChild, 0, child);
             } else {
-                this.nodeList.push(vdom);
-                this.childList.push(vdom);
+                this.nodeList.push(child);
+                this.childList.push(child);
             }
             child.parent = this;
             this._insertBefore(child, vdom);
         }
-        updateDom() {}
+        update(){
+            this._updateDom();
+            for(let i = 0; i < this.childList.length; i++){
+                this.childList[i].update();
+            }
+        }
+        _updateDom() {}
         _onRemove() {}
         _insertBefore(child, vdom) {}
     }
@@ -163,15 +172,15 @@ const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFu
             }
             return e;
         }
-        updateDom() {
+        _updateDom() {
             for (let k in this._dynAtt) {
                 const values = this._dynAtt[k];
                 const buffer = [];
                 for (let i = 0; i < values.length; i++) {
-                    if (typeof (values[i]) == "string") {
-                        buffer.push(this.eval(values[i]));
+                    if (values[i].s) {
+                        buffer.push(this.eval(values[i].s));
                     } else {
-                        buffer.push(values[i]);
+                        buffer.push(util.safeToString(values[i]));
                     }
                 }
                 dom.setAttribute(this._e, k, buffer.join(''));
@@ -180,13 +189,16 @@ const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFu
     }
     class Text extends BrowserElement {
         _createBrowserElement() {
-            return createTextNode(this.struct);
+            return dom.createTextNode(typeof(this.struct) == 'string' ? this.struct : this.struct.t);
         }
     }
-    class DynText extends Text {
-        updateDom() {
+    class DynText extends BrowserElement {
+        _createBrowserElement() {
             this.ctx = evaluatorManager.build(this);
-            this._e.nodeValue = this.eval(this.struct);
+            return dom.createTextNode('');
+        }
+        _updateDom() {
+            this._e.nodeValue = this.eval(this.struct.x);
         }
     }
     class Container extends VirtualDom {
@@ -195,7 +207,7 @@ const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFu
             this.nodeList.push(this._startNode);
             this._endNode = dom.createTextNode("");
             this.nodeList.push(this._endNode);
-            _postBuildContainer();
+            this._postBuildContainer();
         }
         _onRemove() {
             var nodeList = this.nodeListAsDom;
@@ -204,10 +216,10 @@ const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFu
                 n.remove();
             }
         }
-        updateDom() {
+        _updateDom() {
             this.nodeList
                 .filter(e => e instanceof VirtualDom)
-                .forEach(e => e.updateDom());
+                .forEach(e => e._updateDom());
         }
         _insertBefore(child, vdom) {
             this.parent._insertBefore(child, vdom);
@@ -229,7 +241,7 @@ const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFu
             this._condition = this.struct.xc;
             this._last = null;
         }
-        updateDom() {
+        _updateDom() {
             const val = this.eval(this._condition);
             if (val != this._last) {
                 this._last = val;
@@ -246,7 +258,7 @@ const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFu
             this._listName = this.struct.xl;
             this._lastList = [];
         }
-        updateDom() {
+        _updateDom() {
             let list = this.eval(this._listName);
             //remove from html the removed
             const currList = [];

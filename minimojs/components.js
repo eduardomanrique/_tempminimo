@@ -150,15 +150,16 @@ const _createHtmxComponent = (compJs = "", varPath, compName) =>
        };
        ${compJs};
        ${_exposeFunctions(compJs)};
-       try{
-         this.__defineAttributes = function(){
+        this.__defineAttributes = function(){
+          try{
            var r = defineAttributes(__types.types);
            if(_attrs && __instanceProperties){
             __setUpGetterForAttributes(selfcomp, __m, this, __instanceProperties, _attrs, __types);
            }
            return r;
-         }
-       }catch(e){this.__defineAttributes=function(){}}
+          }catch(e){return {}}
+        }
+       
 
        var generateId = m.generateId;
      }

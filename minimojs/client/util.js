@@ -41,6 +41,18 @@ const values = (obj) => {
     }
     return result;
 }
+const safeToString = (x) => {
+    switch (typeof x) {
+      case 'object':
+        return 'object';
+      case 'function':
+        return 'function';
+      case 'string':
+        return x;
+      default:
+        return x + '';
+    }
+  }
 module.exports = {
     flatten: flatten,
     nodeListToArray: nodeListToArray,
@@ -50,5 +62,6 @@ module.exports = {
     tail: tail,
     generateId: genId,
     keyValues: keyValues,
-    values: values
+    values: values,
+    safeToString: safeToString
 };
