@@ -125,6 +125,7 @@ const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFu
     class BrowserElement extends VirtualDom {
         _onBuild() {
             this._e = this._createBrowserElement();
+            
             this._nodeList.push(this._e);
         }
         _insertBefore(child, vdom) {
@@ -199,10 +200,7 @@ const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFu
     }
     class Container extends VirtualDom {
         _onBuild() {
-            this._startNode = dom.createTextNode("");
-            this._nodeList.push(this._startNode);
-            this._endNode = dom.createTextNode("");
-            this._nodeList.push(this._endNode);
+            this._nodeList.push(dom.createTextNode(""));
             this._onBuildContainer();
         }
         get lastNode() {

@@ -474,88 +474,88 @@ describe('Client scripts - virtualdom.js', () => {
                 minimo.getItem(0).values.push("c");
                 vdom.update();
                 d1.innerHTML.should.be.eq('item:One, values:|i:0,j:0,value:a||i:0,j:1,value:b||i:0,j:2,value:c|, item:New, values:|i:1,j:0,value:v1||i:1,j:1,value:v2|, item:Two, ');
-                
+
                 minimo.remove(0);
                 vdom.update();
                 d1.innerHTML.should.be.eq('item:New, values:|i:0,j:0,value:v1||i:0,j:1,value:v2|, item:Two, ');
             })
     });
 
-    /*
-        it('Component with html attribute', () => {
-            document.body.innerHTML = `
+
+    it('Component with html attribute', () => {
+        document.body.innerHTML = `
                 <html>
                     <body></body>
                 </html>
             `;
-            const json = {
-                "ci": "id_258809",
-                "cn": "htmxstyle.wrapper_html_attribute",
-                "ip": {
-                    "id": "wid",
-                    "innerattribute": {
-                        "test": [{
-                            "s": "this.id"
-                        }, "_test"],
-                        "content": [{
-                            "n": "span",
-                            "a": {
-                                "id": "sp"
-                            },
-                            "c": [{
-                                "x": "this.innerattribute.test"
-                            }]
-                        }, {
-                            "t": " - "
-                        }, {
-                            "n": "span",
-                            "a": {
-                                "id": "sp2"
-                            },
-                            "c": [{
-                                "x": "this.innerattribute.test"
-                            }, {
-                                "t": "-"
-                            }, {
-                                "x": "obj.id"
-                            }]
+        const json = {
+            "ci": "id_258809",
+            "cn": "htmxstyle.wrapper_html_attribute",
+            "ip": {
+                "id": "wid",
+                "innerattribute": {
+                    "test": [{
+                        "s": "this.id"
+                    }, "_test"],
+                    "content": [{
+                        "n": "span",
+                        "a": {
+                            "id": "sp"
+                        },
+                        "c": [{
+                            "x": "this.innerattribute.test"
                         }]
-                    }
+                    }, {
+                        "t": " - "
+                    }, {
+                        "n": "span",
+                        "a": {
+                            "id": "sp2"
+                        },
+                        "c": [{
+                            "x": "this.innerattribute.test"
+                        }, {
+                            "t": "-"
+                        }, {
+                            "x": "obj.id"
+                        }]
+                    }]
+                }
+            },
+            "c": [{
+                "n": "div",
+                "a": {
+                    "id": [{
+                        "s": "this.innerattribute.test"
+                    }]
                 },
                 "c": [{
-                    "n": "div",
-                    "a": {
-                        "id": [{
-                            "s": "this.id"
-                        }]
-                    },
-                    "c": [{
-                        "x": "this.innerattribute.test"
-                    }, {
-                        "t": ": "
-                    }, {
-                        "x": "this.innerattribute.content"
-                    }]
+                    "x": "this.innerattribute.test"
+                }, {
+                    "t": ": "
+                }, {
+                    "x": "this.innerattribute.content"
                 }]
-            };
-            const insertPoint = document.body;
-            const obj = {
-                id: 'objid'
+            }]
+        };
+        const insertPoint = document.body;
+        const obj = {
+            id: 'objid'
+        }
+        const minimo = {
+            eval: function (s) {
+                return eval(s);
             }
-            const minimo = {
-                eval: function (s) {
-                    return eval(s);
-                }
-            }
-            const domObj = new dom.DOM(minimo, document.body, document);
-            const virtualDomManager = new virtualDom.VirtualDomManager(minimo, domObj, buildComponentBuilderFunction);
-            return virtualDomManager.build(json, insertPoint)
-                .then(vdom => {
-                    vdom.update();
-                    console.log(document.body.innerHTML)
-                    expect(document.getElementById("wid_test")).not.be.null;
-                    document.getElementById("sp").innerHTML.should.eq("spanvalue");
-                    document.getElementById("sp2").innerHTML.should.eq("wid_test-objid");
-                })
-        });*/
+        }
+        const domObj = new dom.DOM(minimo, document.body, document);
+        const virtualDomManager = new virtualDom.VirtualDomManager(minimo, domObj, buildComponentBuilderFunction);
+        return virtualDomManager.build(json, insertPoint)
+            .then(vdom => {
+                vdom.update();
+                console.log(document.body.innerHTML)
+                expect(document.getElementById("wid_test")).not.be.null;
+                document.getElementById("sp").innerHTML.should.eq("spanvalue");
+                document.getElementById("sp2").innerHTML.should.eq("wid_test-objid");
+            })
+    });
 });

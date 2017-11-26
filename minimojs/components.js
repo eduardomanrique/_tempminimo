@@ -153,8 +153,8 @@ const _createHtmxComponent = (compJs = "", varPath, compName) =>
         this.__defineAttributes = function(){
           try{
            var r = defineAttributes(__types.types);
-           if(_attrs && __instanceProperties){
-            __setUpGetterForAttributes(selfcomp, __m, this, __instanceProperties, _attrs, __types);
+           if(_attrs){
+            __setUpGetterForAttributes(selfcomp, __m, this, r, _attrs, __types);
            }
            return r;
           }catch(e){return {}}
