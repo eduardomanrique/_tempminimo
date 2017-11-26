@@ -17,6 +17,15 @@ const _findIdentifiersOnScript = (e, a) => {
             _findIdentifiersOnScript(e.test, a);
             _findIdentifiersOnScript(e.consequent, a);
             _findIdentifiersOnScript(e.alternate, a);
+            break;
+        case "CallExpression":
+            _findIdentifiersOnScript(e.callee, a);
+            if(e.arguments){
+                for(let i = 0; i < e.arguments.length; i++){
+                    _findIdentifiersOnScript(e.arguments[i], a);
+                }
+            }
+            break;
     }
 }
 
@@ -54,13 +63,13 @@ const EvaluatorManager = function (root, ctxManager) {
             for (let i = 0; i < cache.variables.length; i++) {
                 const varName = cache.variables[i];
                 for (let j = 0; j < this._ctxList.length; j++) {
-                    const ctx = this._ctxList[i];
+                    const ctx = this._ctxList[j];
                     try {
                         var obj = ctx.eval(varName);
                         variables.push(obj);
                         if(!this._listening[exp]){
                             this._listening[exp] = true;
-                            ctxManager.listen(ctx, varName, this._container);
+                            ctxManager.listen(ctx, varName, this._virtualDom);
                         }
                         break;
                     } catch (e) {}
@@ -82,12 +91,12 @@ const EvaluatorManager = function (root, ctxManager) {
                 };
                 _findIdentifiersOnScript(expression, cached.variables);
                 cached.fn = eval(`function _evaluator(${cached.variables.join(',')}){
-            return {
-                eval: function(s){
-                    return eval(s);
-                }
-            }
-        };_evaluator`);
+                    return {
+                        eval: function(s){
+                            return eval(s);
+                        }
+                    }
+                };_evaluator`);
                 _cache[exp] = cached;
             }
             return cached;
