@@ -5,9 +5,12 @@ function defineAttributes(types){
     "innerattribute": {
       "test": types.mandatory.string,
       "content": types.mandatory.html
-    }
+    },
+    "wraperVarName": types.exportedVariable.of("wrapperInternalVar")
   }
 }
+
+var wrapperInternalVar = "abcd";
 
 function getValue(){
   return "methodval";

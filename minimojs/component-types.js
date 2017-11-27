@@ -5,6 +5,7 @@ function ComponentType(typeName, validator, mandatory, defaultValue) {
         }
         return new ComponentType(typeName, validator, mandatory, val);
     };
+    this.of = this.defaultValue;
     this.hasDefaultValue = function(){
         return defaultValue != null;
     };

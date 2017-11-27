@@ -20,7 +20,7 @@ const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFu
         } else if (json.n) {
             vdom = new Element(json);
         } else if (json.x) {
-            vdom = new DynText(json);
+            vdom = new DynContent(json);
         } else {
             vdom = new Text(json);
         }
@@ -66,7 +66,7 @@ const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFu
                 }
             }));
         }
-        _buildChild() {
+        _buildChildren() {
             if (this._struct.c) {
                 for (let i = 0; i < this._struct.c.length; i++) {
                     _buildVirtualDom(this._struct.c[i], this);
@@ -125,7 +125,7 @@ const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFu
     class BrowserElement extends VirtualDom {
         _onBuild() {
             this._e = this._createBrowserElement();
-            
+
             this._nodeList.push(this._e);
         }
         _insertBefore(child, vdom) {
@@ -167,7 +167,7 @@ const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFu
             return e;
         }
         _postBuild() {
-            this._buildChild();
+            this._buildChildren();
         }
         _updateDom() {
             for (let k in this._dynAtt) {
@@ -187,15 +187,6 @@ const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFu
     class Text extends BrowserElement {
         _createBrowserElement() {
             return dom.createTextNode(typeof (this._struct) == 'string' ? this._struct : this._struct.t);
-        }
-    }
-    class DynText extends BrowserElement {
-        _createBrowserElement() {
-            this.ctx = evaluatorManager.build(this);
-            return dom.createTextNode('');
-        }
-        update() {
-            this._e.nodeValue = this.eval(this._struct.x);
         }
     }
     class Container extends VirtualDom {
@@ -224,6 +215,31 @@ const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFu
         }
         _onBuildContainer() {}
     }
+    class DynContent extends Container {
+        _onBuildContainer() {
+            this.ctx = evaluatorManager.build(this);
+        }
+        update() {
+            try {
+                const val = this.eval(this._struct.x);
+                if (this._isHtmlContent || (val && val.__htmlContent)) {
+                    if (!this._isHtmlContent) {
+                        this._isHtmlContent = true;
+                        for (let i = 0; i < val.value.length; i++) {
+                            _buildVirtualDom(val.value[i], this);
+                        }
+                    }
+                    for (let i = 0; i < this._childList.length; i++) {
+                        this._childList[i].update();
+                    }
+                } else {
+                    this._nodeList[0].nodeValue = val;
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+    }
     class ComponentContainer extends Container {
         _onBuildContainer() {
             this._componentName = this._struct.cn;
@@ -233,7 +249,7 @@ const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFu
             this._parametersDefinition = this._componentContext.__defineAttributes();
         }
         _postBuild() {
-            this._buildChild();
+            this._buildChildren();
         }
     }
     class ScriptContainer extends Container {}
@@ -249,7 +265,7 @@ const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFu
                 if (val != this._last) {
                     this._last = val;
                     if (val) {
-                        this._buildChild();
+                        this._buildChildren();
                     } else {
                         this.removeChildren();
                     }
@@ -324,7 +340,7 @@ const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFu
             this.ctx = evaluatorManager.buildWith(this, this._iteratorContext);
         }
         _postBuild() {
-            this._buildChild();
+            this._buildChildren();
         }
         set item(i) {
             this._item = i;

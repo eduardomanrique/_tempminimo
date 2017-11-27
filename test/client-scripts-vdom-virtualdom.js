@@ -504,6 +504,10 @@ describe('Client scripts - virtualdom.js', () => {
                         },
                         "c": [{
                             "x": "this.innerattribute.test"
+                        }, {
+                            "t": ":"
+                        },{
+                            "x": "this.wvar"
                         }]
                     }, {
                         "t": " - "
@@ -520,13 +524,14 @@ describe('Client scripts - virtualdom.js', () => {
                             "x": "obj.id"
                         }]
                     }]
-                }
+                },
+                "wraperVarName": "wvar"
             },
             "c": [{
                 "n": "div",
                 "a": {
                     "id": [{
-                        "s": "this.innerattribute.test"
+                        "s": "this.id"
                     }]
                 },
                 "c": [{
@@ -539,11 +544,13 @@ describe('Client scripts - virtualdom.js', () => {
             }]
         };
         const insertPoint = document.body;
-        const obj = {
-            id: 'objid'
-        }
-        const minimo = {
-            eval: function (s) {
+        
+        const minimo = new function(){
+            const obj = {
+                id: 'objid'
+            }
+            this.id = 'mid';
+            this.eval = function (s) {
                 return eval(s);
             }
         }
@@ -553,9 +560,12 @@ describe('Client scripts - virtualdom.js', () => {
             .then(vdom => {
                 vdom.update();
                 console.log(document.body.innerHTML)
-                expect(document.getElementById("wid_test")).not.be.null;
-                document.getElementById("sp").innerHTML.should.eq("spanvalue");
+                expect(document.getElementById("mid")).not.be.null;
+                document.getElementById("sp").innerHTML.should.eq("wid");
                 document.getElementById("sp2").innerHTML.should.eq("wid_test-objid");
             })
     });
+    // Alterar o Html parser, precisa demarcar htmls que sao definidos dentro do template do que é xbod
+    //      o que for interno do template executa num ctx mixo de internal e external
+    //      se for xbody executa normal, sem o component internal ctx
 });
