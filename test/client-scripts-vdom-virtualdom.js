@@ -553,13 +553,10 @@ describe('Client scripts - virtualdom.js', () => {
         return virtualDomManager.build(json, insertPoint, false)
             .then(vdom => {
                 vdom.update();
-                console.log(document.body.innerHTML)
+                //console.log(document.body.innerHTML)
                 expect(document.getElementById("wid")).not.be.null;
                 document.getElementById("sp").innerHTML.should.eq("abcd");
                 document.getElementById("sp2").innerHTML.should.eq("wid_test-objid");
             })
     });
-    // Alterar o Html parser, precisa demarcar htmls que sao definidos dentro do template do que é xbod
-    //      o que for interno do template executa num ctx mixo de internal e external
-    //      se for xbody executa normal, sem o component internal ctx
 });
