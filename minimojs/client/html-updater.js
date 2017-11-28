@@ -1,4 +1,0 @@
-var dynamicAttributes = {};
-var dynamicOutAttributes = {};
-
-
