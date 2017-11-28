@@ -287,6 +287,15 @@ const buildComponentsOnPage = (doc, boundVars, boundModals) =>
 class ComponentWrapper extends htmlParser.Element {
   constructor(comp, instanceProperties, childList) {
     super();
+    const _flagNodes = nodes => {
+      nodes.forEach(n => {
+        n.setHiddenAttribute("componentInternal", true);
+        if(n.children){
+          _flagNodes(n.children);
+        }
+      });
+    }
+    _flagNodes(childList);
     this.addChildList(childList);
     this._id = _generateId();
     this._compInfo = comp;

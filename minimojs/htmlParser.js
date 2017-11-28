@@ -106,10 +106,7 @@ class Node {
     this._parent = null;
   }
   setHiddenAttribute(attrName, val) {
-    if (_.has(this._hiddenAttributes, attrName) == null) {
-      if ((val.startsWith("'") && val.endsWith("'")) || (val.startsWith('"') && val.endsWith('"'))) {
-        val = val.substring(1, val.length - 1);
-      }
+    if (!this._hiddenAttributes[attrName]) {
       this._hiddenAttributes[attrName] = val;
     }
   }

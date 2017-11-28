@@ -9,6 +9,7 @@ const comp = require('../minimojs/components.js');
 const resources = require('../minimojs/resources.js');
 const startComponents = comp.startComponents;
 
+
 let buildComponentBuilderFunction;
 
 jsdom({
@@ -61,8 +62,9 @@ describe('Client scripts - virtualdom.js', () => {
         }
         const domObj = new dom.DOM(minimo, document.body, document);
         const virtualDomManager = new virtualDom.VirtualDomManager(minimo, domObj, buildComponentBuilderFunction);
-        return virtualDomManager.build(json, insertPoint)
+        return virtualDomManager.build(json, insertPoint, false)
             .then(vdom => {
+                //console.log(document.body.innerHTML)
                 document.getElementById("d1").getAttribute("class").should.eq("cl1 cl2");
                 document.getElementById("s1").getAttribute("src").should.eq("/test.js");
             })
@@ -92,11 +94,6 @@ describe('Client scripts - virtualdom.js', () => {
                         }
                     ]
                 }
-            }, {
-                "n": "script",
-                "a": {
-                    "src": "/test.js"
-                }
             }]
         };
         const insertPoint = document.body;
@@ -112,7 +109,7 @@ describe('Client scripts - virtualdom.js', () => {
         }
         const domObj = new dom.DOM(minimo, document.body, document);
         const virtualDomManager = new virtualDom.VirtualDomManager(minimo, domObj, buildComponentBuilderFunction);
-        return virtualDomManager.build(json, insertPoint)
+        return virtualDomManager.build(json, insertPoint, false)
             .then(vdom => {
                 vdom.update();
                 expect(document.getElementById("ID_2")).not.be.null;
@@ -161,7 +158,7 @@ describe('Client scripts - virtualdom.js', () => {
         }
         const domObj = new dom.DOM(minimo, document.body, document);
         const virtualDomManager = new virtualDom.VirtualDomManager(minimo, domObj, buildComponentBuilderFunction);
-        return virtualDomManager.build(json, insertPoint)
+        return virtualDomManager.build(json, insertPoint, false)
             .then(vdom => {
                 vdom.update();
                 expect(document.getElementById("sp")).not.be.null;
@@ -200,7 +197,7 @@ describe('Client scripts - virtualdom.js', () => {
         }
         const domObj = new dom.DOM(minimo, document.body, document);
         const virtualDomManager = new virtualDom.VirtualDomManager(minimo, domObj, buildComponentBuilderFunction);
-        return virtualDomManager.build(json, insertPoint)
+        return virtualDomManager.build(json, insertPoint, false)
             .then(vdom => {
                 vdom.update();
                 const d1 = document.getElementById("d1");
@@ -241,7 +238,7 @@ describe('Client scripts - virtualdom.js', () => {
         }
         const domObj = new dom.DOM(minimo, document.body, document);
         const virtualDomManager = new virtualDom.VirtualDomManager(minimo, domObj, buildComponentBuilderFunction);
-        return virtualDomManager.build(json, insertPoint)
+        return virtualDomManager.build(json, insertPoint, false)
             .then(vdom => {
                 vdom.update();
                 const d1 = document.getElementById("d1");
@@ -289,7 +286,7 @@ describe('Client scripts - virtualdom.js', () => {
         }
         const domObj = new dom.DOM(minimo, document.body, document);
         const virtualDomManager = new virtualDom.VirtualDomManager(minimo, domObj, buildComponentBuilderFunction);
-        return virtualDomManager.build(json, insertPoint)
+        return virtualDomManager.build(json, insertPoint, false)
             .then(vdom => {
                 vdom.update();
                 const d1 = document.getElementById("d1");
@@ -357,7 +354,7 @@ describe('Client scripts - virtualdom.js', () => {
         }
         const domObj = new dom.DOM(minimo, document.body, document);
         const virtualDomManager = new virtualDom.VirtualDomManager(minimo, domObj, buildComponentBuilderFunction);
-        return virtualDomManager.build(json, insertPoint)
+        return virtualDomManager.build(json, insertPoint, false)
             .then(vdom => {
                 vdom.update();
                 const d1 = document.getElementById("d1");
@@ -457,7 +454,7 @@ describe('Client scripts - virtualdom.js', () => {
         }
         const domObj = new dom.DOM(minimo, document.body, document);
         const virtualDomManager = new virtualDom.VirtualDomManager(minimo, domObj, buildComponentBuilderFunction);
-        return virtualDomManager.build(json, insertPoint)
+        return virtualDomManager.build(json, insertPoint, false)
             .then(vdom => {
                 vdom.update();
                 const d1 = document.getElementById("d1");
@@ -503,10 +500,6 @@ describe('Client scripts - virtualdom.js', () => {
                             "id": "sp"
                         },
                         "c": [{
-                            "x": "this.innerattribute.test"
-                        }, {
-                            "t": ":"
-                        },{
                             "x": "this.wvar"
                         }]
                     }, {
@@ -517,7 +510,7 @@ describe('Client scripts - virtualdom.js', () => {
                             "id": "sp2"
                         },
                         "c": [{
-                            "x": "this.innerattribute.test"
+                            "x": "this.wtestvar"
                         }, {
                             "t": "-"
                         }, {
@@ -525,7 +518,8 @@ describe('Client scripts - virtualdom.js', () => {
                         }]
                     }]
                 },
-                "wraperVarName": "wvar"
+                "wraperVarName": "wvar",
+                "wraperTestVarName": "wtestvar"
             },
             "c": [{
                 "n": "div",
@@ -556,12 +550,12 @@ describe('Client scripts - virtualdom.js', () => {
         }
         const domObj = new dom.DOM(minimo, document.body, document);
         const virtualDomManager = new virtualDom.VirtualDomManager(minimo, domObj, buildComponentBuilderFunction);
-        return virtualDomManager.build(json, insertPoint)
+        return virtualDomManager.build(json, insertPoint, false)
             .then(vdom => {
                 vdom.update();
                 console.log(document.body.innerHTML)
-                expect(document.getElementById("mid")).not.be.null;
-                document.getElementById("sp").innerHTML.should.eq("wid");
+                expect(document.getElementById("wid")).not.be.null;
+                document.getElementById("sp").innerHTML.should.eq("abcd");
                 document.getElementById("sp2").innerHTML.should.eq("wid_test-objid");
             })
     });

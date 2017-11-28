@@ -31,17 +31,20 @@ const _findIdentifiersOnScript = (e, a) => {
 
 const EvaluatorManager = function (root, ctxManager) {
     const _cache = {};
-    const _findCtxList = (vDom) => {
-        let _c = vDom;
-        do{
-            if(_c.ctx && _c.ctx instanceof Evaluator){
-                return [].concat(_c.ctx._ctxList);
-            }
-            _c = _c.parent;
-        }while(_c);
-        return [root];
-    }
     this.build = (virtualDom) => {
+        const _findCtxList = (vDom) => {
+            let _c = vDom;
+            do{
+                if(virtualDom.isComponentInternal && _c._componenCtx){
+                    return [].concat(_c.ctx._ctxList).concat([_c._componenCtx]);
+                }
+                if(_c.ctx && _c.ctx instanceof Evaluator){
+                    return [].concat(_c.ctx._ctxList);
+                }
+                _c = _c.parent;
+            }while(_c);
+            return [root];
+        }
         const e = new Evaluator();
         e._virtualDom = virtualDom;
         e._ctxList = _findCtxList(virtualDom);

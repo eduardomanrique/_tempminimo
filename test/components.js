@@ -118,6 +118,7 @@ describe('Test component', function () {
 								<column title="Like movies?">item.likeMovies ? 'Yes' : 'No'</column>
 								<column><htmxstyle.checkbox id="cb_\${index}" varToBind="obj.val" label="Label"/></column>
 							</htmxstyle.actiontable>
+							<div id="div1"></div>
 						</htmxstyle.wrapper>
 					</body>
 				</html>`);
@@ -136,6 +137,9 @@ describe('Test component', function () {
 			wrapper.c[0].c[1].c[0].c[0].cn.should.equal('htmxstyle.checkbox');
 
 			wrapper.c[0].c[1].c[1].cn.should.equal('htmxstyle.actiontable');
+
+			expect(wrapper.c[0].h.componentInternal).to.be.true;
+			expect(wrapper.c[0].c[1].c[2].h).to.be.undefined;
 		}));
 	it('Actiontable', () => {
 		info.htmxSources["components['htmxstyle']['actiontable']"].should.startWith('<table');

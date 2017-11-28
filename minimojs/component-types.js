@@ -65,7 +65,11 @@ var _boundVariable = {
         return false;
     }
 };
-var _exportedVariable = _boundVariable;
+var _exportedVariable = {
+    validate: function(v){
+        return true;
+    }
+};
 var _bool = {
     validate: function(v){
         return v.toLowerCase() == 'true' || v.toLowerCase() == 'false';

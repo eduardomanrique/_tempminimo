@@ -35,10 +35,41 @@ const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFu
         vdom._postBuild();
     }
 
-    this.build = (json, insertPoint) => {
+    const _getAllScripts = (json, array) => {
+        if (json.c) {
+            json.c = json.c.filter(child => {
+                _getAllScripts(child, array);
+                if (child.n == 'script' && child.a.src) {
+                    array.push(child);
+                    return false;
+                }
+                return true;
+            })
+        }
+    }
+
+    this.build = (json, insertPoint, waitForScriptsToLoad = true) => {
+        const array = [];
+        _getAllScripts(json, array);
         const topElement = new GenericBrowserElement();
         topElement.element = insertPoint;
-        return new Promise(r => r(_buildVirtualDom(json, topElement)));
+
+        const fnArray = array.map(scriptJson => () => new Promise(resolve => {
+            const script = new Element(scriptJson);
+            if (waitForScriptsToLoad) {
+                script._e.onload = resolve;
+            }
+            _postCreation(script, topElement);
+            if (!waitForScriptsToLoad) {
+                resolve();
+            }
+        })).concat(() => 
+        {
+            return _buildVirtualDom(json, topElement)
+        });
+        let promise = Promise.all([]);
+        fnArray.forEach(fn => promise = promise.then(fn));
+        return promise;
     }
 
 
@@ -65,6 +96,9 @@ const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFu
                     return n;
                 }
             }));
+        }
+        get isComponentInternal(){
+            return (this._struct.h || {}).componentInternal == true;
         }
         _buildChildren() {
             if (this._struct.c) {
@@ -244,9 +278,10 @@ const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFu
         _onBuildContainer() {
             this._componentName = this._struct.cn;
             this._instanceProperties = this._struct.ip;
-            this._componentContext = componentBuilderFunction(this._componentName, this._instanceProperties);
-            this.ctx = evaluatorManager.buildWith(this, this._componentContext);
-            this._parametersDefinition = this._componentContext.__defineAttributes();
+            this._internalContext = componentBuilderFunction(this._componentName, this._instanceProperties);
+            this.ctx = evaluatorManager.build(this);
+            this._componenCtx = evaluatorManager.buildWith(this, this._internalContext);
+            this._parametersDefinition = this._internalContext.__defineAttributes();
         }
         _postBuild() {
             this._buildChildren();
