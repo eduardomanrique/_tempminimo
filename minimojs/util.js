@@ -1,4 +1,3 @@
-const logging = require('./logging');
 const fs = require('fs');
 const _ = require('underscore');
 

@@ -1,4 +1,3 @@
-const logger = require('./logging');
 const _ = require('underscore');
 const resources = require('./resources');
 const ctx = require('./context');

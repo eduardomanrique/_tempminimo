@@ -3,7 +3,6 @@ const fs = require('fs');
 const pathLib = require('path');
 const ncp = require('ncp');
 const _ = require('underscore');
-const logger = require('./logging');
 const mkdirp = require('mkdirp');
 
 const getResourcePaths = (root, filter) => {
