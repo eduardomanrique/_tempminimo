@@ -1,13 +1,9 @@
 const util = require('./util.js');
-const mobj = require('./mobj.js');
-const modals = require('./modals.js');
-const component = require('./components.js');
 const dom = require('./dom.js');
-const inputs = require('./inputs.js');
-const visual = require('./visual.js');
+const modals = require('./modals.js');
 const minimoEvents = require('./minimo-events.js');
 const cached = require('./cached-resources.js');
-const _ = require('underscore');
+const virtualDom = require('./vdom/virtualdom.js');
 const _ATTCTX = "data-mroot-ctx";
 let _instanceCounter = 0;
 let _mainInstance;
@@ -15,65 +11,40 @@ let _spaInstance;
 let _contentNode;
 let _instances = [];
 
+let buildComponentBuilderFunction;
+
 minimoEvents.onNewPage(() => {
     destroyInstance(_spaInstance);
 });
 
 const findMinimoInstanceForElement = (e) => {
-    var attRoot = e.getAttribute(_attCtx);
+    var attRoot = e.getAttribute(_ATTCTX);
     if (attRoot) {
         return _instances.find(i => i.id == attRoot);
     }
     return findMinimoInstanceForElement(e.parentElement);
 };
-//TODO
-//dom.setRootElement ver isso
-//set class on insertion point = root-idinstance
-
 class Minimo {
-    constructor(ctxId, scriptOnly, parent) {
-        this._instanceId = ctxId;
+    constructor(insertPoint, htmlStruct, parent) {
+        this._instanceId = _instanceCounter++;
+        insertPoint.setAttribute(_ATTCTX, instance.instanceId);
         this.parent = parent;
         parent.addChild(this);
-        this._scriptOnly = scriptOnly;
+        this._scriptOnly = htmlStruct == null;
         window.m = window.m || this;
         this._isDevMode = "%devmode%";
-        this._afterCheck = [];
         this._childInstances = [];
-        this._dom = new dom.DOM(this);
-        this._mobj = new mobj.Instance(this);
-        this._inputs = new inputs.Instance(this);
-        this._visual = new visual.Instance(this);
+        this._dom = new dom.DOM(this, insertPoint, document);
+        this._vdom = new virtualDom.VirtualDom(htmlStruct, insertPoint, this, buildComponentBuilderFunction, true);
         this._intervals = [];
         this._timeouts = [];
         const self = this;
-        this._interval = function (f, t) {
-            const i = window.setInterval(function () {
-                f();
-                _updateAll();
-            }, t);
-            self._intervals.push(i);
-            return i;
-        };
-        this._clearInterval = function (i) {
-            window.clearInterval(i);
-            self._intervals.splice(self._intervals.indexOf(i), 1);
-        };
-        this._timeout = function (f, t) {
-            var i = window.setTimeout(function () {
-                f();
-                _updateAll();
-            }, t);
-            self._timeouts.push(i);
-            return i;
-        };
-        this._clearTimeout = function (i) {
-            window.clearTimeout(i);
-            self._timeouts.splice(self._timeouts.indexOf(i), 1);
-        };
     }
     get id() {
         return this._instanceId;
+    }
+    get dom(){
+        return this._dom;
     }
     get scriptOnly(){
         return this._scriptOnly;
@@ -82,17 +53,37 @@ class Minimo {
         return this._isDevMode;
     }
     //controller context interval functions
-    get interval() {
-        return this._interval;
+    get setInterval() {
+        return (f, t) => {
+            const i = window.setInterval(() => {
+                f();
+                _updateAll(500);
+            }, t);
+            this._intervals.push(i);
+            return i;
+        };
     }
     get clearInterval() {
-        return this._clearInterval;
+        return (i) => {
+            window.clearInterval(i);
+            this._intervals.splice(this._intervals.indexOf(i), 1);
+        };
     }
-    get timeout() {
-        return this._timeout;
+    get setTimeout() {
+        return (f, t) => {
+            var i = window.setTimeout(() => {
+                f();
+                _updateAll(500);
+            }, t);
+            this._timeouts.push(i);
+            return i;
+        };
     }
-    get _clearTimeout() {
-        return this._clearTimeout;
+    get clearTimeout() {
+        return (i) => {
+            window.clearTimeout(i);
+            this._timeouts.splice(this._timeouts.indexOf(i), 1);
+        };
     }
     set currentEvent(e) {
         this._event = e;
@@ -102,16 +93,6 @@ class Minimo {
     }
     get referrer() {
         return minimoEvents.lastUrl || document.referrer;
-    }
-    configEvents() {
-        this._inputs.configEvents();
-    }
-    _loadObjects() {
-        this._mobj.updateAllObjects(m);
-        this._mobj.updateMScripts(m);
-    }
-    addAfterCheck(f) {
-        this._afterCheck.push(f);
     }
     byId(id) {
         this._dom.getElementById(id);
@@ -127,25 +108,18 @@ class Minimo {
             throw new Error('Error on script: ' + fn + '. Cause: ' + e.message);
         }
     }
-    _update (){
-        if (!this._ready || this._updating || minimoEvents.changingState) {
-            return;
-        }
-        this._updating = true;
-        this._visual.updateIterators();
-        this._mobj.clearObjects();
-        this._mobj.updateInputs();
-        this._dom.updateElementsAttributeValue();
-        this._inputs.configEvents();
-        this._mobj.updateMScripts();
-        this._updating = false
+    update (delay) {
+        return this._vdom.update(delay);
     }
     addChild (childInstance) {
         this._childInstances.push(childInstance);
     }
 }
 const startMainInstance = (htmlStruct) => {
-    document.body.setAttribute('data-m-ctx', 'true');
+
+    parei aqui!!!!!!!!!!!!!!!!!!!
+
+    document.body.setAttribute(_ATTCTX, 'true');
     return registerInstance(htmlStruct, resourceName, _contentNode, null, new function () {
         this.__eval__ = function (f) {
             return eval(f);
@@ -159,15 +133,12 @@ const startMainInstance = (htmlStruct) => {
         return instance;
     });
 }
-const registerInstance = (htmlStruct, resourceName, insertionPoint, parentInstance, fnController) => {
-    const instance = new _Minimo(_instanceCounter++, htmlStruct != null, parentInstance);
-    insertionPoint.setAttribute(_ATTCTX, instance.instanceId);
+const registerInstance = (htmlStruct, resourceName, insertPoint, parentInstance, fnController) => {
+    const instance = new Minimo(insertPoint, htmlStruct, parentInstance);
     _instances.push(instance);
     const controller = new fnController(instance);
     instance._eval = controller.__eval__;
-    components.init(m);
     minimoEvents.onStart(this);
-    components.startInstances();
 
     if (!instance.scriptOnly) {
         instance.configEvents();
@@ -190,7 +161,7 @@ const registerInstance = (htmlStruct, resourceName, insertionPoint, parentInstan
     } catch (e) {
         onInitFn = () => {}
     }
-    return dom.createElements(htmlStruct, insertionPoint)
+    return dom.createElements(htmlStruct, insertPoint)
         .then(Promise.all(instance.eval('__binds__')))
         .then(onInitFn)
         .then(_updateAll)
@@ -213,13 +184,15 @@ const startInstance = (htmlStruct, resourceName, insertionPoint, parentInstance,
     registerInstance(htmlStruct, resourceName, insertionPoint, parentInstance, fnController);
 
 let _firstUpdate = true;
-const _updateAll = () => {
+
+const _updateAll = (delay) => {
     if (!minimoEvents.changingState) {
-        let cleared = _instances.filter(i => i._ready).map(i => i._clear());
-        if(cleared.length && _firstUpdate){
+        let ready = _instances.filter(i => i._ready);
+        if(ready.length && _firstUpdate){
             _firstUpdate = false;
             modals.closeInitLoad();
         }
+        ready.forEach(instance => instance.update(delay));
     }
 }
 
@@ -230,5 +203,6 @@ module.exports = {
     startSpaInstance: startSpaInstance,
     findMinimoInstanceForElement: findMinimoInstanceForElement,
     allReady: allReady,
-    destroyInstance: destroyInstance
+    destroyInstance: destroyInstance,
+    setBuildComponentBuilderFunction = (fn) => buildComponentBuilderFunction = fn
 };

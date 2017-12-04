@@ -58,12 +58,13 @@ describe('Client scripts - virtualdom.js', () => {
         const minimo = {
             eval: function (s) {
                 return eval(s);
-            }
+            },
+            dom: new dom.DOM(this, document.body, document)
         }
-        const domObj = new dom.DOM(minimo, document.body, document);
-        const virtualDomManager = new virtualDom.VirtualDomManager(minimo, domObj, buildComponentBuilderFunction);
-        return virtualDomManager.build(json, insertPoint, false)
-            .then(vdom => {
+        const vdom = new virtualDom.VirtualDom(json, insertPoint, minimo, buildComponentBuilderFunction, false);
+        vdom._defaultUpdateDelay = 0;
+        return vdom.build()
+            .then(() => {
                 //console.log(document.body.innerHTML)
                 document.getElementById("d1").getAttribute("class").should.eq("cl1 cl2");
                 document.getElementById("s1").getAttribute("src").should.eq("/test.js");
@@ -106,18 +107,21 @@ describe('Client scripts - virtualdom.js', () => {
             this.eval = function (s) {
                 return eval(s);
             }
+            this.dom = new dom.DOM(this, document.body, document);
         }
-        const domObj = new dom.DOM(minimo, document.body, document);
-        const virtualDomManager = new virtualDom.VirtualDomManager(minimo, domObj, buildComponentBuilderFunction);
-        return virtualDomManager.build(json, insertPoint, false)
-            .then(vdom => {
-                vdom.update();
+        const vdom = new virtualDom.VirtualDom(json, insertPoint, minimo, buildComponentBuilderFunction, false);
+        vdom._defaultUpdateDelay = 0;
+        return vdom.build()
+            .then(vdom.update)
+            .then(() => {
                 expect(document.getElementById("ID_2")).not.be.null;
                 document.getElementById("checkedDiv").getAttribute("checked").should.eq("true");
                 minimo._obj.isChecked = false;
                 minimo._obj.id = 2;
                 // console.log(document.body.innerHTML);
-                vdom.update();
+            })
+            .then(vdom.update)
+            .then(() => {
                 expect(document.getElementById("ID_3")).not.be.null;
                 expect(document.getElementById("ID_2")).to.be.null;
                 document.getElementById("checkedDiv").getAttribute("checked").should.eq("false");
@@ -154,13 +158,14 @@ describe('Client scripts - virtualdom.js', () => {
         };
         const insertPoint = document.body;
         const minimo = {
-            eval: function (s) {}
+            eval: function (s) {},
+            dom: new dom.DOM(this, document.body, document)
         }
-        const domObj = new dom.DOM(minimo, document.body, document);
-        const virtualDomManager = new virtualDom.VirtualDomManager(minimo, domObj, buildComponentBuilderFunction);
-        return virtualDomManager.build(json, insertPoint, false)
-            .then(vdom => {
-                vdom.update();
+        const vdom = new virtualDom.VirtualDom(json, insertPoint, minimo, buildComponentBuilderFunction, false);
+        vdom._defaultUpdateDelay = 0;
+        return vdom.build()
+            .then(vdom.update)
+            .then(() => {
                 expect(document.getElementById("sp")).not.be.null;
                 document.getElementById("sp").innerHTML.should.eq("spanvalue");
             })
@@ -194,16 +199,20 @@ describe('Client scripts - virtualdom.js', () => {
             this.setA = function (v) {
                 a = v;
             }
+            this.dom = new dom.DOM(this, document.body, document);
         }
-        const domObj = new dom.DOM(minimo, document.body, document);
-        const virtualDomManager = new virtualDom.VirtualDomManager(minimo, domObj, buildComponentBuilderFunction);
-        return virtualDomManager.build(json, insertPoint, false)
-            .then(vdom => {
-                vdom.update();
+        const vdom = new virtualDom.VirtualDom(json, insertPoint, minimo, buildComponentBuilderFunction, false);
+        vdom._defaultUpdateDelay = 0;
+        return vdom.build()
+            .then(vdom.update)
+            .then(() => {
                 const d1 = document.getElementById("d1");
                 d1.innerHTML.should.be.eq("");
                 minimo.setA("show");
-                vdom.update();
+            })
+            .then(vdom.update)
+            .then(() => {
+                const d1 = document.getElementById("d1");
                 d1.innerHTML.should.be.eq("showing");
             })
     });
@@ -235,16 +244,20 @@ describe('Client scripts - virtualdom.js', () => {
             this.setA = function (v) {
                 a = v;
             }
+            this.dom = new dom.DOM(this, document.body, document);
         }
-        const domObj = new dom.DOM(minimo, document.body, document);
-        const virtualDomManager = new virtualDom.VirtualDomManager(minimo, domObj, buildComponentBuilderFunction);
-        return virtualDomManager.build(json, insertPoint, false)
-            .then(vdom => {
-                vdom.update();
+        const vdom = new virtualDom.VirtualDom(json, insertPoint, minimo, buildComponentBuilderFunction, false);
+        vdom._defaultUpdateDelay = 0;
+        return vdom.build()
+            .then(vdom.update)
+            .then(() => {
                 const d1 = document.getElementById("d1");
                 d1.innerHTML.should.be.eq("");
                 minimo.setA("show");
-                vdom.update();
+            })
+            .then(vdom.update)
+            .then(() => {
+                const d1 = document.getElementById("d1");
                 d1.innerHTML.should.be.eq("showing");
             })
     });
@@ -283,22 +296,32 @@ describe('Client scripts - virtualdom.js', () => {
             this.setB = function (v) {
                 b = v;
             }
+            this.dom = new dom.DOM(this, document.body, document);
         }
-        const domObj = new dom.DOM(minimo, document.body, document);
-        const virtualDomManager = new virtualDom.VirtualDomManager(minimo, domObj, buildComponentBuilderFunction);
-        return virtualDomManager.build(json, insertPoint, false)
-            .then(vdom => {
-                vdom.update();
+        const vdom = new virtualDom.VirtualDom(json, insertPoint, minimo, buildComponentBuilderFunction, false);
+        vdom._defaultUpdateDelay = 0;
+        return vdom.build()
+            .then(vdom.update)
+            .then(() => {
                 const d1 = document.getElementById("d1");
                 d1.innerHTML.should.be.eq("");
                 minimo.setA("show");
-                vdom.update();
+            })
+            .then(vdom.update)
+            .then(() => {
+                const d1 = document.getElementById("d1");
                 d1.innerHTML.should.be.eq("");
                 minimo.setB("show");
-                vdom.update();
+            })
+            .then(vdom.update)
+            .then(() => {
+                const d1 = document.getElementById("d1");
                 d1.innerHTML.should.be.eq("showing");
                 minimo.setA("hide");
-                vdom.update();
+            })
+            .then(vdom.update)
+            .then(() => {
+                const d1 = document.getElementById("d1");
                 d1.innerHTML.should.be.eq("");
             })
     });
@@ -351,12 +374,13 @@ describe('Client scripts - virtualdom.js', () => {
             this.getItem = function (i) {
                 return objList[i];
             }
+            this.dom = new dom.DOM(this, document.body, document);
         }
-        const domObj = new dom.DOM(minimo, document.body, document);
-        const virtualDomManager = new virtualDom.VirtualDomManager(minimo, domObj, buildComponentBuilderFunction);
-        return virtualDomManager.build(json, insertPoint, false)
-            .then(vdom => {
-                vdom.update();
+        const vdom = new virtualDom.VirtualDom(json, insertPoint, minimo, buildComponentBuilderFunction, false);
+        vdom._defaultUpdateDelay = 0;
+        return vdom.build()
+            .then(vdom.update)
+            .then(() => {
                 const d1 = document.getElementById("d1");
                 d1.innerHTML.should.be.eq('item:{"id":1,"text":"One"}, index:1, item:{"id":2,"text":"Two"}, index:2, ');
                 minimo.add({
@@ -364,21 +388,36 @@ describe('Client scripts - virtualdom.js', () => {
                 }, 1);
                 minimo.getItem(2).id = 1000;
                 minimo.getItem(2).text = "1000";
-                vdom.update();
+            })
+            .then(vdom.update)
+            .then(() => {
+                const d1 = document.getElementById("d1");
                 d1.innerHTML.should.be.eq('item:{"id":1,"text":"One"}, index:1, item:{"added":"New"}, index:2, item:{"id":1000,"text":"1000"}, index:3, ');
                 minimo.remove(0);
-                vdom.update();
+            })
+            .then(vdom.update)
+            .then(() => {
+                const d1 = document.getElementById("d1");
                 d1.innerHTML.should.be.eq('item:{"added":"New"}, index:1, item:{"id":1000,"text":"1000"}, index:2, ');
                 minimo.remove(1);
-                vdom.update();
+            })
+            .then(vdom.update)
+            .then(() => {
+                const d1 = document.getElementById("d1");
                 d1.innerHTML.should.be.eq('item:{"added":"New"}, index:1, ');
                 minimo.remove(0);
-                vdom.update();
+            })
+            .then(vdom.update)
+            .then(() => {
+                const d1 = document.getElementById("d1");
                 d1.innerHTML.should.be.eq('');
                 minimo.add({
                     added: "New"
                 }, 1);
-                vdom.update();
+            })
+            .then(vdom.update)
+            .then(() => {
+                const d1 = document.getElementById("d1");
                 d1.innerHTML.should.be.eq('item:{"added":"New"}, index:1, ');
             })
     });
@@ -451,29 +490,39 @@ describe('Client scripts - virtualdom.js', () => {
             this.getItem = function (i) {
                 return objList[i];
             }
+            this.dom = new dom.DOM(this, document.body, document);
         }
-        const domObj = new dom.DOM(minimo, document.body, document);
-        const virtualDomManager = new virtualDom.VirtualDomManager(minimo, domObj, buildComponentBuilderFunction);
-        return virtualDomManager.build(json, insertPoint, false)
-            .then(vdom => {
-                vdom.update();
+        const vdom = new virtualDom.VirtualDom(json, insertPoint, minimo, buildComponentBuilderFunction, false);
+        vdom._defaultUpdateDelay = 0;
+        return vdom.build()
+            .then(vdom.update)
+            .then(() => {
                 const d1 = document.getElementById("d1");
                 d1.innerHTML.should.be.eq('item:One, item:Two, ');
                 minimo.add({
                     text: "New",
                     values: ["v1", "v2"]
                 }, 1);
-                vdom.update();
+            })
+            .then(vdom.update)
+            .then(() => {
+                const d1 = document.getElementById("d1");
                 d1.innerHTML.should.be.eq('item:One, item:New, values:|i:1,j:0,value:v1||i:1,j:1,value:v2|, item:Two, ');
 
                 minimo.getItem(0).values.push("a");
                 minimo.getItem(0).values.push("b");
                 minimo.getItem(0).values.push("c");
-                vdom.update();
+            })
+            .then(vdom.update)
+            .then(() => {
+                const d1 = document.getElementById("d1");
                 d1.innerHTML.should.be.eq('item:One, values:|i:0,j:0,value:a||i:0,j:1,value:b||i:0,j:2,value:c|, item:New, values:|i:1,j:0,value:v1||i:1,j:1,value:v2|, item:Two, ');
 
                 minimo.remove(0);
-                vdom.update();
+            })
+            .then(vdom.update)
+            .then(() => {
+                const d1 = document.getElementById("d1");
                 d1.innerHTML.should.be.eq('item:New, values:|i:0,j:0,value:v1||i:0,j:1,value:v2|, item:Two, ');
             })
     });
@@ -547,12 +596,13 @@ describe('Client scripts - virtualdom.js', () => {
             this.eval = function (s) {
                 return eval(s);
             }
+            this.dom = new dom.DOM(this, document.body, document);
         }
-        const domObj = new dom.DOM(minimo, document.body, document);
-        const virtualDomManager = new virtualDom.VirtualDomManager(minimo, domObj, buildComponentBuilderFunction);
-        return virtualDomManager.build(json, insertPoint, false)
-            .then(vdom => {
-                vdom.update();
+        const vdom = new virtualDom.VirtualDom(json, insertPoint, minimo, buildComponentBuilderFunction, false);
+        vdom._defaultUpdateDelay = 0;
+        return vdom.build()
+            .then(vdom.update)
+            .then(() => {
                 //console.log(document.body.innerHTML)
                 expect(document.getElementById("wid")).not.be.null;
                 document.getElementById("sp").innerHTML.should.eq("abcd");

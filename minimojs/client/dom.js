@@ -26,7 +26,6 @@ class DOM {
 		this._doc = doc;
 		this._root = _root;
 		this._root._minimoInstance = this;
-		this._elementsListener = [];
 
 		const _checkElement = (element) => {
 			const e = util.getValue(element);
@@ -143,31 +142,18 @@ class DOM {
 	get rootElement() {
 		return this._root;
 	}
-	addListener(...listeners) {
-		listeners.forEach(l => this._elementsListener.push(l));
-	}
 	setScriptText(element, script){
 		element.innerHTML = text;
-		this._elementsListener.forEach(l => l.onCreateScript && l.onCreateScript(text));
 	}
 	createTextNode(text) {
 		const textNode = this._doc.createTextNode(text);
-		this._elementsListener.forEach(l => l.onCreateText && l.onCreateText(textNode));
+		textNode._byminimo = true;
 		return textNode;
 	}
 	createElement(name) {
 		const el = this._doc.createElement(name);
 		el._byminimo = true;
 		const lName = name.toLowerCase();
-		if (['input', 'button', 'select', 'textarea'].indexOf(lName) >= 0) {
-			this._elementsListener.forEach(l => l.onCreateInput && l.onCreateInput(el));
-		} else if (lName == 'mscript') {
-			this._elementsListener.forEach(l => l.onCreateMScript && l.onCreateMScript(el));
-		} else if (lName == 'a') {
-			this._elementsListener.forEach(l => l.onCreateLink && l.onCreateLink(el));
-		} else {
-			this._elementsListener.forEach(l => l.onCreateElement && l.onCreateElement(el));
-		}
 		return el;
 	}
 	setAttribute(el, ...attNameValueList) {
@@ -175,11 +161,6 @@ class DOM {
 			const attName = attNameValueList[i++];
 			const attValue = attNameValueList[i];
 			el.setAttribute(attName, attValue);
-			if (attName.indexOf('on') == 0) {
-				this._elementsListener.forEach(l => l.onNewEvent && l.onNewEvent(e, attName.substring(2).toLowerCase()));
-			} else if (attName == 'data-bind') {
-				this._elementsListener.forEach(l => l.onNewBind && l.onNewBind(e));
-			}
 		}
 	}
 }

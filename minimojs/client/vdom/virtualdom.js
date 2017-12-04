@@ -1,13 +1,18 @@
 const util = require('../util.js');
 const EvaluatorManager = require('./evaluator');
-const dom = require('../dom');
+const Objects = require('../objects');
+const events = require('../minimo-events');
 const ContextManager = require('./context-manager');
 //const modals = require('./modal.js');
 
-const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFunction) {
+const VirtualDom = function (json, insertPoint, mimimoInstance, buildComponentBuilderFunction, waitForScriptsToLoad = true) {
+    const dom = mimimoInstance.dom;
+    let rootVDom;
+    const selfVDom = this;
     const ctxManager = new ContextManager();
     const evaluatorManager = new EvaluatorManager(mimimoInstance, ctxManager);
     const componentBuilderFunction = buildComponentBuilderFunction(mimimoInstance);
+    this._defaultUpdateDelay = 100;
 
     const _buildVirtualDom = (json, parentVDom) => {
         let vdom;
@@ -48,7 +53,27 @@ const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFu
         }
     }
 
-    this.build = (json, insertPoint, waitForScriptsToLoad = true) => {
+    let updatePromise;
+    this.update = (delay) => {
+        if(updatePromise){
+            return updatePromise;
+        }else{
+            updatePromise = new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    try{
+                        rootVDom.update();
+                    }catch(e){
+                        console.debug('Error updating dom ' + e.message);
+                    }
+                    updatePromise = null;
+                    resolve();
+                }, delay || this._defaultUpdateDelay);
+            });
+            return updatePromise;
+        }
+    }
+
+    this.build = () => {
         const array = [];
         _getAllScripts(json, array);
         const topElement = new GenericBrowserElement();
@@ -63,9 +88,8 @@ const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFu
             if (!waitForScriptsToLoad) {
                 resolve();
             }
-        })).concat(() => 
-        {
-            return _buildVirtualDom(json, topElement)
+        })).concat(() => {
+            rootVDom = _buildVirtualDom(json, topElement)
         });
         let promise = Promise.all([]);
         fnArray.forEach(fn => promise = promise.then(fn));
@@ -73,7 +97,7 @@ const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFu
     }
 
 
-    class VirtualDom {
+    class VirtualDomElement {
         constructor(htmlStruct) {
             this._struct = htmlStruct;
             this._nodeList = [];
@@ -90,14 +114,14 @@ const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFu
         }
         get nodeListAsDom() {
             return util.flatten(this._nodeList.map(n => {
-                if (n instanceof VirtualDom) {
+                if (n instanceof VirtualDomElement) {
                     return n.nodeListAsDom;
                 } else {
                     return n;
                 }
             }));
         }
-        get isComponentInternal(){
+        get isComponentInternal() {
             return (this._struct.h || {}).componentInternal == true;
         }
         _buildChildren() {
@@ -156,10 +180,9 @@ const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFu
         _insertBefore(child, vdom) {}
         _postBuild() {}
     }
-    class BrowserElement extends VirtualDom {
+    class BrowserElement extends VirtualDomElement {
         _onBuild() {
-            this._e = this._createBrowserElement();
-
+            this._onCreateBrowserElement();
             this._nodeList.push(this._e);
         }
         _insertBefore(child, vdom) {
@@ -172,11 +195,21 @@ const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFu
         _onRemove() {
             this._e.remove();
         }
-        _createBrowserElement() {}
+        _setAttribute(n, v) {
+            if (n.startsWith('on')) {
+                this._e.addEventListener(n.substring(2), () => {
+                    Promise.all([this.ctx.eval(v)]).then(() => selfVDom.update());
+                });
+                dom.setAttribute(this._e, `event-${n}`, v);
+            } else {
+                dom.setAttribute(this._e, n, v);
+            }
+        }
+        _onCreateBrowserElement() {}
     }
     class GenericBrowserElement extends BrowserElement {
-        _createBrowserElement() {
-            return this.element;
+        _onCreateBrowserElement() {
+            this._e = this.element;
         }
         set element(e) {
             this._e = e;
@@ -186,19 +219,35 @@ const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFu
         }
     }
     class Element extends BrowserElement {
-        _createBrowserElement() {
+        _onCreateBrowserElement() {
             this.ctx = evaluatorManager.build(this);
-            let e = dom.createElement(this._struct.n);
+            this._e = dom.createElement(this._struct.n);
             this._dynAtt = {};
             for (let k in this._struct.a) {
                 let a = this._struct.a[k];
-                if (a instanceof Array) {
+                if(k == 'bind' || k == 'data-bind'){
+                    let val = a;
+                    if (val instanceof Array) {
+                        val = val.map(v =>  util.safeToString(v)).join('');
+                    }
+                    this._setAttribute(k, val);
+                    this._objects = new Objects(k, this.ctx, () => this._e.value);
+                    const onChange = () => {
+                        if(this._lastValue == null || this._lastValue != this._e.value){
+                            this._lastValue = this._e.value;
+                            this._objects.updateVariable();
+                            selfVDom.update();
+                        }
+                    }
+                    this._e.addEventListener('change', onChange);
+                    this._e.addEventListener('keyup', onChange);
+                    this._e.addEventListener('click', onChange);
+                }else if (a instanceof Array) {
                     this._dynAtt[k] = a;
                 } else {
-                    dom.setAttribute(e, k, a);
+                    this._setAttribute(k, a);
                 }
             }
-            return e;
         }
         _postBuild() {
             this._buildChildren();
@@ -214,16 +263,25 @@ const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFu
                         buffer.push(util.safeToString(values[i]));
                     }
                 }
-                dom.setAttribute(this._e, k, buffer.join(''));
+                this._setAttribute(k, buffer.join(''));
             }
         }
     }
+    class Link extends Element {
+        _setAttribute(n, v) {
+            if (n == 'href' && v.indexOf('javascript:') == 0) {
+                this._e.href = 'javascript:;';
+                super._setAttribute('onclick', v.substring('javascript:'.length));
+            }
+        }
+
+    }
     class Text extends BrowserElement {
-        _createBrowserElement() {
-            return dom.createTextNode(typeof (this._struct) == 'string' ? this._struct : this._struct.t);
+        _onCreateBrowserElement() {
+            this._e = dom.createTextNode(typeof (this._struct) == 'string' ? this._struct : this._struct.t);
         }
     }
-    class Container extends VirtualDom {
+    class Container extends VirtualDomElement {
         _onBuild() {
             this._nodeList.push(dom.createTextNode(""));
             this._onBuildContainer();
@@ -386,8 +444,18 @@ const VirtualDomManager = function (mimimoInstance, dom, buildComponentBuilderFu
             this._iteratorContext.__set_index(i);
         }
     }
+
+    function _parseUrl(url){
+        var qmIndex = url.indexOf('?');
+        var path = qmIndex >= 0 ? url.substring(0, qmIndex) : url;
+        return {
+            path: path,
+            query: qmIndex >= 0 ? url.substring(qmIndex) : '',
+            tpl: xresources.getTplInfo(path)
+        }
+    }
 }
 
 module.exports = {
-    VirtualDomManager: VirtualDomManager
+    VirtualDom: VirtualDom
 }

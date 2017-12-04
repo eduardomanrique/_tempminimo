@@ -151,10 +151,10 @@ describe('Test compiler', function () {
         let htmlStruct;
         let resourceName;
         const m = {
-            _interval: 1,
-            _timeout: 2,
-            _clearInterval: 3,
-            _clearTimeout: 4,
+            setInterval: 1,
+            setTimeout: 2,
+            clearInterval: 3,
+            clearTimeout: 4,
             modalS: (path, bool, id) => new Promise(resolve => resolve({}))
         };
         const M$ = {

@@ -491,10 +491,10 @@ const _instrumentController = (htmlJson, jsData, isGlobal, resInfo, boundVars = 
     });
     const controllerObject = `function(instance){
         var m=instance;
-        var setInterval=m._interval;
-        var setTimeout=m._timeout;
-        var clearInterval=m._clearInterval;
-        var clearTimeout=m._clearTimeout;
+        var setInterval=m.setInterval;
+        var setTimeout=m.setTimeout;
+        var clearInterval=m.clearInterval;
+        var clearTimeout=m.clearTimeout;
         
         ${!_.isEmpty(boundVarDeclaration) ? `//undeclared vars
         ${boundVarDeclaration.join('')}
