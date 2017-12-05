@@ -183,6 +183,7 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, buildComponentBu
     class BrowserElement extends VirtualDomElement {
         _onBuild() {
             this._onCreateBrowserElement();
+            this._e._vdom = this;
             this._nodeList.push(this._e);
         }
         _insertBefore(child, vdom) {
@@ -240,7 +241,7 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, buildComponentBu
                         }
                     }
                     this._e.addEventListener('change', onChange);
-                    this._e.addEventListener('keyup', onChange);
+                    this._e.addEventListener('keypress', onChange);
                     this._e.addEventListener('click', onChange);
                 }else if (a instanceof Array) {
                     this._dynAtt[k] = a;
