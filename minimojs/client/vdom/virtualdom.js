@@ -223,6 +223,7 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, buildComponentBu
         _onCreateBrowserElement() {
             this.ctx = evaluatorManager.build(this);
             this._e = dom.createElement(this._struct.n);
+            this._dom = dom;
             this._dynAtt = {};
             for (let k in this._struct.a) {
                 let a = this._struct.a[k];
