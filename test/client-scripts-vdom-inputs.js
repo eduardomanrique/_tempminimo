@@ -10,16 +10,18 @@ chai.use(spies);
 
 
 describe('Test Inputs', () => {
-    jsdom({ skipWindowCheck: true });
+    jsdom({
+        skipWindowCheck: true
+    });
     it('Simple text', () => {
         document.body.innerHTML = `
             <input type="text" id="i1" value="cb">
         `;
         let input = document.getElementById("i1");
-        vdom = new function(){
+        vdom = new function () {
             this._e = input;
         }
-        const f = inputs._test._buildFunctions(vdom);
+        const f = inputs._test._buildFunctions(input);
         f.partialValidate('c', 'ab').should.be.true;
         f.validate('abc').should.be.true;
         f.extract().should.eq('cb');
@@ -31,10 +33,10 @@ describe('Test Inputs', () => {
             <input type="text" id="i1" m-type="integer" value="12">
         `;
         let input = document.getElementById("i1");
-        vdom = new function(){
+        vdom = new function () {
             this._e = input;
         }
-        const f = inputs._test._buildFunctions(vdom);
+        const f = inputs._test._buildFunctions(input);
         f.partialValidate('c', '12c').should.be.false;
         f.partialValidate('1', '121').should.be.true;
         f.validate('abc').should.be.false;
@@ -48,10 +50,10 @@ describe('Test Inputs', () => {
             <input type="text" id="i1" m-type="float" value="1.01">
         `;
         let input = document.getElementById("i1");
-        vdom = new function(){
+        vdom = new function () {
             this._e = input;
         }
-        const f = inputs._test._buildFunctions(vdom);
+        const f = inputs._test._buildFunctions(input);
         f.partialValidate('c', '12c').should.be.false;
         f.partialValidate('.', '121').should.be.true;
         f.partialValidate('2', '12.1').should.be.true;
@@ -69,10 +71,10 @@ describe('Test Inputs', () => {
             <input type="text" id="i1" m-type="float(,000)" value="2,3">
         `;
         let input = document.getElementById("i1");
-        vdom = new function(){
+        vdom = new function () {
             this._e = input;
         }
-        const f = inputs._test._buildFunctions(vdom);
+        const f = inputs._test._buildFunctions(input);
         f.partialValidate('c', '12c').should.be.false;
         f.partialValidate('.', '121').should.be.false;
         f.partialValidate(',', '121').should.be.true;
@@ -93,10 +95,10 @@ describe('Test Inputs', () => {
             <input type="text" id="i1" m-type="date" value="2017-12-27">
         `;
         let input = document.getElementById("i1");
-        vdom = new function(){
+        vdom = new function () {
             this._e = input;
         }
-        const f = inputs._test._buildFunctions(vdom);
+        const f = inputs._test._buildFunctions(input);
         f.partialValidate('1', '12345-01-01').should.be.false;
         f.partialValidate('1', '1234-02').should.be.true;
         f.partialValidate('-', '1234-02-').should.be.true;
@@ -118,10 +120,10 @@ describe('Test Inputs', () => {
             <input type="text" id="i1" m-type="date(dd/MM/yyyy)" value="27/12/2017">
         `;
         let input = document.getElementById("i1");
-        vdom = new function(){
+        vdom = new function () {
             this._e = input;
         }
-        const f = inputs._test._buildFunctions(vdom);
+        const f = inputs._test._buildFunctions(input);
         f.partialValidate('1', '001/01/2201').should.be.false;
         f.partialValidate('1', '12/02').should.be.true;
         f.partialValidate('/', '12/02/').should.be.true;
@@ -143,10 +145,10 @@ describe('Test Inputs', () => {
             <input type="date" id="i1" value="2017-12-27">
         `;
         let input = document.getElementById("i1");
-        vdom = new function(){
+        vdom = new function () {
             this._e = input;
         }
-        const f = inputs._test._buildFunctions(vdom);
+        const f = inputs._test._buildFunctions(input);
         f.partialValidate('1', '12345-01-01').should.be.false;
         f.partialValidate('1', '1234-02').should.be.true;
         f.partialValidate('-', '1234-02-').should.be.true;
@@ -169,10 +171,10 @@ describe('Test Inputs', () => {
             <input type="text" id="i1" m-type="datetime" value="2017-12-27T14:50">
         `;
         let input = document.getElementById("i1");
-        vdom = new function(){
+        vdom = new function () {
             this._e = input;
         }
-        const f = inputs._test._buildFunctions(vdom);
+        const f = inputs._test._buildFunctions(input);
         f.partialValidate('1', '12345-01-01T01:02').should.be.false;
         f.partialValidate('1', '1234-02-01T1').should.be.true;
         f.partialValidate('-', '1234-02-').should.be.true;
@@ -196,10 +198,10 @@ describe('Test Inputs', () => {
             <input type="text" id="i1" m-type="datetime(dd/MM/yyyy, HH:mm)" value="27/12/2017, 01:30">
         `;
         let input = document.getElementById("i1");
-        vdom = new function(){
+        vdom = new function () {
             this._e = input;
         }
-        const f = inputs._test._buildFunctions(vdom);
+        const f = inputs._test._buildFunctions(input);
         f.partialValidate('1', '001/01/2201').should.be.false;
         f.partialValidate('1', '12/02').should.be.true;
         f.partialValidate('/', '12/02/2018, ').should.be.true;
@@ -223,10 +225,10 @@ describe('Test Inputs', () => {
             <input type="datetime-local" id="i1" value="2017-12-27T14:50">
         `;
         let input = document.getElementById("i1");
-        vdom = new function(){
+        vdom = new function () {
             this._e = input;
         }
-        const f = inputs._test._buildFunctions(vdom);
+        const f = inputs._test._buildFunctions(input);
         f.partialValidate('1', '12345-01-01T01:02').should.be.false;
         f.partialValidate('1', '1234-02-01T1').should.be.true;
         f.partialValidate('-', '1234-02-').should.be.true;
@@ -250,10 +252,10 @@ describe('Test Inputs', () => {
             <input type="checkbox" id="i1" checked>
         `;
         let input = document.getElementById("i1");
-        vdom = new function(){
+        vdom = new function () {
             this._e = input;
         }
-        const f = inputs._test._buildFunctions(vdom);
+        const f = inputs._test._buildFunctions(input);
         let val = f.extract();
         val.should.be.true;
 
@@ -272,10 +274,10 @@ describe('Test Inputs', () => {
             <input type="text" id="i1" m-type="boolean">
         `;
         let input = document.getElementById("i1");
-        vdom = new function(){
+        vdom = new function () {
             this._e = input;
         }
-        const f = inputs._test._buildFunctions(vdom);
+        const f = inputs._test._buildFunctions(input);
         let val = f.extract();
         val.should.be.false;
 
@@ -298,10 +300,10 @@ describe('Test Inputs', () => {
             <input type="text" id="i1" m-type="boolean(yes,no)">
         `;
         let input = document.getElementById("i1");
-        vdom = new function(){
+        vdom = new function () {
             this._e = input;
         }
-        const f = inputs._test._buildFunctions(vdom);
+        const f = inputs._test._buildFunctions(input);
         let val = f.extract();
         val.should.be.false;
 
@@ -318,5 +320,164 @@ describe('Test Inputs', () => {
 
         f.update(false);
         input.value.should.eq("no");
+    });
+    it('Any', () => {
+        document.body.innerHTML = `
+            <input type="radio" id="i1" name="r" m-type="object" value="innerObj">
+        `;
+        let input = document.getElementById("i1");
+        var obj = {
+            name: "sample"
+        }
+        vdom = new function () {
+            var innerObj = obj;
+            this._e = input;
+            this.ctx = {
+                eval: function (s) {
+                    return eval(s);
+                }
+            };
+        }
+        const f = inputs._test._buildFunctions(input, vdom.ctx);
+        let val = f.extract();
+        val.should.eq(obj);
+        val.name.should.eq("sample");
+    });
+
+    it('Combo', () => {
+        document.body.innerHTML = `
+            <select id="i1">
+                <option value="string">v1</option>
+                <option m-type="integer">1</option>
+                <option m-type="float(,0)" value="2,1">2,1</option>
+                <option m-type="date(dd/MM/yyyy)" value="01/02/2017">01/02/2017</option>
+                <option m-type="object" value="obj">object</option>
+            </select>
+        `;
+        let input = document.getElementById("i1");
+        var obj = {
+            name: "sample"
+        }
+        vdom = new function () {
+            var innerObj = obj;
+            this._e = input;
+            this.ctx = {
+                eval: function (s) {
+                    return eval(s);
+                }
+            };
+        }
+        const f = inputs._test._buildFunctions(input, vdom.ctx);
+        let val = f.extract();
+        val.should.eq("string");
+
+        input.selectedIndex = 1;
+        val = f.extract();
+        val.should.eq(1);
+
+        input.selectedIndex = 2;
+        val = f.extract();
+        val.should.eq(2.1);
+
+        input.selectedIndex = 3;
+        val = f.extract();
+        expect(val instanceof Date).to.be.true;
+        val.getFullYear().should.eq(2017);
+        val.getMonth().should.eq(1);
+        val.getDate().should.eq(1);
+
+        input.selectedIndex = 4;
+        val = f.extract();
+        val.should.eq(obj);
+        val.name.should.eq("sample");
+
+        f.update("string")
+        input.selectedIndex.should.eq(0);
+
+        f.update(1)
+        input.selectedIndex.should.eq(1);
+
+        f.update(2.1)
+        input.selectedIndex.should.eq(2);
+
+        f.update(new Date(2017, 1, 1))
+        input.selectedIndex.should.eq(3);
+
+        f.update(obj);
+        input.selectedIndex.should.eq(4);
+    });
+
+    it('Multiple choice', () => {
+        document.body.innerHTML = `
+            <select id="i1" multiple>
+                <option value="string">v1</option>
+                <option m-type="integer">1</option>
+                <option m-type="float(,0)" value="2,1">2,1</option>
+                <option m-type="date(dd/MM/yyyy)" value="01/02/2017">01/02/2017</option>
+                <option m-type="object" value="obj">object</option>
+            </select>
+        `;
+        let input = document.getElementById("i1");
+        var obj = {
+            name: "sample"
+        }
+        vdom = new function () {
+            var innerObj = obj;
+            this._e = input;
+            this.ctx = {
+                eval: function (s) {
+                    return eval(s);
+                }
+            };
+        }
+        const f = inputs._test._buildFunctions(input, vdom.ctx);
+        let val = f.extract();
+        expect(val instanceof Array).to.be.true;
+        val.should.have.lengthOf(0);
+
+        input.options[0].selected = true;
+        input.options[3].selected = true;
+        val = f.extract();
+        expect(val instanceof Array).to.be.true;
+        val.should.have.lengthOf(2);
+        val[0].should.eq("string");
+        expect(val[1] instanceof Date).to.be.true;
+        val[1].getFullYear().should.eq(2017);
+        val[1].getMonth().should.eq(1);
+        val[1].getDate().should.eq(1);
+
+        input.options[0].selected = false;
+        input.options[1].selected = true;
+        input.options[2].selected = true;
+        input.options[3].selected = false;
+        input.options[4].selected = true;
+        val = f.extract();
+        expect(val instanceof Array).to.be.true;
+        val.should.have.lengthOf(3);
+        val[0].should.eq(1);
+        val[1].should.eq(2.1);
+        val[2].should.eq(obj);
+        val[2].name.should.eq("sample");
+
+        f.update(["string", obj]);
+        input.options[0].selected.should.be.true;
+        input.options[1].selected.should.be.false;
+        input.options[2].selected.should.be.false;
+        input.options[3].selected.should.be.false
+        input.options[4].selected.should.be.true;
+
+        f.update([1, 2.1, new Date(2017, 01, 01)]);
+        input.options[0].selected.should.be.false;
+        input.options[1].selected.should.be.true;
+        input.options[2].selected.should.be.true;
+        input.options[3].selected.should.be.true
+        input.options[4].selected.should.be.false;
+
+        f.update([2, 1.2, new Date(1000, 01, 01)]);
+        input.options[0].selected.should.be.false;
+        input.options[1].selected.should.be.false;
+        input.options[2].selected.should.be.false;
+        input.options[3].selected.should.be.false
+        input.options[4].selected.should.be.false;
     });
 });

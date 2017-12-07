@@ -10,7 +10,7 @@ const STRING = "string",
 
 const prepareInputElement = (vdom) => {
     const e = vdom._e;
-    const f = _buildFunctions(vdom);
+    const f = _buildFunctions(e, vdom.ctx);
 
     e.addEventListener('keypress', function (event) {
         var c = String.fromCharCode(event.keyCode);
@@ -28,22 +28,48 @@ const prepareInputElement = (vdom) => {
     vdom._setValue = (v) => f.update(v);
 }
 
-const _getElementValue = (e) => {
-    const mValue = _getAttribute(e, "m-value");
-    if (mValue) {
-        return e._vdom.ctx.eval(mValue);
+const _getOptionElementValue = (e, ctx) => {
+    if (!e._extractorFunction) {
+        e._extractorFunction = _buildFunctions(e, ctx).extract;
+        e._type = _getAttribute(e, 'm-type');
+        if (e._type) {
+            e._type = e._type.split("(")[0];
+        }
     }
-    return e.value || e.text;
+    return e._extractorFunction();
 }
 
-const _getRawSetterAndGetter = (e, inputType) => {
+const _compareOptionValue = (option, comp, ctx) => {
+    let val = _getOptionElementValue(option, ctx);
+    if (option._type == DATE) {
+        return val instanceof Date && comp instanceof Date &&
+            val.getFullYear() == comp.getFullYear() &&
+            val.getMonth() == comp.getMonth() &&
+            val.getDate() == comp.getDate();
+    } else if (option._type == DATETIME) {
+        return val instanceof Date && comp instanceof Date &&
+            val.getFullYear() == comp.getFullYear() &&
+            val.getMonth() == comp.getMonth() &&
+            val.getDate() == comp.getDate() &&
+            val.getHours() == comp.getHours() &&
+            val.getMinutes() == comp.getMinutes();
+    } else if (option._type == TIME) {
+        return val instanceof Date && comp instanceof Date &&
+            val.getHours() == comp.getHours() &&
+            val.getMinutes() == comp.getMinutes();
+    } else {
+        return val === comp;
+    }
+}
+
+const _getRawSetterAndGetter = (e, inputType, ctx) => {
     if (inputType == 'select') {
         if (e.getAttribute('multiple') == null) {
             return {
-                _get: () => _getElementValue(e.options[e.selectedIndex]),
+                _get: () => _getOptionElementValue(e.options[e.selectedIndex], ctx),
                 _set: (v) => {
                     for (let i = 0; i < e.options.length; i++) {
-                        if (_getElementValue(e.options[i]) === v) {
+                        if (_compareOptionValue(e.options[i], v, ctx)) {
                             e.selectedIndex = i;
                             break;
                         }
@@ -56,20 +82,21 @@ const _getRawSetterAndGetter = (e, inputType) => {
                     values = [];
                     for (let i = 0; i < e.options.length; i++) {
                         if (e.options[i].selected) {
-                            values.push(f.extract(_getElementValue(e.options[i]), type, extractor));
+                            values.push(_getOptionElementValue(e.options[i], ctx));
                         }
                     }
                     return values;
                 },
                 _set: (a) => {
-                    a.forEach(v => {
-                        for (let i = 0; i < e.options.length; i++) {
-                            if (_getElementValue(e.options[i]) === v) {
+                    for (let i = 0; i < e.options.length; i++) {
+                        e.options[i].selected = false;
+                        for (let j = 0; j < a.length; j++) {
+                            if (_compareOptionValue(e.options[i], a[j], ctx)) {
                                 e.options[i].selected = true;
                                 break;
                             }
                         }
-                    })
+                    }
                 }
             }
         }
@@ -77,6 +104,11 @@ const _getRawSetterAndGetter = (e, inputType) => {
         return {
             _get: () => e.checked,
             _set: (v) => e.checked = v == 'true'
+        }
+    } else if (inputType == 'option') {
+        return {
+            _get: () => e.value || e.text,
+            _set: (v) => {}
         }
     } else {
         return {
@@ -131,20 +163,19 @@ const _getTypeAndMask = (e, inputType) => {
     return [type, mask];
 }
 
-const _buildFunctions = (vdom) => {
-    const e = vdom._e;
-    const jsValue = _getAttribute(e, "m-value");
-    if (jsValue) { //read only
+const _buildFunctions = (e, ctx) => {
+    if (_getAttribute(e, "m-type") == OBJECT) { //read only
+        const jsValue = _getAttribute(e, "value");
         return {
             partialValidate: () => true,
             validate: () => true,
-            extract: () => vdom.ctx.eval(jsValue),
+            extract: () => ctx.eval(jsValue),
             update: () => {}
         }
     }
     const inputType = (e.nodeName == "INPUT" ? e.getAttribute("type") : e.nodeName).toLowerCase();
 
-    let accessors = _getRawSetterAndGetter(e, inputType);
+    let accessors = _getRawSetterAndGetter(e, inputType, ctx);
     let [type, mask] = _getTypeAndMask(e, inputType);
 
     if (type == TIME) {
@@ -211,7 +242,7 @@ const _buildBooleanFunction = (mask, accessors) => new function () {
     this.partialValidate = (c, value) => t.startsWith(value) || f.startsWith(value);
     this.extract = () => {
         let v = accessors._get();
-        return typeof(v) == "string" ? v == t : v;
+        return typeof (v) == "string" ? v == t : v;
     }
     this.update = (v) => accessors._set(v ? t : f);
 }
@@ -315,8 +346,6 @@ const _getAttribute = (e, attrib) => e.getAttribute(attrib) || e.getAttribute("d
 module.exports = {
     prepareInputElement: prepareInputElement,
     _test: {
-        _getRawSetterAndGetter: _getRawSetterAndGetter,
-        _getTypeAndMask: _getTypeAndMask,
         _buildFunctions: _buildFunctions
     }
 }
