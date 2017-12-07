@@ -76,7 +76,7 @@ const _getRawSetterAndGetter = (e, inputType) => {
     } else if (inputType == 'checkbox') {
         return {
             _get: () => e.checked,
-            _set: (v) => e.checked = v
+            _set: (v) => e.checked = v == 'true'
         }
     } else {
         return {
@@ -110,7 +110,7 @@ const _getTypeAndMask = (e, inputType) => {
     }
     if (!mask) {
         if (type == BOOLEAN) {
-            mask = "true|false";
+            mask = "true,false";
         } else if (type == TIME) {
             mask = 'HH:mm';
         } else if (type == DATETIME) {
@@ -206,14 +206,13 @@ const _buildFloatFunction = (mask, accessors) => new function () {
 }
 
 const _buildBooleanFunction = (mask, accessors) => new function () {
-    const [t, f] = (mask || "true|false").split(',').map(v => v.trim());
+    const [t, f] = (mask || "true,false").split(',').map(v => v.trim());
     this.validate = (v) => v.trim() == t || v.trim() == f;
     this.partialValidate = (c, value) => t.startsWith(value) || f.startsWith(value);
-    this.extract = () => parseFloat(accessors._get() || 0),
-        this.update = () => {
-            let v = accessors._get();
-            return t === (v ? v.trim() : "")
-        };
+    this.extract = () => {
+        let v = accessors._get();
+        return typeof(v) == "string" ? v == t : v;
+    }
     this.update = (v) => accessors._set(v ? t : f);
 }
 
@@ -230,9 +229,12 @@ const _buildTimeFunctions = (mask, accessors) => new function () {
             return unmasked;
         }
         let exec = regex.exec(v);
-        let date = new Date();
-        date.setHours(parseInt(exec[order.indexOf('HH') + 1]));
-        date.setMinutes(parseInt(exec[order.indexOf('mm') + 1]));
+        let date;
+        if (exec) {
+            date = new Date();
+            date.setHours(parseInt(exec[order.indexOf('HH') + 1]));
+            date.setMinutes(parseInt(exec[order.indexOf('mm') + 1]));
+        }
         return date;
     };
     this.update = () =>
@@ -255,12 +257,15 @@ const _buildDateTimeFunctions = (mask, accessors) => new function () {
             return unmasked;
         }
         let exec = regex.exec(v);
-        let date = new Date();
-        date.setFullYear(parseInt(exec[order.indexOf('yyyy') + 1]));
-        date.setMonth(parseInt(exec[order.indexOf('MM') + 1] - 1));
-        date.setDate(parseInt(exec[order.indexOf('dd') + 1]));
-        date.setHours(parseInt(exec[order.indexOf('HH') + 1]));
-        date.setMinutes(parseInt(exec[order.indexOf('mm') + 1]));
+        let date;
+        if (exec) {
+            date = new Date();
+            date.setFullYear(parseInt(exec[order.indexOf('yyyy') + 1]));
+            date.setMonth(parseInt(exec[order.indexOf('MM') + 1] - 1));
+            date.setDate(parseInt(exec[order.indexOf('dd') + 1]));
+            date.setHours(parseInt(exec[order.indexOf('HH') + 1]));
+            date.setMinutes(parseInt(exec[order.indexOf('mm') + 1]));
+        }
         return date;
     };
     this.update = (d) =>
@@ -283,10 +288,13 @@ const _buildDateFunctions = (mask, accessors) => new function () {
             return unmasked;
         }
         let exec = regex.exec(v);
-        let date = new Date();
-        date.setFullYear(parseInt(exec[order.indexOf('yyyy') + 1]));
-        date.setMonth(parseInt(exec[order.indexOf('MM') + 1]) - 1);
-        date.setDate(parseInt(exec[order.indexOf('dd') + 1]));
+        let date;
+        if (exec) {
+            date = new Date();
+            date.setFullYear(parseInt(exec[order.indexOf('yyyy') + 1]));
+            date.setMonth(parseInt(exec[order.indexOf('MM') + 1]) - 1);
+            date.setDate(parseInt(exec[order.indexOf('dd') + 1]));
+        }
         return date;
     };
     this.update = (d) =>
