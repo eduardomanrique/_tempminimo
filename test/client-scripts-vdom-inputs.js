@@ -88,4 +88,54 @@ describe('Test Inputs', () => {
         f.update(12.3);
         input.value.should.eq('12,3');
     });
+    it('Date text', () => {
+        document.body.innerHTML = `
+            <input type="text" id="i1" m-type="date" value="2017-12-27">
+        `;
+        let input = document.getElementById("i1");
+        vdom = new function(){
+            this._e = input;
+        }
+        const f = inputs._test._buildFunctions(vdom);
+        f.partialValidate('1', '12345-01-01').should.be.false;
+        f.partialValidate('1', '1234-02').should.be.true;
+        f.partialValidate('-', '1234-02-').should.be.true;
+        f.partialValidate('1', '1').should.be.true;
+        f.validate('abc').should.be.false;
+        f.validate('123').should.be.false;
+        f.validate('1233-2').should.be.false;
+        f.validate('1234-02-01').should.be.true;
+        let date = f.extract();
+        expect(date instanceof Date).to.be.true;
+        date.getFullYear().should.eq(2017);
+        date.getMonth().should.eq(11);
+        date.getDate().should.eq(27);
+        f.update(new Date(2001, 01, 02));
+        input.value.should.eq('2001-02-02');
+    });
+    it('Date text masked', () => {
+        document.body.innerHTML = `
+            <input type="text" id="i1" m-type="date(dd/MM/yyyy)" value="27/12/2017">
+        `;
+        let input = document.getElementById("i1");
+        vdom = new function(){
+            this._e = input;
+        }
+        const f = inputs._test._buildFunctions(vdom);
+        f.partialValidate('1', '001/01/2201').should.be.false;
+        f.partialValidate('1', '12/02').should.be.true;
+        f.partialValidate('/', '12/02/').should.be.true;
+        f.partialValidate('1', '1').should.be.true;
+        f.validate('abc').should.be.false;
+        f.validate('123').should.be.false;
+        f.validate('12/33/2').should.be.false;
+        f.validate('01/02/1234').should.be.true;
+        let date = f.extract();
+        expect(date instanceof Date).to.be.true;
+        date.getFullYear().should.eq(2017);
+        date.getMonth().should.eq(11);
+        date.getDate().should.eq(27);
+        f.update(new Date(2001, 01, 02));
+        input.value.should.eq('02/02/2001');
+    });
 });

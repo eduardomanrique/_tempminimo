@@ -231,8 +231,8 @@ const _buildTimeFunctions = (mask, accessors) => new function () {
         }
         let exec = regex.exec(v);
         let date = new Date();
-        date.setHours(exec[order.indexOf('HH') + 1]);
-        date.setMinutes(exec[order.indexOf('mm') + 1]);
+        date.setHours(parseInt(exec[order.indexOf('HH') + 1]));
+        date.setMinutes(parseInt(exec[order.indexOf('mm') + 1]));
         return date;
     };
     this.update = () =>
@@ -244,7 +244,7 @@ const _buildDateTimeFunctions = (mask, accessors) => new function () {
     let regexMask = mask.replace('yyyy', '(\\d{4})').replace('MM', '(\\d{2})')
         .replace('dd', '(\\d{2})').replace('HH', '(\\d{2})')
         .replace('mm', '(\\d{2})');
-    let unmasked = mask.replace('yyyy', '00').replace('MM', '00').replace('dd', '00')
+    let unmasked = mask.replace('yyyy', '0000').replace('MM', '00').replace('dd', '00')
         .replace('HH', '00').replace('mm', '00');
     let regex = new RegExp(`^${regexMask}$`);
     this.validate = (v) => regex.test(v);
@@ -256,24 +256,24 @@ const _buildDateTimeFunctions = (mask, accessors) => new function () {
         }
         let exec = regex.exec(v);
         let date = new Date();
-        date.setFullYear(exec[order.indexOf('yyyy') + 1]);
-        date.setMonth(exec[order.indexOf('MM') + 1] + 1);
-        date.setDate(exec[order.indexOf('dd') + 1]);
-        date.setHours(exec[order.indexOf('HH') + 1]);
-        date.setMinutes(exec[order.indexOf('mm') + 1]);
+        date.setFullYear(parseInt(exec[order.indexOf('yyyy') + 1]));
+        date.setMonth(parseInt(exec[order.indexOf('MM') + 1] - 1));
+        date.setDate(parseInt(exec[order.indexOf('dd') + 1]));
+        date.setHours(parseInt(exec[order.indexOf('HH') + 1]));
+        date.setMinutes(parseInt(exec[order.indexOf('mm') + 1]));
         return date;
     };
     this.update = (d) =>
-        accessors._set(mask.replace('yyyy', _pad(d.getFull(), 2)).replace('MM', _pad(d.getMinutes(), 2))
-            .replace('dd', _pad(d.getHours(), 2)).replace('HH', _pad(d.getMinutes(), 2))
-            .replace('mm', _pad(d.getHours(), 2)));
+        accessors._set(mask.replace('yyyy', _pad(d.getFullYear(), 4)).replace('MM', _pad(d.getMonth() + 1, 2))
+            .replace('dd', _pad(d.getDate(), 2)).replace('HH', _pad(d.getHours(), 2))
+            .replace('mm', _pad(d.getMinutes(), 2)));
 }
 
 const _buildDateFunctions = (mask, accessors) => new function () {
     let order = _setGroupOrder(mask, 'yyyy', 'MM', 'dd');
     let regexMask = mask.replace('yyyy', '(\\d{4})').replace('MM', '(\\d{2})')
         .replace('dd', '(\\d{2})');
-    let unmasked = mask.replace('yyyy', '00').replace('MM', '00').replace('dd', '00');
+    let unmasked = mask.replace('yyyy', '0000').replace('MM', '00').replace('dd', '00');
     let regex = new RegExp(`^${regexMask}$`);
     this.validate = (v) => regex.test(v);
     this.partialValidate = (c, value) => unmasked.startsWith(value.replace(/\d/g, '0'));
@@ -284,14 +284,14 @@ const _buildDateFunctions = (mask, accessors) => new function () {
         }
         let exec = regex.exec(v);
         let date = new Date();
-        date.setFullYear(exec[order.indexOf('yyyy') + 1]);
-        date.setMonth(exec[order.indexOf('MM') + 1] + 1);
-        date.setDate(exec[order.indexOf('dd') + 1]);
+        date.setFullYear(parseInt(exec[order.indexOf('yyyy') + 1]));
+        date.setMonth(parseInt(exec[order.indexOf('MM') + 1]) - 1);
+        date.setDate(parseInt(exec[order.indexOf('dd') + 1]));
         return date;
     };
     this.update = (d) =>
-        accessors._set(mask.replace('yyyy', _pad(d.getFull(), 2)).replace('MM', _pad(d.getMinutes(), 2))
-            .replace('dd', _pad(d.getHours(), 2)));
+        accessors._set(mask.replace('yyyy', _pad(d.getFullYear(), 4)).replace('MM', _pad(d.getMonth() + 1, 2))
+            .replace('dd', _pad(d.getDate(), 2)));
 }
 
 const _pad = (value, size) => {
