@@ -1,139 +1,7 @@
-classes globais (ficarao no Mimimo$)
-    ContextManager
-    EvaluatorManager
-pensar melhor
-    html
-        json
-            evaluator
-            container
-            component > container
-
-                
-            virtualdomIterator > container
-                    
-            virtualdomElement
-                hold the element
-                    points to virtual dom, se nao é criado fora
-                hold the events
-                render just once
-                    create browserdom
-                    set non dyn attribs
-                    append to parent
-                        if parent not component - add to its element - else add to its parent
-                    trigger create event
-                insideComponent - set once
-                    true if it is a html comp type ou mbody and there is a parent comp
-                    if true then partOfComponet=false
-                    if false then partOfComponet = false or true
-                partOfComponet - set once
-                    true if it is part of htmlstruct of a comp
-                    if true then insideComponent=false
-                    if false then insideComponent = false or true
-                getComponent - set once - check just if insideComponent or partOfComponet
-                    finds in parent chain till find component
-                getEvaluator - create just the first exec
-                    if insideComponent get the chain of component + minimo.
-                    if partOfComponet get just the parentcomponent.getLocalContext
-                    if not insideComponent and not partOfComponet get mimimo
-                parent
-                dynAttribs
-                    on update minimo
-                        getEvaluator().eval(script)
-                            if changed from last time e.setAttribute
-                child
-                remove
-                    remove itself and its child
-                    must call remove on child first
-                    trigger remove event
-            virtualdomText
-                hold the text
-                    points to virtual dom, se nao é criado fora
-                render just once
-                    create browserdom
-                    set text if not mscript
-                    append to parent
-                        if parent not component - add to its element - else add to its parent
-                    trigger create event
-                if(mscript){
-                    insideComponent - set once
-                        true if it is a html comp type ou mbody and there is a parent comp
-                        if true then partOfComponet=false
-                        if false then partOfComponet = false or true
-                    partOfComponet - set once
-                        true if it is part of htmlstruct of a comp
-                        if true then insideComponent=false
-                        if false then insideComponent = false or true
-                    getComponent - set once - check just if insideComponent or partOfComponet
-                        finds in parent chain till find component
-                    getEvaluator - create just the first exec
-                        if insideComponent get the chain of component + minimo.
-                        if partOfComponet get just the parentcomponent.getLocalContext
-                        if not insideComponent and not partOfComponet get mimimo
-                    parent
-                    mscript
-                        on update minimo
-                            getEvaluator().eval(script)
-                                if changed from last time e.nodeValue=text
-                    remove
-                        trigger remove event
-            listener
-                create and remove events
-                catchs the inputs, and buttons here
-                binds
-                    when a input has a bind is changed
-                        if the dom is partOfComponet
-                            ctx = evaluator.getvariablecontext
-                        else
-                            ctx = minimo
-                        publish a message of var in ctx was changed
-                logic of update variables
-                    var, 
-                    list,
-                    detect if object or list
-                    detect indexes
-                    must work with inner var
-                        obj.list[i].name
-                            in this case must break each part  
-                                obj if not exists obj={}
-                                obj.list[i] if not exists obj.list = [];obj.list[i] = {}
-                                obj.list[i].name = value of input
-                event (function call) trigger
-                    update all
-                        setTimeout(updateminimo, 100)
-
-
-
-
-
-
-
-
-entender pra que serve hiddenattributes e tempatributes
 
 X.import, X.modalS retorna promise
-tem que ser possivel importar via path.modal.js
-eliminar o chord
-X$._onScript e X$.register agora devem pegar compInfo do htmlstruct
 mutation 
     href novos - capturar o link e disparar o url change event
-
-html creator
-    recursivo?
-        se for recursivo, fazer com promise
-
-ideias:
-    alterar a estrutura dinamicamente quando se inserir mais nodes (via ifs e for) - virtual node
-        manter o que é a estrutura original
-            o que deve acontecer se um jquery alterar o elemento? altera-se a estrutura?
-        ===ver o que acontece hoje quando ha uma mutation...
-    assim é possivel mudar a maneira que os updates sao feito. Pode-se usar o json em vcs do browser dom
-        ao criar novos if e for registrar num global
-
-    text com script serao textnodes guardados a parte com o seu escopo
-    attributes com script sera guardados a parte com o seu escopo
-    template scripts serao 2 textnodes (inicio e fim) vazios para ser o ponto de insercao. Serao guardados a parte
-    _outxdynattr_ removidos
-=======
 
 import
     implementar require do node?
@@ -141,7 +9,6 @@ import
 
 onInit
     se for retornada uma promise, o onInit so é dado como terminado quando a promise terminar
-    
 
 appcache
     usar fallback para templates - testar
@@ -167,8 +34,6 @@ steps
         limpar o target element
         recarregar o json e o script da pagina no target element do template
 
-
-test com inner iterator
 
 get htmx
     find js pair

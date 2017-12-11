@@ -6,7 +6,7 @@ const ContextManager = require('./context-manager');
 //const modals = require('./modal.js');
 
 const VirtualDom = function (json, insertPoint, mimimoInstance, buildComponentBuilderFunction, waitForScriptsToLoad = true) {
-    const dom = mimimoInstance.dom;
+    const dom = mimimoInstance._dom;
     let rootVDom;
     const selfVDom = this;
     const ctxManager = new ContextManager();
@@ -55,14 +55,14 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, buildComponentBu
 
     let updatePromise;
     this.update = (delay) => {
-        if(updatePromise){
+        if (updatePromise) {
             return updatePromise;
-        }else{
+        } else {
             updatePromise = new Promise((resolve, reject) => {
                 setTimeout(() => {
-                    try{
+                    try {
                         rootVDom.update();
-                    }catch(e){
+                    } catch (e) {
                         console.debug('Error updating dom ' + e.message);
                     }
                     updatePromise = null;
@@ -227,15 +227,15 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, buildComponentBu
             this._dynAtt = {};
             for (let k in this._struct.a) {
                 let a = this._struct.a[k];
-                if(k == 'bind' || k == 'data-bind'){
+                if (k == 'bind' || k == 'data-bind') {
                     let val = a;
                     if (val instanceof Array) {
-                        val = val.map(v =>  util.safeToString(v)).join('');
+                        val = val.map(v => util.safeToString(v)).join('');
                     }
                     this._setAttribute(k, val);
                     this._objects = new Objects(k, this.ctx, () => this._e.value);
                     const onChange = () => {
-                        if(this._lastValue == null || this._lastValue != this._e.value){
+                        if (this._lastValue == null || this._lastValue != this._e.value) {
                             this._lastValue = this._e.value;
                             this._objects.updateVariable();
                             selfVDom.update();
@@ -244,7 +244,7 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, buildComponentBu
                     this._e.addEventListener('change', onChange);
                     this._e.addEventListener('keypress', onChange);
                     this._e.addEventListener('click', onChange);
-                }else if (a instanceof Array) {
+                } else if (a instanceof Array) {
                     this._dynAtt[k] = a;
                 } else {
                     this._setAttribute(k, a);
@@ -274,6 +274,8 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, buildComponentBu
             if (n == 'href' && v.indexOf('javascript:') == 0) {
                 this._e.href = 'javascript:;';
                 super._setAttribute('onclick', v.substring('javascript:'.length));
+            } else {
+                super._setAttribute(n, v);
             }
         }
 
@@ -444,16 +446,6 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, buildComponentBu
         set index(i) {
             this._index = i;
             this._iteratorContext.__set_index(i);
-        }
-    }
-
-    function _parseUrl(url){
-        var qmIndex = url.indexOf('?');
-        var path = qmIndex >= 0 ? url.substring(0, qmIndex) : url;
-        return {
-            path: path,
-            query: qmIndex >= 0 ? url.substring(qmIndex) : '',
-            tpl: xresources.getTplInfo(path)
         }
     }
 }

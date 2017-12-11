@@ -14,11 +14,16 @@ const fs = require('fs');
 chai.use(spies);
 
 describe('Test compiler', function () {
-    before(() => context.destinationPath = `/tmp/minimojs_test`);
     beforeEach(() => resources.rmDirR(context.destinationPath)
-        .then(() => resources.mkdirTree(context.destinationPath)));
+        .then(() => {
+            compiler.setParameters({
+                defaultTemplate: "tpl.htmx"
+            });
+            context.destinationPath = `/tmp/minimojs_test`;
+            resources.mkdirTree(context.destinationPath);
+        }));
     afterEach(() => resources.rmDirR(context.destinationPath));
-    
+
     it('Get resource info htmx/js OK', () => compiler._restart()
         .then(() => compiler._getResourceInfo('/dir1/test1.htmx', false)
             .then(resourceOption => {
@@ -61,7 +66,7 @@ describe('Test compiler', function () {
                     resource.relativeHtmxPath.value.should.equal('./pages/dir2/htmxonly.htmx');
                 });
             })));
-    it ('Prepare injections', () => {
+    it('Prepare injections', () => {
         const js = `
         //import:/import/i1
         var i;
@@ -86,7 +91,11 @@ describe('Test compiler', function () {
             },
             bindService: name => services.push(name),
             modalS: (path, toggle, elementId) => {
-                modals.push({t: toggle, p: path, e: elementId});
+                modals.push({
+                    t: toggle,
+                    p: path,
+                    e: elementId
+                });
                 return new Promise((resolve) => resolve(instance));
             }
         }
@@ -117,7 +126,7 @@ describe('Test compiler', function () {
             expect(vars.modal3).to.be.equal(instance);
         });
     });
-    it ('Test instrument controller', () => {
+    it('Test instrument controller', () => {
         const parser = new htmlParser.HTMLParser();
         const docJson = parser.parse(`<html>
             <body>
@@ -147,9 +156,12 @@ describe('Test compiler', function () {
         const realPath = resources.getRealPath('/pages/dir1/test1.htmx');
         const resInfo = new compiler.Resource('/dir1/test1', true, true, realPath.substring(0, realPath.lastIndexOf('.')), false);
         const controllerJs = compiler._instrumentController(docJson, jsData, false, resInfo, boundVars, boundModals);
-        
+
         let htmlStruct;
         let resourceName;
+        let insertPoint;
+        let modal;
+        const rootElement = {};
         const m = {
             setInterval: 1,
             setTimeout: 2,
@@ -157,38 +169,40 @@ describe('Test compiler', function () {
             clearTimeout: 4,
             modalS: (path, bool, id) => new Promise(resolve => resolve({}))
         };
-        const M$ = {
-            register: (html, name, constructorFn) => {
-                htmlStruct = html;
-                resourceName = name;
-                return new constructorFn(m);
-            }
-        };
-        var controller;
-        eval(`controller = ${controllerJs}`);
-        expect(controller.onInit).not.null;
-        expect(controller.onChange).not.null;
-        expect(controller.resourceName).to.be.eq('dir1.test1');
-        expect(controller.__eval__('setInterval')).to.eq(1);
-        expect(controller.__eval__('setTimeout')).to.eq(2);
-        expect(controller.__eval__('clearInterval')).to.eq(3);
-        expect(controller.__eval__('clearTimeout')).to.eq(4);
-        expect(controller.__eval__('init')).to.eq(0);
-        expect(controller.onInit).not.to.be.null;
-        expect(controller.onChange).not.to.be.null;
-        expect(controller._privateFn).not.to.be.null;
-        controller.onInit();
-        expect(controller.__eval__('init')).to.eq(1);
-        expect(controller.__eval__('change')).to.eq(0);
-        controller.onChange();
-        expect(controller.__eval__('change')).to.eq(1);
-        expect(controller.__eval__('mod')).not.null;
-        var binds = controller.__eval__('__binds__');
-        return Promise.all(binds).then(() => {
-            expect(binds).to.have.lengthOf(1);
-        })
+        const startInstance = (ip, html, constructorFn, isModal) => new Promise(r => {
+            htmlStruct = html;
+            modal = isModal;
+            insertPoint = ip
+            m._controller = new constructorFn(m);
+            r(m);
+        });
+        let fnStartInstance = eval(controllerJs);
+        return fnStartInstance(rootElement, false).then(instance => {
+            let controller = instance._controller;
+            expect(controller.onInit).not.null;
+            expect(controller.onChange).not.null;
+            expect(controller.resourceName).to.be.eq('dir1.test1');
+            expect(controller.__eval__('setInterval')).to.eq(1);
+            expect(controller.__eval__('setTimeout')).to.eq(2);
+            expect(controller.__eval__('clearInterval')).to.eq(3);
+            expect(controller.__eval__('clearTimeout')).to.eq(4);
+            expect(controller.__eval__('init')).to.eq(0);
+            expect(controller.onInit).not.to.be.null;
+            expect(controller.onChange).not.to.be.null;
+            expect(controller._privateFn).not.to.be.null;
+            controller.onInit();
+            expect(controller.__eval__('init')).to.eq(1);
+            expect(controller.__eval__('change')).to.eq(0);
+            controller.onChange();
+            expect(controller.__eval__('change')).to.eq(1);
+            expect(controller.__eval__('mod')).not.null;
+            var binds = controller.__eval__('__binds__');
+            return Promise.all(binds).then(() => {
+                expect(binds).to.have.lengthOf(1);
+            })
+        });
     });
-    it ('Get empty template data', () => 
+    it('Get empty template data', () =>
         compiler._getTemplateData().then(data => {
             const doc = new htmlParser.HTMLParser().parse(data);
             doc.htmlElement.should.not.be.null;
@@ -196,7 +210,7 @@ describe('Test compiler', function () {
             body.should.not.be.null;
             body.children.should.have.lengthOf(1);
         }));
-    it ('Get non empty template data', () => 
+    it('Get non empty template data', () =>
         compiler._getTemplateData('tpl.htmx').then(data => {
             const doc = new htmlParser.HTMLParser().parse(data);
             doc.htmlElement.should.not.be.null;
@@ -204,31 +218,31 @@ describe('Test compiler', function () {
             body.should.not.be.null;
             expect(body.children.length).be.greaterThan(4);
         }));
-    it ('Prepare top elements', () => 
+    it('Prepare top elements', () =>
         compiler._getTemplateData('tpl.htmx').then(data => {
             const doc = new htmlParser.HTMLParser().parse(data);
             compiler._prepareTopElements(doc);
             const divLoader = _.first(doc.getElementsByName('body')).children[0];
             divLoader.getAttribute("id").should.be.equal('__temploader__');
         }));
-    it ('Test add child to app cache', () => {
+    it('Test add child to app cache', () => {
         compiler._resetAppcache();
         const realPath = resources.getRealPath('/pages/dir2/test_appcache.htmx');
         const resInfo = new compiler.Resource('/dir2/test_appcache', false, true, realPath.substring(0, realPath.lastIndexOf('.')), false);
-        return components.startComponents().then(() => 
+        return components.startComponents().then(() =>
             Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
-                .then(([htmx, js]) => 
-                    compiler._compilePage(resInfo, util.nullableOption(htmx).optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data))
-                        .then(compiledPage => {
-                            var a = compiler._appcache();
-                            a.should.contain('/test.js');
-                            a.should.contain('/abc/def.js');
-                            a.should.contain('/x.js');
-                            a.should.contain('/y.js');
-                            a.should.contain('/css/tests.css');
-                        })));
-            });
-    it ('Reload blank template', () => {
+            .then(([htmx, js]) =>
+                compiler._compilePage(resInfo, util.nullableOption(htmx).optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data))
+                .then(compiledPage => {
+                    var a = compiler._appcache();
+                    a.should.contain('/test.js');
+                    a.should.contain('/abc/def.js');
+                    a.should.contain('/x.js');
+                    a.should.contain('/y.js');
+                    a.should.contain('/css/tests.css');
+                })));
+    });
+    it('Reload blank template', () => {
         const resInfo = new compiler.Resource('/path', true, true, '/path', false);
         resInfo.templateName = 'tpl.htmx';
         return compiler._reloadTemplate(resInfo).then(template => {
@@ -238,132 +252,133 @@ describe('Test compiler', function () {
             body.children[0].name.should.be.equal('script');
         });
     });
-    it ('Compile page htmx and js no components no html element', () => {
+    it('Compile page htmx and js no components no html element', () => {
         const realPath = resources.getRealPath('/pages/dir1/test1.htmx');
         const resInfo = new compiler.Resource('/dir1/test1', true, true, realPath.substring(0, realPath.lastIndexOf('.')), false);
-        return components.startComponents().then(() => 
+        return components.startComponents().then(() =>
             Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
             .then(([htmx, js]) => compiler._compilePage(resInfo, util.optionOf(htmx.data), util.optionOf(js.data)).then(scripts => {
-                let instance;
-                const M$ = {
-                    register: (html, name, constructorFn) => {
-                        htmlStruct = html;
-                        resourceName = name;
-                        instance = new constructorFn({});
-                    }
-                };
-                eval(scripts.js);
-                expect(scripts.globalJs).to.be.undefined;
-                instance.__eval__('param').should.be.eq(1);
+                let controller;
+                const startInstance = (ip, html, constructorFn, isModal) => new Promise(r => {
+                    htmlStruct = html;
+                    controller = new constructorFn({});
+                    r({});
+                });
+                return eval(scripts.js)({}, false).then(() => {
+                    expect(scripts.globalJs).to.be.undefined;
+                    controller.__eval__('param').should.be.eq(1);
+                });
             })));
     });
-    it ('Compile page htmx and no js no components with template', () => {
+    it('Compile page htmx and no js no components with template', () => {
         const realPath = resources.getRealPath('/pages/dir1/test1_template_no_js.htmx');
         const resInfo = new compiler.Resource('/dir1/test1_template_no_js', false, true, realPath.substring(0, realPath.lastIndexOf('.')), false);
-        return components.startComponents().then(() => 
-        Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
+        return components.startComponents().then(() =>
+            Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
             .then(([htmx, js]) => compiler._compilePage(resInfo, util.nullableOption(htmx).optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data)).then(compiled => {
-                let instance;
-                const M$ = {
-                    register: (html, name, constructorFn) => {
-                        htmlStruct = html;
-                        resourceName = name;
-                        instance = new constructorFn({});
-                    }
-                };
-                eval(compiled.js);
-                expect(compiled.globalJs).to.be.undefined;
-                var param;
-                instance.__eval__('param = 1');
-                param = 3;
-                instance.__eval__('param').should.be.eq(1);
+                const m = {};
+                let controller;
+                const startInstance = (ip, html, constructorFn, isModal) => new Promise(r => {
+                    controller = new constructorFn(m);
+                    r(m);
+                });
+                return eval(compiled.js)({}, false).then(() => {
+                    expect(compiled.globalJs).to.be.undefined;
+                    var param;
+                    controller.__eval__('param = 1');
+                    param = 3;
+                    controller.__eval__('param').should.be.eq(1);
+                });
             })));
     });
-    it ('Compile page js only', () => {
+    it('Compile page js only', () => {
         const realPath = resources.getRealPath('/pages/dir2/js-only.js');
         const resInfo = new compiler.Resource('/dir2/js-only', true, false, realPath.substring(0, realPath.lastIndexOf('.')), false);
-        return components.startComponents().then(() => 
-        Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
+        return components.startComponents().then(() =>
+            Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
             .then(([htmx, js]) => compiler._compilePage(resInfo, util.nullableOption(htmx).optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data)).then(compiled => {
-                let instance;
-                const M$ = {
-                    register: (html, name, constructorFn) => {
-                        htmlStruct = html;
-                        resourceName = name;
-                        instance = new constructorFn({});
-                    }
-                };
-                eval(compiled.js);
-                var param;
-                instance.__eval__('param = 1');
-                param = 3;
-                instance.__eval__('param').should.be.eq(1);
-                instance.showSomething().should.be.equal('Param: 1');
-                instance.resourceName.should.be.eq('dir2.js-only');
+                const m = {};
+                let controller;
+                const startInstance = (ip, html, constructorFn, isModal) => new Promise(r => {
+                    controller = new constructorFn(m);
+                    r(m);
+                });
+                const startScript = (controller) => startInstance(null, null, controller, false);
+                return eval(compiled.js)({}, false).then(() => {
+                    var param;
+                    controller.__eval__('param = 1');
+                    param = 3;
+                    controller.__eval__('param').should.be.eq(1);
+                    controller.showSomething().should.be.equal('Param: 1');
+                    controller.resourceName.should.be.eq('dir2.js-only');
 
-                function _Minimo(){this.value = true};
-                const window = {
-                    addEventListener: (eventName, fn) => {
-                        fn();
+                    function _Minimo() {
+                        this.value = true
+                    };
+                    let loadScript;
+                    const window = {
+                        addEventListener: (eventName, fn) => {
+                            loadScript = fn;
+                        }
                     }
-                }
-                let jsName;
-                M$._onScript = (constructorFn, xInstance, onFinish, v, name) => {
-                    instance = new constructorFn(xInstance);
-                    jsName = name;
-                }
-                eval(compiled.globalJs);
-                instance.__eval__('param = 2');
-                instance.__eval__('param').should.be.eq(2);
-                instance.showSomething().should.be.equal('Param: 2');
-                instance.resourceName.should.be.eq('dir2.js-only');
-                expect(window.jsOnly == instance).to.be.true;
+                    let jsName;
+                    eval(compiled.globalJs);
+
+                    return loadScript().then(() => {
+                        controller.__eval__('param = 2');
+                        controller.__eval__('param').should.be.eq(2);
+                        controller.showSomething().should.be.equal('Param: 2');
+                        controller.resourceName.should.be.eq('dir2.js-only');
+                        expect(window.jsOnly == controller).to.be.true;
+                    });
+                });
             })));
     });
-    it ('Compile page htmx and js with components', () => {
+    it('Compile page htmx and js with components', () => {
         const realPath = resources.getRealPath('/pages/dir1/with_components.htmx');
         const resInfo = new compiler.Resource('/dir1/with_components', true, true, realPath.substring(0, realPath.lastIndexOf('.')), false);
-        return components.startComponents().then(() => 
+        return components.startComponents().then(() =>
             Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
-                .then(([htmx, js]) => compiler._compilePage(resInfo, util.nullableOption(htmx).optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data)).then(compiled => {
-                    let instance;
-                    const M$ = {
-                        register: (html, name, constructorFn) => {
-                            htmlStruct = html;
-                            resourceName = name;
-                            instance = new constructorFn({});
-                        }
-                    };
-                    eval(compiled.js);
+            .then(([htmx, js]) => compiler._compilePage(resInfo, util.nullableOption(htmx).optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data)).then(compiled => {
+                const m = {};
+                let controller;
+                const startInstance = (ip, html, constructorFn, isModal) => new Promise(r => {
+                    controller = new constructorFn(m);
+                    r(m);
+                });
+                eval(compiled.js)({}, false).then(() => {
                     //console.log(compiled.js)
                     expect(compiled.globalJs).to.be.undefined;
                     var bindV;
-                    instance.__eval__('bindV = 1');
+                    controller.__eval__('bindV = 1');
                     bindV = 3;
-                    instance.__eval__('bindV').should.be.eq(1);
-                    var obj = {val:null};
-                    instance.__eval__('obj = {val:1}');
+                    controller.__eval__('bindV').should.be.eq(1);
+                    var obj = {
+                        val: null
+                    };
+                    controller.__eval__('obj = {val:1}');
                     obj.val = 3
-                    instance.__eval__('obj.val').should.be.eq(1);
-                })));
+                    controller.__eval__('obj.val').should.be.eq(1);
+                });
+            })));
     });
     it('Reload files', () => compiler._restart()
-            .then(compiler._reloadFiles)
-            .then(() => [
-                    resources.ls(`${context.destinationPath}/dir1`),
-                    resources.ls(`${context.destinationPath}/dir2`)
-                ].toPromise())
-            .then(([dir1, dir2]) => {
-                dir1.should.have.lengthOf(3);
-                dir1.should.contain(`${context.destinationPath}/dir1/test1.m.js`);
-                dir1.should.contain(`${context.destinationPath}/dir1/test1_template_no_js.m.js`);
-                dir1.should.contain(`${context.destinationPath}/dir1/with_components.m.js`);
-                dir2.should.have.lengthOf(4);
-                dir2.should.contain(`${context.destinationPath}/dir2/htmxonly.m.js`);
-                dir2.should.contain(`${context.destinationPath}/dir2/js-only.m.js`);
-                dir2.should.contain(`${context.destinationPath}/dir2/js-only.js`);
-                dir2.should.contain(`${context.destinationPath}/dir2/test_appcache.m.js`);
-            }));
+        .then(compiler._reloadFiles)
+        .then(() => [
+            resources.ls(`${context.destinationPath}/dir1`),
+            resources.ls(`${context.destinationPath}/dir2`)
+        ].toPromise())
+        .then(([dir1, dir2]) => {
+            dir1.should.have.lengthOf(3);
+            dir1.should.contain(`${context.destinationPath}/dir1/test1.m.js`);
+            dir1.should.contain(`${context.destinationPath}/dir1/test1_template_no_js.m.js`);
+            dir1.should.contain(`${context.destinationPath}/dir1/with_components.m.js`);
+            dir2.should.have.lengthOf(4);
+            dir2.should.contain(`${context.destinationPath}/dir2/htmxonly.m.js`);
+            dir2.should.contain(`${context.destinationPath}/dir2/js-only.m.js`);
+            dir2.should.contain(`${context.destinationPath}/dir2/js-only.js`);
+            dir2.should.contain(`${context.destinationPath}/dir2/test_appcache.m.js`);
+        }));
     it('Compile Resources', () => components.startComponents()
         .then(compiler.compileResources)
         .then(importableResInfo => {

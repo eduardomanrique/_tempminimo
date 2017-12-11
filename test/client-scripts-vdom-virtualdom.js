@@ -59,7 +59,7 @@ describe('Client scripts - virtualdom.js', () => {
             eval: function (s) {
                 return eval(s);
             },
-            dom: new dom.DOM(this, document.body, document)
+            _dom: new dom.DOM(this, document.body, document)
         }
         const vdom = new virtualDom.VirtualDom(json, insertPoint, minimo, buildComponentBuilderFunction, false);
         vdom._defaultUpdateDelay = 0;
@@ -107,7 +107,7 @@ describe('Client scripts - virtualdom.js', () => {
             this.eval = function (s) {
                 return eval(s);
             }
-            this.dom = new dom.DOM(this, document.body, document);
+            this._dom = new dom.DOM(this, document.body, document);
         }
         const vdom = new virtualDom.VirtualDom(json, insertPoint, minimo, buildComponentBuilderFunction, false);
         vdom._defaultUpdateDelay = 0;
@@ -159,7 +159,7 @@ describe('Client scripts - virtualdom.js', () => {
         const insertPoint = document.body;
         const minimo = {
             eval: function (s) {},
-            dom: new dom.DOM(this, document.body, document)
+            _dom: new dom.DOM(this, document.body, document)
         }
         const vdom = new virtualDom.VirtualDom(json, insertPoint, minimo, buildComponentBuilderFunction, false);
         vdom._defaultUpdateDelay = 0;
@@ -199,7 +199,7 @@ describe('Client scripts - virtualdom.js', () => {
             this.setA = function (v) {
                 a = v;
             }
-            this.dom = new dom.DOM(this, document.body, document);
+            this._dom = new dom.DOM(this, document.body, document);
         }
         const vdom = new virtualDom.VirtualDom(json, insertPoint, minimo, buildComponentBuilderFunction, false);
         vdom._defaultUpdateDelay = 0;
@@ -244,7 +244,7 @@ describe('Client scripts - virtualdom.js', () => {
             this.setA = function (v) {
                 a = v;
             }
-            this.dom = new dom.DOM(this, document.body, document);
+            this._dom = new dom.DOM(this, document.body, document);
         }
         const vdom = new virtualDom.VirtualDom(json, insertPoint, minimo, buildComponentBuilderFunction, false);
         vdom._defaultUpdateDelay = 0;
@@ -296,7 +296,7 @@ describe('Client scripts - virtualdom.js', () => {
             this.setB = function (v) {
                 b = v;
             }
-            this.dom = new dom.DOM(this, document.body, document);
+            this._dom = new dom.DOM(this, document.body, document);
         }
         const vdom = new virtualDom.VirtualDom(json, insertPoint, minimo, buildComponentBuilderFunction, false);
         vdom._defaultUpdateDelay = 0;
@@ -374,7 +374,7 @@ describe('Client scripts - virtualdom.js', () => {
             this.getItem = function (i) {
                 return objList[i];
             }
-            this.dom = new dom.DOM(this, document.body, document);
+            this._dom = new dom.DOM(this, document.body, document);
         }
         const vdom = new virtualDom.VirtualDom(json, insertPoint, minimo, buildComponentBuilderFunction, false);
         vdom._defaultUpdateDelay = 0;
@@ -490,7 +490,7 @@ describe('Client scripts - virtualdom.js', () => {
             this.getItem = function (i) {
                 return objList[i];
             }
-            this.dom = new dom.DOM(this, document.body, document);
+            this._dom = new dom.DOM(this, document.body, document);
         }
         const vdom = new virtualDom.VirtualDom(json, insertPoint, minimo, buildComponentBuilderFunction, false);
         vdom._defaultUpdateDelay = 0;
@@ -596,7 +596,7 @@ describe('Client scripts - virtualdom.js', () => {
             this.eval = function (s) {
                 return eval(s);
             }
-            this.dom = new dom.DOM(this, document.body, document);
+            this._dom = new dom.DOM(this, document.body, document);
         }
         const vdom = new virtualDom.VirtualDom(json, insertPoint, minimo, buildComponentBuilderFunction, false);
         vdom._defaultUpdateDelay = 0;

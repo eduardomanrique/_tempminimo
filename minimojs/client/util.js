@@ -52,7 +52,18 @@ const safeToString = (x) => {
       default:
         return x + '';
     }
-  }
+}
+const getQueryParams = () => {
+    var m = {};
+    var pairs = (location.search||"").substring(1).split("&");
+    for(var i = 0; i < pairs.length; i++){
+        var kv = pairs[i].split('=');
+        if(kv.length == 2){
+            m[kv[0]] = kv[1];
+        }
+    }
+    return m;
+}
 module.exports = {
     flatten: flatten,
     nodeListToArray: nodeListToArray,
@@ -63,5 +74,6 @@ module.exports = {
     generateId: genId,
     keyValues: keyValues,
     values: values,
-    safeToString: safeToString
+    safeToString: safeToString,
+    getQueryParams: getQueryParams
 };

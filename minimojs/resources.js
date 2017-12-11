@@ -44,7 +44,7 @@ const readResource = path =>
   new Promise((resolve, reject) =>
     fs.readFile(path, 'utf8', (err, data) => {
       if (err) {
-        logger.error(`Error reading file ${path}: ${err}`);
+        console.error(`Error reading file ${path}: ${err}`);
         reject(err);
       } else {
         resolve({

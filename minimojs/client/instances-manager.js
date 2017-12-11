@@ -11,19 +11,42 @@ let _spaInstance;
 let _contentNode;
 let _instances = [];
 
+minimo 
+push state no main instance
+
+start main instance for minimo template
+  no controller
+  new mimimo 
+  insert point body
+  vdom
+then
+  get mcontent
+    set as spa node
+    trigger new url (triggered also by change url)
+    
+
+new url (push state) 
+loading
+new promise
+  get name resource from url
+  check if resource uses the same template (in the first time, yes)
+  if uses same
+    get page with ajax
+    clear mcontent
+    clear minimo instances
+    new minimo
+    insert point body
+    vdom
+  else
+    document.localtion = new url
+    
+
 let buildComponentBuilderFunction;
 
 minimoEvents.onNewPage(() => {
     destroyInstance(_spaInstance);
 });
 
-const findMinimoInstanceForElement = (e) => {
-    var attRoot = e.getAttribute(_ATTCTX);
-    if (attRoot) {
-        return _instances.find(i => i.id == attRoot);
-    }
-    return findMinimoInstanceForElement(e.parentElement);
-};
 class Minimo {
     constructor(insertPoint, htmlStruct, parent) {
         this._instanceId = _instanceCounter++;
@@ -31,7 +54,6 @@ class Minimo {
         this.parent = parent;
         parent.addChild(this);
         this._scriptOnly = htmlStruct == null;
-        window.m = window.m || this;
         this._isDevMode = "%devmode%";
         this._childInstances = [];
         this._dom = new dom.DOM(this, insertPoint, document);
@@ -116,9 +138,6 @@ class Minimo {
     }
 }
 const startMainInstance = (htmlStruct) => {
-
-    parei aqui!!!!!!!!!!!!!!!!!!!
-
     document.body.setAttribute(_ATTCTX, 'true');
     return registerInstance(htmlStruct, resourceName, _contentNode, null, new function () {
         this.__eval__ = function (f) {
@@ -139,10 +158,6 @@ const registerInstance = (htmlStruct, resourceName, insertPoint, parentInstance,
     const controller = new fnController(instance);
     instance._eval = controller.__eval__;
     minimoEvents.onStart(this);
-
-    if (!instance.scriptOnly) {
-        instance.configEvents();
-    }
     var onInitFn = null;
     try {
         var fn = instance.eval('onInit');
@@ -201,7 +216,6 @@ const allReady = () => !_instances.find(i => !i._ready);
 module.exports = {
     startMainInstance: startMainInstance,
     startSpaInstance: startSpaInstance,
-    findMinimoInstanceForElement: findMinimoInstanceForElement,
     allReady: allReady,
     destroyInstance: destroyInstance,
     setBuildComponentBuilderFunction = (fn) => buildComponentBuilderFunction = fn
