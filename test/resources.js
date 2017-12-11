@@ -73,8 +73,8 @@ describe('Get resources', function () {
     })
   );
 
-  it('Get resources with filter', () =>
-    resources.getResources("./res", r => r.startsWith("./res/dir1/"))
+  it('Get resources with filter', () =>{
+    return resources.getResources("./res", r => r.startsWith("./res/dir1/"))
     .then(values => {
       values.should.deep.include({
         data: "1",
@@ -93,7 +93,7 @@ describe('Get resources', function () {
         data: ""
       });
     })
-  );
+  });
   it('Exists', () => resources.exists("./res/dir1/fdir1.html").then(assert));
   it('Doesnt Exist', () => resources.exists("./res/dir1/xasdf.html").then(exists => assert(!exists)));
   it('MkdirTree, ls and RmDirR', () => 

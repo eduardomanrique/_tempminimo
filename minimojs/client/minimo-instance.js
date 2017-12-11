@@ -12,8 +12,15 @@ let _templateInstance;
 let _currentInstance;
 let _instances = [];
 let _mainContentNode;
+let buildComponentBuilderFunction = "%buildComponentBuilderFunction%";
 
 minimoEvents.onNewPage(() => destroyInstance(_currentInstance));
+
+const destroyInstance = (instance) => {
+    instance._clear();
+    _instances = _instances.filter(i => i != instance);
+    instance._childInstances.forEach(destroyInstance);
+}
 
 class Minimo {
     constructor(insertPoint, htmlStruct, parent, controller) {
@@ -234,4 +241,25 @@ if (window && !window._minimo_href_current_location) {
             _pushState(window.location.pathname + window.location.search, true);
         }
     });
+}
+
+let _firstUpdate = true;
+
+const _updateAll = (delay) => {
+    if (!minimoEvents.changingState) {
+        let ready = _instances.filter(i => i._ready);
+        if(ready.length && _firstUpdate){
+            _firstUpdate = false;
+            modals.closeInitLoad();
+        }
+        ready.forEach(instance => instance.update(delay));
+    }
+}
+
+global.startInstance = startInstance;
+global.startMainInstance = startMainInstance;
+
+module.exports = {
+    startInstance: startInstance,
+    startMainInstance: startMainInstance
 }
