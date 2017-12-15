@@ -1,4 +1,5 @@
 let newPageListeners = [];
+let pageChangedListeners = [];
 let pushStateListeners = [];
 let _changingState;
 
@@ -6,14 +7,22 @@ const isChangingState = () => _changingState;
 const onNewPage = (fn) => {
     newPageListeners.push(fn);
 }
+const onPageChanged = (fn) => {
+    pageChangedListeners.push(fn);
+}
 const pageChanged = () => {
+    pageChangedListeners.forEach(listener => {
+        try{
+            listener();
+        }catch(e){
+            console.log("Error on page changed listener" + e.message);
+        }
+    });
     _changingState = false;
 }
 const startPageChange = () => {
     _changingState = true;
-    const listeners = newPageListeners;
-    newPageListeners = [];
-    listeners.forEach(listener => {
+    newPageListeners.forEach(listener => {
         try{
             listener();
         }catch(e){
@@ -39,5 +48,6 @@ module.exports = {
     onStart: onStart,
     addPushStateListener: addPushStateListener,
     onPushState: onPushState,
-    lastUrl: null
+    onNewPage: onNewPage,
+    onPageChanged:onPageChanged 
 }

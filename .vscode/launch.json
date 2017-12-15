@@ -4,6 +4,20 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Minimo",
+            "program": "${workspaceRoot}/index.js",
+            "args": [
+                "-w", 
+                "/Users/eduardo/work/temp/minimo/test", 
+                "-d", 
+                "/Users/eduardo/work/temp/minimo/dest2", 
+                "-t", 
+                "tpl.htmx"
+            ]
+        },
     {
         "type": "node",
         "request": "launch",

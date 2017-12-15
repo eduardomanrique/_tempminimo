@@ -24,8 +24,8 @@ function onUnloadCall(){
 function onStart(){
 	thisM.debug("xstartup", "onStart");
 	if ( document.addEventListener ) {
-		document.addEventListener( "DOMContentLoaded", function(){
-			document.removeEventListener( "DOMContentLoaded", arguments.callee, false );
+		document.addEventListener( "DOm contentLoaded", function(){
+			document.removeEventListener( "DOmcontentLoaded", arguments.callee, false );
 			ready();
 		}, false );
 	} else if ( document.attachEvent ) {

@@ -2,7 +2,7 @@ const _requiredUsed = [];
 const _messages = {};
 
 module.exports = {
-    get: (type, key) => ((_messages[type]||{})[key]||[]).shift();
+    get: (type, key) => ((_messages[type]||{})[key]||[]).shift(),
     put: (type, key, value) => {
         _messages[type] = _messages[type] || {};
         _messages[type][key] = _messages[type][key] || [];

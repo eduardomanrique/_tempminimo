@@ -256,7 +256,7 @@ const _Mimimo$ = (function(){
 		return this.register(htmlStruct, resourceName, controller)
 			.then(instance => {
 				_mainInstance = instance;
-				_contentNode = _byName('mContent')[0];
+				_contentNode = _byName('mcontent')[0];
 				_contentNode._setModal = function(child){
 					this.pushChild(child);
 				}
@@ -265,7 +265,7 @@ const _Mimimo$ = (function(){
 			});
 	}
 	this.register = (htmlStruct, resourceName, fnController) => {
-		const instance = new _Minimo(_instanceCounter++);
+		const instance = new (_instanceCounter++);
 		instance.setController(fnController);
 		_instances.push(instance);
 		return dom.createElements(htmlStruct).then(() => instance);

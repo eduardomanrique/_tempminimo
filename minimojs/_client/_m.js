@@ -254,7 +254,7 @@ const _Mimimo$ = (function(){
 		return this.register(htmlStruct, resourceName, controller)
 			.then(instance => {
 				_mainInstance = instance;
-				_contentNode = _byName('mContent')[0];
+				_contentNode = _byName('mcontent')[0];
 				_contentNode._setModal = function(child){
 					this.pushChild(child);
 				}

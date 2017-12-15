@@ -1,4 +1,4 @@
-const esprima = require('esprima');
+const esprima = require('./esprima');
 
 const node = (parsed, child) => {
     const val = {};

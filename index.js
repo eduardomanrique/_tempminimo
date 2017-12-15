@@ -1,11 +1,9 @@
-const logger = require('./minimojs/logging');
 const process = require('process');
 const fs = require('fs');
 const path = require('path');
 const propertyReader = require('properties-reader');
-const ctx = require('./minimojs/context');
-const components = require('./minimojs/components');
 const yargs = require('yargs');
+const minimo = require('./minimojs/minimo');
 
 const argv = yargs
   .option('destination', {
@@ -24,24 +22,19 @@ const argv = yargs
     default: ['n'],
     choices: ['y', 'n']
   })
+  .option('working-folder', {
+    alias: 'w',
+    describe: 'Working folder'
+  })
+  .option('default-template', {
+    alias: 't',
+    describe: 'Default template'
+  })
   .help()
   .argv
 
-
-const properties = propertyReader('min.properties');
-
-logger.info('Minimojs');
-
-const currentPath = path.dirname(fs.realpathSync(__filename));
-ctx.devMode = argv.devmode == 'y';
-ctx.contextPath = properties.get('contextpath');
-ctx.localAccess = argv.localaccess;
-const destFolderPath = argv.destination;
-
-const getRealPath = (path) => `${destFolderPath}/${path}`;
-
-logger.info(`contextPath: ${contextPath}\ncurrentPath: ${currentPath}\ndevMode: ${ctx.devMode}\ndestination folder: ${destFolderPath}`);
-
-components.load();
-  //XObjectsManager.instance.init(); services e afins
-  //XResourceManager.instance.init(baseDestPath);
+minimo.generateMinimoJs({
+  workingFolder: argv['working-folder'],
+  defaultTemplate: argv['default-template'],
+  destinationPath: argv.destination
+}).then(() => console.log('success')).catch(()=>console.error('error'));

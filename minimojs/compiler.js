@@ -112,12 +112,13 @@ const _generateAppCacheFile = () => resources.writeFile(`${context.destinationPa
     /m/loader.gif
     /m/scripts/m.js
     ${Array.from(_cached.appcacheResources).map(r => `${r}`).join('\n')}
+    ${_.values(_cached.resourceInfoMap)
+        .map(op => op.map(ri => `${ri.path}.html`, ''))
+        .join('\n')}
     NETWORK:
     *
     FALLBACK:
-    ${_.values(_cached.resourceInfoMap)
-        .map(op => op.map(ri => `${ri.path}.html ${_cached.templateMap[_getTemplateKey(ri)]}`, ''))
-        .join('\n')}`);
+    `);
 
 const _getResourceInfo = (path, isGlobal) => new Promise((resolve) => {
     const noExtPath = path.indexOf('.') > 0 ? path.substring(0, path.lastIndexOf('.')) : path;
@@ -139,13 +140,14 @@ const _getResourceInfo = (path, isGlobal) => new Promise((resolve) => {
         resolve(_cached.resourceInfoMap[noExtPath]);
     }
 });
-const _loadFileAndCache = (resInfo, compiled) => 
+const _loadFileAndCache = (resInfo, compiled) => Promise.all([
+    resources.writeFile(`${context.destinationPath}${resInfo.path}.html`, compiled.html),
     resources.writeFile(`${context.destinationPath}${resInfo.path}.m.js`, compiled.js)
         .then(() => {
             if(compiled.globalJs){
                 return resources.writeFile(`${context.destinationPath}${resInfo.path}.js`, compiled.js)
             }
-        });
+        })]);
 
 const _reloadFiles = () =>
     resources.getResources("./pages", r => r.endsWith(".htmx") || r.endsWith(".js"))
@@ -170,7 +172,7 @@ const _reloadFile = (_resources, path) => _getResourceInfo(path.replace(/\.\/pag
     }));
 
 
-const _blankHtml = () => `<html><body>{mContent}</body></html>`;
+const _blankHtml = () => `<html><body>{mcontent}</body></html>`;
 
 const _getTemplateData = (templateName) => new Promise((r) => {
     if(!templateName){
@@ -229,17 +231,6 @@ const _prepareTopElements = (doc) => {
     const body = bodyList[0];
     body.addText("\n\n");
 
-    const tempLoadDiv = doc.createElement("div");
-    tempLoadDiv.setAttribute("id", "__temploader__");
-    tempLoadDiv.setAttribute("style",
-        "position:absolute;top:0px;left:0px;height: 100%;width:100%;z-index: 99999;background-color: white;");
-    const imgLoad = tempLoadDiv.addElement("img");
-    imgLoad.setAttribute("style",
-        "position:absolute;top:0;left:0;right:0;bottom:0;margin:auto;");
-    imgLoad.setAttribute("height", "42");
-    imgLoad.setAttribute("width", "42");
-    imgLoad.setAttribute("src", `/m/loader.gif`);
-    body.insertChild(tempLoadDiv, 0);
 }
 
 const _printElements = (element) => element.children.map(e => {
@@ -259,27 +250,24 @@ const _printCleanHtml = (doc) => `
 
 const _reloadTemplate = (resInfo) => _getTemplateData(resInfo.templateName.value)
     .then(data => {
-        const templateDoc = new htmlParser.HTMLParser().parse(data.replace(/\{mContent\}/, '<mContent></mContent>'));
+        const templateDoc = new htmlParser.HTMLParser().parse(data.replace(/\{mcontent\}/, '<mcontent></mcontent>'));
         const boundVars = templateDoc.boundVars;
         const boundModals = templateDoc.boundModals;
         _prepareHTML(templateDoc, boundVars, boundModals);
-        if (_.isEmpty(templateDoc.getElementsByName("mContent"))) {
-            throw new Error('Template should have {mContent}');
+        if (_.isEmpty(templateDoc.getElementsByName("mcontent"))) {
+            throw new Error('Template should have {mcontent}');
         }
         _prepareTopElements(templateDoc);
         const body = _.first(templateDoc.getElementsByName("body"));
         const postString = `
-            M$.startMainInstance({c:${JSON.stringify(body.toJson().c)}});
+            startMainInstance({c: ${JSON.stringify(body.toJson().c)}});
         `;
         body.removeAllChildren();
         const script = body.addElement("script");
         script.setAttribute("type", "text/javascript");
         script.addText(postString);
         const resultHtml = _printCleanHtml(templateDoc);
-        const fileName = `/m/templates${resInfo.templateName.orElse(resInfo.path)}.html`
-        _cached.templateMap[_getTemplateKey(resInfo)] = fileName;
-        return resources.writeFile(context.destinationPath + fileName, resultHtml)
-            .then(() => resultHtml);
+        return resultHtml;
     });
 
 
@@ -318,8 +306,8 @@ const _compilePage = (resInfo, htmxData, jsData) => {
     doc.ifPresent(d => _prepareHTML(d, parser.boundObjects, parser.boundModals));
     const boundVars = _.uniq(parser.boundObjects);
     const boundModals = _.uniq(parser.boundModals);
-    const scripts = {js: _instrumentController(doc.map(d => d.toJson()), jsData, false, resInfo, boundVars, boundModals)};
-    htmxData.ifNotPresent(() => scripts.globalJs = _instrumentController(util.emptyOption(), jsData, true, resInfo, boundVars, boundModals));
+    const compiled = {js: _instrumentController(doc.map(d => d.toJson()), jsData, false, resInfo, boundVars, boundModals)};
+    htmxData.ifNotPresent(() => compiled.globalJs = _instrumentController(util.emptyOption(), jsData, true, resInfo, boundVars, boundModals));
     if (doc.isPresent() && !doc.value.htmlElement) {
         //has template
         let templateInfo = util.firstOption(doc.value.getElementsByName("template-info"));
@@ -330,7 +318,10 @@ const _compilePage = (resInfo, htmxData, jsData) => {
             resInfo.templateName = parameters.defaultTemplate;
         }
     }
-    return _loadTemplate(resInfo).then(() => scripts);
+    return _loadTemplate(resInfo).then((html) => {
+        compiled.html = html;
+        return compiled;
+    });
 }
 
 const _prepareHTML = (doc, boundVars, boundModals) => {
@@ -513,7 +504,7 @@ const _instrumentController = (htmlJson, jsData, isGlobal, resInfo, boundVars = 
         })();`;
     } else {
         return `function _m_temp_startInstance(insertPoint, modal){
-            return startInstance(${JSON.stringify(htmlJson)}, insertPoint, ${controllerObject}, modal);
+            return startInstance(insertPoint,${JSON.stringify(htmlJson)}, ${controllerObject}, modal);
         };_m_temp_startInstance;`;
     }
 }

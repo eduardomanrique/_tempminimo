@@ -7,7 +7,7 @@
 </head>
 <body>
 	<div id="tpl">tpl</div>
-	{mContent}
+	{mcontent}
 	<div id="load">Loaded:${X$.isReady()}</div>
 	<script type="text/javascript">
 	X$.ready(function(){

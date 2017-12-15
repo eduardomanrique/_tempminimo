@@ -3,9 +3,10 @@ const EvaluatorManager = require('./evaluator');
 const Objects = require('../objects');
 const events = require('../minimo-events');
 const ContextManager = require('./context-manager');
+const buildComponentBuilder = require('../components').buildComponentBuilderFunction;
 //const modals = require('./modal.js');
 
-const VirtualDom = function (json, insertPoint, mimimoInstance, buildComponentBuilderFunction, waitForScriptsToLoad = true) {
+const VirtualDom = function (json, insertPoint, mimimoInstance, waitForScriptsToLoad = true, buildComponentBuilderFunction = buildComponentBuilder) {
     const dom = mimimoInstance._dom;
     let rootVDom;
     const selfVDom = this;
@@ -26,6 +27,8 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, buildComponentBu
             vdom = new Element(json);
         } else if (json.x) {
             vdom = new DynContent(json);
+            // } else if (json.c) {
+            //     vdom = new ElementContainer(json);
         } else {
             vdom = new Text(json);
         }
@@ -41,10 +44,10 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, buildComponentBu
     }
 
     const _getAllScripts = (json, array) => {
-        if (json.c) {
+        if (json && json.c) {
             json.c = json.c.filter(child => {
                 _getAllScripts(child, array);
-                if (child.n == 'script' && child.a.src) {
+                if (child.n == 'script' && (child.a || {}).src) {
                     array.push(child);
                     return false;
                 }
@@ -74,26 +77,35 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, buildComponentBu
     }
 
     this.build = () => {
-        const array = [];
-        _getAllScripts(json, array);
+        const scriptsArray = [];
+        _getAllScripts(json, scriptsArray);
         const topElement = new GenericBrowserElement();
         topElement.element = insertPoint;
 
-        const fnArray = array.map(scriptJson => () => new Promise(resolve => {
-            const script = new Element(scriptJson);
-            if (waitForScriptsToLoad) {
-                script._e.onload = resolve;
+        return new Promise((resolve, reject) => {
+            let index = 0;
+            const _loadNextScript = () => {
+                if (index >= scriptsArray.length) {
+                    resolve();
+                }
+                let scriptJson = scriptsArray[index++];
+                const script = new Element(scriptJson);
+                if (waitForScriptsToLoad) {
+                    script._onload = function () {
+                        _loadNextScript();
+                    };
+                }
+                _postCreation(script, topElement);
+                if (!waitForScriptsToLoad) {
+                    _loadNextScript();
+                }
             }
-            _postCreation(script, topElement);
-            if (!waitForScriptsToLoad) {
-                resolve();
+            _loadNextScript();
+        }).then(() => {
+            if (json) {
+                rootVDom = _buildVirtualDom(json, topElement)
             }
-        })).concat(() => {
-            rootVDom = _buildVirtualDom(json, topElement)
         });
-        let promise = Promise.all([]);
-        fnArray.forEach(fn => promise = promise.then(fn));
-        return promise;
     }
 
 
@@ -184,6 +196,8 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, buildComponentBu
         _onBuild() {
             this._onCreateBrowserElement();
             this._e._vdom = this;
+            this._e.onload = this._onload;
+            this._e.onerror = this._onload;
             this._nodeList.push(this._e);
         }
         _insertBefore(child, vdom) {
@@ -205,6 +219,12 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, buildComponentBu
             } else {
                 dom.setAttribute(this._e, n, v);
             }
+        }
+        _hide(){
+            this._e.remove();
+        }
+        _show(){
+            insertPoint.appendChild(this._e);
         }
         _onCreateBrowserElement() {}
     }
@@ -310,6 +330,15 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, buildComponentBu
             this._parent._insertBefore(child, vdom);
         }
         _onBuildContainer() {}
+    }
+    class ElementContainer extends Container {
+        _onBuildContainer() {
+            this.ctx = evaluatorManager.build(this);
+            this._buildChildren();
+        }
+        update() {
+            this._childList.forEach(c => c.update());
+        }
     }
     class DynContent extends Container {
         _onBuildContainer() {
@@ -448,6 +477,9 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, buildComponentBu
             this._iteratorContext.__set_index(i);
         }
     }
+    this.show = () => rootVDom._show();
+    this.hide = () => rootVDom._hide();
+    this.setOnRoot = (n, v) => rootVDom[n] = v;
 }
 
 module.exports = {

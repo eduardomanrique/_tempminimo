@@ -14,15 +14,16 @@ const fs = require('fs');
 chai.use(spies);
 
 describe('Test compiler', function () {
+    before(() => {
+        compiler.setParameters({
+            defaultTemplate: "tpl.htmx"
+        });
+        context.destinationPath = `/tmp/minimojs_test`;
+    });
     beforeEach(() => resources.rmDirR(context.destinationPath)
-        .then(() => {
-            compiler.setParameters({
-                defaultTemplate: "tpl.htmx"
-            });
-            context.destinationPath = `/tmp/minimojs_test`;
-            resources.mkdirTree(context.destinationPath);
-        }));
+        .then(() => resources.mkdirTree(context.destinationPath)));
     afterEach(() => resources.rmDirR(context.destinationPath));
+   
 
     it('Get resource info htmx/js OK', () => compiler._restart()
         .then(() => compiler._getResourceInfo('/dir1/test1.htmx', false)
@@ -369,11 +370,11 @@ describe('Test compiler', function () {
             resources.ls(`${context.destinationPath}/dir2`)
         ].toPromise())
         .then(([dir1, dir2]) => {
-            dir1.should.have.lengthOf(3);
+            dir1.should.have.lengthOf(6);
             dir1.should.contain(`${context.destinationPath}/dir1/test1.m.js`);
             dir1.should.contain(`${context.destinationPath}/dir1/test1_template_no_js.m.js`);
             dir1.should.contain(`${context.destinationPath}/dir1/with_components.m.js`);
-            dir2.should.have.lengthOf(4);
+            dir2.should.have.lengthOf(7);
             dir2.should.contain(`${context.destinationPath}/dir2/htmxonly.m.js`);
             dir2.should.contain(`${context.destinationPath}/dir2/js-only.m.js`);
             dir2.should.contain(`${context.destinationPath}/dir2/js-only.js`);

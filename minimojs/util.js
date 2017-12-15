@@ -1,5 +1,4 @@
 const fs = require('fs');
-const _ = require('underscore');
 
 class Option {
     constructor(val) {
@@ -71,13 +70,13 @@ const outdent = (s, ...val) => {
             return result;
         }).join('\n').trim();
 }
-
+const _first = (array) => array && array.length > 0 ? array[0] : null;
 const optionOf = (val) => val ? new Option(val) : (() => {
     throw new Error('Value cannot be null')
 })();
 const nullableOption = (val) => new Option(val);
 const emptyOption = () => new Option(null);
-const firstOption = (array) => nullableOption(_.first(array));
+const firstOption = (array) => nullableOption(_first(array));
 const isOption = (o) => o instanceof Option;
 const getValue = (o) => isOption(o) ? o.value : o;
 

@@ -1,4 +1,4 @@
-const esprima = require('esprima');
+const esprima = require('../esprima');
 
 const _findIdentifiersOnScript = (e, a) => {
     switch (e.type) {

@@ -60,7 +60,7 @@ function _startComp(_html, comp, fnInsert){
 function _insertComp(handle, xid, beforeInsideAfter){
 	var _html = handle._x_comp.getHtml(handle);
 	if(handle.innerHTML){
-		_html = _html.replace('{mContent}', handle.innerHTML);
+		_html = _html.replace('{mcontent}', handle.innerHTML);
 	}
 	_startComp(_html, handle, function(node){
 		if(beforeInsideAfter == -1){
