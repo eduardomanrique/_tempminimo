@@ -13,46 +13,49 @@ const generateMinimoJs = (parameters) => {
     context.destinationPath = parameters.destinationPath;
     let importableResources;
 
-    const _copyResource = (name) => resources.readModuleFile(`./client/${name}`)
-        .then(data => resources.writeFile(`${parameters.destinationPath}/m/scripts/${name}`, data
-            .replace('"%importableResources%"', JSON.stringify(importableResources))
-            .replace('"%%component-types%%"', components.getComponentTypes())
-            .replace('"%%component%%"', components.getScripts())
-            .replace('"%devmode%"', parameters.devMode == true)));
+    return resources.readModuleFile('./defaultLoaderGif.txt').then((loader) => {
+        const _copyResource = (name) => resources.readModuleFile(`./client/${name}`)
+            .then(data => resources.writeFile(`${parameters.destinationPath}/m/scripts/${name}`, data
+                .replace('"%importableResources%"', JSON.stringify(importableResources))
+                .replace('"%%component-types%%"', components.getComponentTypes())
+                .replace('"%%component%%"', components.getScripts())
+                .replace('"%devmode%"', parameters.devMode == true)
+                .replace('"%loader.gif%"', loader)));
 
-    return Promise.all([resources.mkdirTree(context.destinationPath), resources.mkdirTree(`${parameters.destinationPath}/m/scripts`)])
-        .then(() => components.startComponents())
-        .then(() => compiler.compileResources())
-        .then(importable => importableResources = importable)
-        .then(() => Promise.all([
-            resources.readModuleFile(`./util.js`).then(data => resources.writeFile(`${parameters.destinationPath}/m/util.js`, data)),
-            _copyResource('esprima.js'),
-            _copyResource('util.js'),
-            _copyResource('remote.js'),
-            _copyResource('objects.js'),
-            _copyResource('mutation-manager.js'),
-            _copyResource('minimo-instance.js'),
-            _copyResource('minimo-events.js'),
-            _copyResource('importable-resources.js'),
-            _copyResource('dom.js'),
-            _copyResource('components.js'),
-            _copyResource('cached-resources.js'),
-            _copyResource('vdom/context-manager.js'),
-            _copyResource('vdom/evaluator.js'),
-            _copyResource('vdom/inputs.js'),
-            _copyResource('vdom/virtualdom.js')
-        ]))
-        .then(() => browserify(`${parameters.destinationPath}/m/scripts/minimo-instance.js`)
-            .bundle()
-            .on('error', function(err){
-                console.log("ERROR!!! " + JSON.stringify(err))
-                console.log(err.stack);
-             
-                notifier.notify({
-                  'title': 'Compile Error',
-                  'message': err.message
-                });
-            }).pipe(fs.createWriteStream(`${parameters.destinationPath}/m/scripts/m.js`)));
+        return Promise.all([resources.mkdirTree(context.destinationPath), resources.mkdirTree(`${parameters.destinationPath}/m/scripts`)])
+            .then(() => components.startComponents())
+            .then(() => compiler.compileResources())
+            .then(importable => importableResources = importable)
+            .then(() => Promise.all([
+                resources.readModuleFile(`./util.js`).then(data => resources.writeFile(`${parameters.destinationPath}/m/util.js`, data)),
+                _copyResource('esprima.js'),
+                _copyResource('util.js'),
+                _copyResource('remote.js'),
+                _copyResource('objects.js'),
+                _copyResource('mutation-manager.js'),
+                _copyResource('minimo-instance.js'),
+                _copyResource('minimo-events.js'),
+                _copyResource('importable-resources.js'),
+                _copyResource('dom.js'),
+                _copyResource('components.js'),
+                _copyResource('cached-resources.js'),
+                _copyResource('vdom/context-manager.js'),
+                _copyResource('vdom/evaluator.js'),
+                _copyResource('vdom/inputs.js'),
+                _copyResource('vdom/virtualdom.js')
+            ]))
+            .then(() => browserify(`${parameters.destinationPath}/m/scripts/minimo-instance.js`)
+                .bundle()
+                .on('error', function (err) {
+                    console.log("ERROR!!! " + JSON.stringify(err))
+                    console.log(err.stack);
+
+                    notifier.notify({
+                        'title': 'Compile Error',
+                        'message': err.message
+                    });
+                }).pipe(fs.createWriteStream(`${parameters.destinationPath}/m/scripts/m.js`)))
+    });
 }
 
 
