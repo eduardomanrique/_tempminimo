@@ -484,7 +484,7 @@ const _instrumentController = (htmlJson, jsData, isGlobal, resInfo, boundVars = 
         ${isGlobal ? `window.${_parseGlovalVarName(resInfo.resourceName)} = this;
         `: ''}
         this.__eval__ = function(f){
-            return eval(f)
+            return eval(f);
         };
     }`;
 

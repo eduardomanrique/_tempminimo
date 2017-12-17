@@ -219,13 +219,6 @@ describe('Test compiler', function () {
             body.should.not.be.null;
             expect(body.children.length).be.greaterThan(4);
         }));
-    it('Prepare top elements', () =>
-        compiler._getTemplateData('tpl.htmx').then(data => {
-            const doc = new htmlParser.HTMLParser().parse(data);
-            compiler._prepareTopElements(doc);
-            const divLoader = _.first(doc.getElementsByName('body')).children[0];
-            divLoader.getAttribute("id").should.be.equal('__temploader__');
-        }));
     it('Test add child to app cache', () => {
         compiler._resetAppcache();
         const realPath = resources.getRealPath('/pages/dir2/test_appcache.htmx');

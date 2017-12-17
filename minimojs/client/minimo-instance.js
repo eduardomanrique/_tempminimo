@@ -32,7 +32,7 @@ class Minimo {
             this._vdom = {};
             this._vdom._list = !htmlStruct.c ? [] : htmlStruct.c
                 .map(child => new virtualDom.VirtualDom(child, insertPoint, this, true));
-            
+
         }
         this.parent = parent;
         if (parent) {
@@ -153,13 +153,14 @@ const startScript = (controller) => startInstance(null, null, controller, false)
 const startInstance = (insertPoint, htmlStruct, controller, modal) => {
     const m = new Minimo(insertPoint, htmlStruct, null, controller);
     let binds = [];
-    try{
+    try {
         binds = m.eval('__binds__');
-    }catch(e){}
+    } catch (e) {}
 
     return m.build()
         .then(Promise.all(binds))
         .then(() => _configInit(m, modal))
+        .then(() => m.update())
         .then(() => m);
 }
 const startMainInstance = (htmlStruct) => {
@@ -173,22 +174,23 @@ const startMainInstance = (htmlStruct) => {
     if (window) {
         window.m = m;
     }
-    createLoadingVDom(m).then(()=> 
+    _templateInstance = m;
+    createLoadingVDom(m).then(() =>
         m.build()
-            .then(() => {
-                let mcontent = document.getElementsByTagName('mcontent')[0];
-                _mainInsertPointStart = m._dom.createTextNode('');
-                _mainInsertPointEnd = m._dom.createTextNode('');
-                mcontent.parentElement.insertBefore(_mainInsertPointStart, mcontent);
-                mcontent.parentElement.insertBefore(_mainInsertPointEnd, mcontent);
-                mcontent.remove();
-            })
-            .then(() => minimoEvents.onStart(this))
-            .then(() => _pushState(window.location.pathname + window.location.search))
-            .then(() => {
-                //setTimeout(()=>_loading.hide(), 3000);
-                console.log('Minimo started (spa)')
-            }));
+        .then(() => {
+            let mcontent = document.getElementsByTagName('mcontent')[0];
+            _mainInsertPointStart = m._dom.createTextNode('');
+            _mainInsertPointEnd = m._dom.createTextNode('');
+            mcontent.parentElement.insertBefore(_mainInsertPointStart, mcontent);
+            mcontent.parentElement.insertBefore(_mainInsertPointEnd, mcontent);
+            mcontent.remove();
+        })
+        .then(() => minimoEvents.onStart(this))
+        .then(() => _pushState(window.location.pathname + window.location.search))
+        .then(() => {
+            //setTimeout(()=>_loading.hide(), 3000);
+            console.log('Minimo started (spa)')
+        }));
 }
 
 const createLoadingVDom = () => {
@@ -202,7 +204,7 @@ const createLoadingVDom = () => {
         },
         c: [{
             n: 'img',
-            a:{
+            a: {
                 style: "position:absolute;top:0;left:0;right:0;bottom:0;margin:auto;",
                 height: "42",
                 width: "42",
@@ -238,9 +240,10 @@ const _pushState = (url) => {
         _setLastUrl();
         var tempNode = document.createElement('div');
         remote.htmlPage(goto.path).then(js => eval(js)(tempNode, false)).then((instance) => {
+            const _oldInstance = _currentInstance;
             _currentInstance = instance;
             while (_mainInsertPointStart.nextSibling != _mainInsertPointEnd) {
-                if(!_mainInsertPointStart.nextSibling.main_loader){
+                if (!_mainInsertPointStart.nextSibling.main_loader) {
                     _mainInsertPointStart.nextSibling.remove();
                 }
             }
@@ -250,9 +253,9 @@ const _pushState = (url) => {
             history.pushState(null, null, url);
             minimoEvents.pageChanged();
             window._minimo_href_current_location = url;
-            if(firstPush){
+            if (firstPush) {
                 firstPush = false;
-                minimoEvents.onPageChanged(() => destroyInstance(_currentInstance));
+                minimoEvents.onPageChanged(() => destroyInstance(_oldInstance));
             }
             _loading.hide();
         });
@@ -292,7 +295,9 @@ if (window && !window._minimo_href_current_location) {
             _pushState(window.location.pathname + window.location.search);
         }
     });
-    window.applicationCache.addEventListener('updateready', () => window.location.reload(), false);
+    if (window.applicationCache) {
+        window.applicationCache.addEventListener('updateready', () => window.location.reload(), false);
+    }
 }
 
 let _firstUpdate = true;
@@ -304,14 +309,17 @@ const _updateAll = (delay) => {
             _firstUpdate = false;
             //.closeInitLoad();
         }
-        ready.forEach(instance => instance.update(delay));
+        _templateInstance.update(delay).then(() => 
+            _instances.forEach(instance => instance.update(delay)));
     }
 }
 
 global.startInstance = startInstance;
 global.startMainInstance = startMainInstance;
+global._updateAll = _updateAll;
 
 module.exports = {
     startInstance: startInstance,
-    startMainInstance: startMainInstance
+    startMainInstance: startMainInstance,
+    _updateAll: _updateAll
 }

@@ -1,9 +1,6 @@
 class Context {
-  set devMode(d) {
-    this._devMode = d;
-  }
   get devMode() {
-    return this._devMode;
+    return "%devmode%";
   }
   set localAccess(local) {
     this._localAccess = local;

@@ -8,9 +8,8 @@ describe('Test Objects', () => {
     it('Test simple var', () => {
         const ctx = new function(){
             var name;
-            this.eval = (s) => {
-                return eval(s);
-            }
+            this.eval = (s) => eval(s);
+            this.evalSet = (l, r) => eval(`${l}=${r}`);
         }
         const value = () => JSON.stringify("new name");
         const o = new Objects('name', ctx, value);
@@ -20,9 +19,8 @@ describe('Test Objects', () => {
     it('Test simple object', () => {
         const ctx = new function(){
             var obj;
-            this.eval = (s) => {
-                return eval(s);
-            }
+            this.eval = (s) => eval(s);
+            this.evalSet = (l, r) => eval(`${l}=${r}`);
         }
         const value = () => JSON.stringify("new name");
         const o = new Objects('obj.name', ctx, value);
@@ -37,9 +35,8 @@ describe('Test Objects', () => {
             var obj = {
                 value: 1
             };
-            this.eval = (s) => {
-                return eval(s);
-            }
+            this.eval = (s) => eval(s);
+            this.evalSet = (l, r) => eval(`${l}=${r}`);
         }
         const value = () => JSON.stringify("new name");
         const o = new Objects('obj.name', ctx, value);
@@ -53,9 +50,8 @@ describe('Test Objects', () => {
     it('Test object computed', () => {
         const ctx = new function(){
             var obj;
-            this.eval = (s) => {
-                return eval(s);
-            }
+            this.eval = (s) => eval(s);
+            this.evalSet = (l, r) => eval(`${l}=${r}`);
         }
         const value = () => JSON.stringify("new name");
         const o = new Objects('obj["name"]', ctx, value);
@@ -69,9 +65,8 @@ describe('Test Objects', () => {
         const ctx = new function(){
             var property = "name";
             var obj;
-            this.eval = (s) => {
-                return eval(s);
-            }
+            this.eval = (s) => eval(s);
+            this.evalSet = (l, r) => eval(`${l}=${r}`);
         }
         const value = () => JSON.stringify("new name");
         const o = new Objects('obj[property]', ctx, value);
@@ -84,9 +79,8 @@ describe('Test Objects', () => {
     it('Test array', () => {
         const ctx = new function(){
             var array;
-            this.eval = (s) => {
-                return eval(s);
-            }
+            this.eval = (s) => eval(s);
+            this.evalSet = (l, r) => eval(`${l}=${r}`);
         }
         const value1 = () => JSON.stringify("value1");
         const value2 = () => JSON.stringify("value2");
@@ -104,9 +98,8 @@ describe('Test Objects', () => {
             var i1 = 0;
             var i2 = 1;
             var array;
-            this.eval = (s) => {
-                return eval(s);
-            }
+            this.eval = (s) => eval(s);
+            this.evalSet = (l, r) => eval(`${l}=${r}`);
         }
         const value1 = () => JSON.stringify("value1");
         const value2 = () => JSON.stringify("value2");
@@ -124,9 +117,8 @@ describe('Test Objects', () => {
             var i1 = 0;
             var i2 = 1;
             var obj;
-            this.eval = (s) => {
-                return eval(s);
-            }
+            this.eval = (s) => eval(s);
+            this.evalSet = (l, r) => eval(`${l}=${r}`);
         }
         const value1 = () => JSON.stringify("value1");
         const value2 = () => JSON.stringify("value2");

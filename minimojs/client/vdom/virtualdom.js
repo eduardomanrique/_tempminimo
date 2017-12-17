@@ -1,6 +1,7 @@
 const util = require('../util.js');
 const EvaluatorManager = require('./evaluator');
 const Objects = require('../objects');
+const inputs = require('./inputs');
 const events = require('../minimo-events');
 const ContextManager = require('./context-manager');
 const buildComponentBuilder = require('../components').buildComponentBuilderFunction;
@@ -213,7 +214,7 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, waitForScriptsTo
         _setAttribute(n, v) {
             if (n.startsWith('on')) {
                 this._e.addEventListener(n.substring(2), () => {
-                    Promise.all([this.ctx.eval(v)]).then(() => selfVDom.update());
+                    Promise.all([this.ctx.eval(v)]).then(() => _updateAll(100));
                 });
                 dom.setAttribute(this._e, `event-${n}`, v);
             } else {
@@ -245,6 +246,7 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, waitForScriptsTo
             this._e = dom.createElement(this._struct.n);
             this._dom = dom;
             this._dynAtt = {};
+            inputs.prepareInputElement(this);
             for (let k in this._struct.a) {
                 let a = this._struct.a[k];
                 if (k == 'bind' || k == 'data-bind') {
@@ -252,18 +254,22 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, waitForScriptsTo
                     if (val instanceof Array) {
                         val = val.map(v => util.safeToString(v)).join('');
                     }
-                    this._setAttribute(k, val);
-                    this._objects = new Objects(k, this.ctx, () => this._e.value);
+                    this._bind = val;
+                    this._objects = new Objects(val, this.ctx, () => this._getValue ? this._getValue() : this._e.value);
                     const onChange = () => {
                         if (this._lastValue == null || this._lastValue != this._e.value) {
                             this._lastValue = this._e.value;
                             this._objects.updateVariable();
-                            selfVDom.update();
+                            _updateAll(100);
                         }
                     }
                     this._e.addEventListener('change', onChange);
-                    this._e.addEventListener('keypress', onChange);
-                    this._e.addEventListener('click', onChange);
+                    if(this._e.nodeName != 'SELECT'){
+                        this._e.addEventListener('keyup', onChange);
+                        this._e.addEventListener('click', onChange);
+                        this._e.addEventListener('focus', () => this._focused = true);
+                        this._e.addEventListener('blur', () => this._focused = false);
+                    }
                 } else if (a instanceof Array) {
                     this._dynAtt[k] = a;
                 } else {
@@ -275,6 +281,9 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, waitForScriptsTo
             this._buildChildren();
         }
         _updateDom() {
+            if(!this._focused && this._bind){
+                this._setValue(this._ctx.eval(this._bind));
+            }
             for (let k in this._dynAtt) {
                 const values = this._dynAtt[k];
                 const buffer = [];

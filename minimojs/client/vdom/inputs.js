@@ -10,22 +10,27 @@ const STRING = "string",
 
 const prepareInputElement = (vdom) => {
     const e = vdom._e;
-    const f = _buildFunctions(e, vdom.ctx);
+    if (e.nodeName == 'INPUT' || e.nodeName == 'SELECT' || e.nodeName == 'TEXTAREA') {
+        const f = _buildFunctions(e, vdom.ctx);
 
-    e.addEventListener('keypress', function (event) {
-        var c = String.fromCharCode(event.keyCode);
-        var futureValue = e.value.substring(0, e.selectionStart) + c + e.value.substring(e.selectionEnd);
-        if (!f.partialValidate(c, futureValue)) {
-            event.preventDefault();
-        }
-    });
-    e.addEventListener('change', function () {
-        if (!f.validate(this.value)) {
-            this.value = "";
-        }
-    });
-    vdom._getValue = () => f.extract();
-    vdom._setValue = (v) => f.update(v);
+        e.addEventListener('keypress', function (event) {
+            var c = String.fromCharCode(event.keyCode);
+            var futureValue = e.value.substring(0, e.selectionStart) + c + e.value.substring(e.selectionEnd);
+            if (!f.partialValidate(c, futureValue)) {
+                event.preventDefault();
+            }
+        });
+        e.addEventListener('change', function () {
+            if (!f.validate(this.value)) {
+                this.value = "";
+            }
+        });
+        vdom._getValue = () => f.extract();
+        vdom._setValue = (v) => f.update(v);
+    }else if(e.getValue){
+        vdom._getValue = () => e.getValue();
+        vdom._setValue = (v) => e.setValue ? e.setValue(v) : null;
+    }
 }
 
 const _getOptionElementValue = (e, ctx) => {
@@ -113,7 +118,7 @@ const _getRawSetterAndGetter = (e, inputType, ctx) => {
     } else {
         return {
             _get: () => e.value,
-            _set: (v) => e.value = v
+            _set: (v) => e.value = (v == null || v == undefined ? "" : v)
         }
     }
 }
@@ -173,7 +178,9 @@ const _buildFunctions = (e, ctx) => {
             update: () => {}
         }
     }
-    const inputType = (e.nodeName == "INPUT" ? e.getAttribute("type") : e.nodeName).toLowerCase();
+    const inputType = (e.nodeName == "INPUT" ?
+        (e.getAttribute("type") ? e.getAttribute("type") : "text") :
+        e.nodeName).toLowerCase();
 
     let accessors = _getRawSetterAndGetter(e, inputType, ctx);
     let [type, mask] = _getTypeAndMask(e, inputType);

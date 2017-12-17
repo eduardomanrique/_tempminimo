@@ -1,10 +1,6 @@
-remover mcontent e document
-ver como fica o generic element para quando o html nao tem um vdom element root (mais de um)
-esta adicionando os textos fora dos elementos
-    entender bem
 erro quando carrega script que nao existe (ver o onerror)
 erro no cache com recursos que nao existem. Tem que validar se o recurso existe antes de colocar no cache
-appcache com htmx
+appcache com htmx e .js de tela
 
 
 X.import, X.modalS retorna promise

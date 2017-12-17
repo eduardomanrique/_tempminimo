@@ -19,8 +19,8 @@ const argv = yargs
   .option('devmode', {
     alias: 'm',
     describe: 'Indicates if is running in development env',
-    default: ['n'],
-    choices: ['y', 'n']
+    default: ['production'],
+    choices: ['d', 'devlopment', 'p', 'production']
   })
   .option('working-folder', {
     alias: 'w',
@@ -36,5 +36,6 @@ const argv = yargs
 minimo.generateMinimoJs({
   workingFolder: argv['working-folder'],
   defaultTemplate: argv['default-template'],
-  destinationPath: argv.destination
+  destinationPath: argv.destination,
+  devMode: argv.devmode == 'd' || argv.devmode == 'development'
 }).then(() => console.log('success')).catch(()=>console.error('error'));

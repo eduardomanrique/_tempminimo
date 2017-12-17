@@ -29,20 +29,20 @@ const _updateChild = (prePath, child) => {
 }
 
 class Objects {
-    constructor(bind, ctx, getStringifiedValue) {
+    constructor(bind, ctx, getValue) {
         const parsed = esprima.parse(bind).body[0];
         if (parsed.type != 'ExpressionStatement') {
             throw new Error(`Invalid bind value ${bind}`);
         }
         this._ctx = ctx;
         this._variableStructure = node(parsed.expression);
-        this._getStringifiedValue = getStringifiedValue;
+        this._getValue = getValue;
     }
     updateVariable() {
         let val = this._variableStructure;
         do {
             if (!val.next) {
-                this._ctx.eval(val.path + '=' + this._getStringifiedValue());
+                this._ctx.evalSet(val.path, this._getValue());
             } else {
                 let obj;
                 try{

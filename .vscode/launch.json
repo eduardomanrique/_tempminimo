@@ -15,7 +15,8 @@
                 "-d", 
                 "/Users/eduardo/work/temp/minimo/dest2", 
                 "-t", 
-                "tpl.htmx"
+                "tpl.htmx",
+                "-m"
             ]
         },
     {
