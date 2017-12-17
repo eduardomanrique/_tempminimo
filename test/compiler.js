@@ -170,7 +170,7 @@ describe('Test compiler', function () {
             clearTimeout: 4,
             modalS: (path, bool, id) => new Promise(resolve => resolve({}))
         };
-        const startInstance = (ip, html, constructorFn, isModal) => new Promise(r => {
+        const startInstance = (ip, as, ae, html, constructorFn, isModal) => new Promise(r => {
             htmlStruct = html;
             modal = isModal;
             insertPoint = ip
@@ -253,7 +253,7 @@ describe('Test compiler', function () {
             Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
             .then(([htmx, js]) => compiler._compilePage(resInfo, util.optionOf(htmx.data), util.optionOf(js.data)).then(scripts => {
                 let controller;
-                const startInstance = (ip, html, constructorFn, isModal) => new Promise(r => {
+                const startInstance = (ip, as, ae, html, constructorFn, isModal) => new Promise(r => {
                     htmlStruct = html;
                     controller = new constructorFn({});
                     r({});
@@ -272,7 +272,7 @@ describe('Test compiler', function () {
             .then(([htmx, js]) => compiler._compilePage(resInfo, util.nullableOption(htmx).optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data)).then(compiled => {
                 const m = {};
                 let controller;
-                const startInstance = (ip, html, constructorFn, isModal) => new Promise(r => {
+                const startInstance = (ip, as, ae, html, constructorFn, isModal) => new Promise(r => {
                     controller = new constructorFn(m);
                     r(m);
                 });
@@ -293,11 +293,11 @@ describe('Test compiler', function () {
             .then(([htmx, js]) => compiler._compilePage(resInfo, util.nullableOption(htmx).optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data)).then(compiled => {
                 const m = {};
                 let controller;
-                const startInstance = (ip, html, constructorFn, isModal) => new Promise(r => {
+                const startInstance = (ip, as, ae, html, constructorFn, isModal) => new Promise(r => {
                     controller = new constructorFn(m);
                     r(m);
                 });
-                const startScript = (controller) => startInstance(null, null, controller, false);
+                const startScript = (controller) => startInstance(null, null, null, null, controller, false);
                 return eval(compiled.js)({}, false).then(() => {
                     var param;
                     controller.__eval__('param = 1');

@@ -7,9 +7,8 @@ const ContextManager = require('./context-manager');
 const buildComponentBuilder = require('../components').buildComponentBuilderFunction;
 //const modals = require('./modal.js');
 
-const VirtualDom = function (json, insertPoint, mimimoInstance, waitForScriptsToLoad = true, buildComponentBuilderFunction = buildComponentBuilder) {
+const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, mimimoInstance, waitForScriptsToLoad = true, buildComponentBuilderFunction = buildComponentBuilder) {
     const dom = mimimoInstance._dom;
-    let rootVDom;
     const selfVDom = this;
     const ctxManager = new ContextManager();
     const evaluatorManager = new EvaluatorManager(mimimoInstance, ctxManager);
@@ -28,8 +27,6 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, waitForScriptsTo
             vdom = new Element(json);
         } else if (json.x) {
             vdom = new DynContent(json);
-            // } else if (json.c) {
-            //     vdom = new ElementContainer(json);
         } else {
             vdom = new Text(json);
         }
@@ -56,22 +53,27 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, waitForScriptsTo
             })
         }
     }
-
+    let _hidden = false;
     let updatePromise;
     this.update = (delay) => {
         if (updatePromise) {
             return updatePromise;
         } else {
             updatePromise = new Promise((resolve, reject) => {
-                setTimeout(() => {
-                    try {
-                        rootVDom.update();
-                    } catch (e) {
-                        console.debug('Error updating dom ' + e.message);
-                    }
+                if (_hidden) {
                     updatePromise = null;
                     resolve();
-                }, delay || this._defaultUpdateDelay);
+                } else {
+                    setTimeout(() => {
+                        try {
+                            rootVDom.update();
+                        } catch (e) {
+                            console.error('Error updating dom ' + e.message);
+                        }
+                        updatePromise = null;
+                        resolve();
+                    }, delay || this._defaultUpdateDelay);
+                }
             });
             return updatePromise;
         }
@@ -79,9 +81,7 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, waitForScriptsTo
 
     this.build = () => {
         const scriptsArray = [];
-        _getAllScripts(json, scriptsArray);
-        const topElement = new GenericBrowserElement();
-        topElement.element = insertPoint;
+        structArray.forEach(json => _getAllScripts(json, scriptsArray));
 
         return new Promise((resolve, reject) => {
             let index = 0;
@@ -96,16 +96,14 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, waitForScriptsTo
                         _loadNextScript();
                     };
                 }
-                _postCreation(script, topElement);
+                _postCreation(script, rootVDom);
                 if (!waitForScriptsToLoad) {
                     _loadNextScript();
                 }
             }
             _loadNextScript();
         }).then(() => {
-            if (json) {
-                rootVDom = _buildVirtualDom(json, topElement)
-            }
+            structArray.forEach(json => _buildVirtualDom(json, rootVDom));
         });
     }
 
@@ -113,7 +111,6 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, waitForScriptsTo
     class VirtualDomElement {
         constructor(htmlStruct) {
             this._struct = htmlStruct;
-            this._nodeList = [];
             this._childList = [];
         }
         set ctx(c) {
@@ -124,15 +121,6 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, waitForScriptsTo
                 return this._parent.ctx;
             }
             return this._ctx;
-        }
-        get nodeListAsDom() {
-            return util.flatten(this._nodeList.map(n => {
-                if (n instanceof VirtualDomElement) {
-                    return n.nodeListAsDom;
-                } else {
-                    return n;
-                }
-            }));
         }
         get isComponentInternal() {
             return (this._struct.h || {}).componentInternal == true;
@@ -148,38 +136,33 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, waitForScriptsTo
             return this.ctx.eval(s);
         }
         removeChild(c) {
-            const indNode = this._nodeList.indexOf(c);
             const indChild = this._childList.indexOf(c);
-            if (indNode >= 0) {
-                this._nodeList.splice(indNode, 1);
+            if (indChild >= 0) {
                 this._childList.splice(indChild, 1);
                 c._onRemove();
             }
         }
         removeChildren() {
-            for (let i = 0; i < this._childList.length; i++) {
-                this.removeChild(this._childList[i]);
+            while (this._childList.length > 0) {
+                this.removeChild(this._childList[0]);
             }
         }
-        appendChild(c) {
-            this.insertBefore(c, null);
+        appendChild(child) {
+            this.insertBefore(child, null);
         }
         insertBefore(child, vdom) {
-            let indNode = -1;
-            let indChild = -1;
-            if (vdom) {
-                indNode = this._nodeList.indexOf(vdom);
-                indChild = this._childList.indexOf(vdom);
-            }
-            if (indNode >= 0) {
-                this._nodeList.splice(indNode, 0, child);
-                this._childList.splice(indChild, 0, child);
+            let nodeList = child.getNodeList();
+            if (this._childList.length == 0) {
+                this._childList.push(child);
+                this._addFirst(nodeList);
+            } else if (vdom) {
+                const ind = this._childList.indexOf(vdom);
+                this._childList[ind]._addBefore(nodeList);
+                this._childList.splice(ind, 0, child);
             } else {
-                this._nodeList.push(child);
+                this._childList[this._childList.length - 1]._addAfter(nodeList);
                 this._childList.push(child);
             }
-            child._parent = this;
-            this._insertBefore(child, vdom);
         }
         update() {
             this._updateDom();
@@ -187,28 +170,33 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, waitForScriptsTo
                 this._childList[i].update();
             }
         }
-        get lastNode() {}
         _updateDom() {}
         _onRemove() {}
-        _insertBefore(child, vdom) {}
         _postBuild() {}
     }
     class BrowserElement extends VirtualDomElement {
         _onBuild() {
             this._onCreateBrowserElement();
+            this._e.be = this._struct.n;
             this._e._vdom = this;
             this._e.onload = this._onload;
             this._e.onerror = this._onload;
-            this._nodeList.push(this._e);
         }
-        _insertBefore(child, vdom) {
-            const before = vdom ? vdom._nodeList[0] : null;
-            const nodeList = child.nodeListAsDom;
-            for (let i = 0; i < nodeList.length; i++) {
-                this._e.insertBefore(nodeList[i], before);
-            }
+        getNodeList() {
+            return [this._e];
+        }
+        _addBefore(nodeList) {
+            nodeList.forEach(n => this._e.parentNode.insertBefore(n, this._e));
+        }
+        _addAfter(nodeList) {
+            let beforeNode = this._e.nextSibling;
+            nodeList.forEach(n => this._e.parentNode.insertBefore(n, beforeNode));
+        }
+        _addFirst(nodeList) {
+            nodeList.forEach(n => this._e.appendChild(n));
         }
         _onRemove() {
+            this.removeChildren();
             this._e.remove();
         }
         _setAttribute(n, v) {
@@ -221,24 +209,7 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, waitForScriptsTo
                 dom.setAttribute(this._e, n, v);
             }
         }
-        _hide(){
-            this._e.remove();
-        }
-        _show(){
-            insertPoint.appendChild(this._e);
-        }
         _onCreateBrowserElement() {}
-    }
-    class GenericBrowserElement extends BrowserElement {
-        _onCreateBrowserElement() {
-            this._e = this.element;
-        }
-        set element(e) {
-            this._e = e;
-        }
-        get element() {
-            return this._e;
-        }
     }
     class Element extends BrowserElement {
         _onCreateBrowserElement() {
@@ -246,7 +217,6 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, waitForScriptsTo
             this._e = dom.createElement(this._struct.n);
             this._dom = dom;
             this._dynAtt = {};
-            inputs.prepareInputElement(this);
             for (let k in this._struct.a) {
                 let a = this._struct.a[k];
                 if (k == 'bind' || k == 'data-bind') {
@@ -255,16 +225,16 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, waitForScriptsTo
                         val = val.map(v => util.safeToString(v)).join('');
                     }
                     this._bind = val;
-                    this._objects = new Objects(val, this.ctx, () => this._getValue ? this._getValue() : this._e.value);
+                    const type = (this._e.getAttribute("type") || "").toLowerCase();
+                    const valuePropName = type == "checkbox" || type == "radio" ? "checked" : "value";
+                    const _getValue = () => this._getValue ? this._getValue() : this._e[valuePropName];
+                    this._objects = new Objects(val, this.ctx, _getValue);
                     const onChange = () => {
-                        if (this._lastValue == null || this._lastValue != this._e.value) {
-                            this._lastValue = this._e.value;
-                            this._objects.updateVariable();
-                            _updateAll(100);
-                        }
+                        this._objects.updateVariable();
+                        _updateAll(100);
                     }
                     this._e.addEventListener('change', onChange);
-                    if(this._e.nodeName != 'SELECT'){
+                    if (this._e.nodeName != 'SELECT') {
                         this._e.addEventListener('keyup', onChange);
                         this._e.addEventListener('click', onChange);
                         this._e.addEventListener('focus', () => this._focused = true);
@@ -276,12 +246,13 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, waitForScriptsTo
                     this._setAttribute(k, a);
                 }
             }
+            inputs.prepareInputElement(this);
         }
         _postBuild() {
             this._buildChildren();
         }
         _updateDom() {
-            if(!this._focused && this._bind){
+            if (!this._focused && this._bind) {
                 this._setValue(this._ctx.eval(this._bind));
             }
             for (let k in this._dynAtt) {
@@ -316,39 +287,36 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, waitForScriptsTo
     }
     class Container extends VirtualDomElement {
         _onBuild() {
-            this._nodeList.push(dom.createTextNode(""));
+            this._startNode = dom.createTextNode("");
+            let className = this.constructor.name;
+            this._endNode = dom.createTextNode("");
+            this._startNode.sn = true;
+            this._startNode._cid = parseInt(Math.random() * 99) + '_' + className;
+            this._endNode.en = true;
+            this._endNode._cid = this._startNode._cid;
             this._onBuildContainer();
         }
-        get lastNode() {
-            return this._endNode;
-        }
         _onRemove() {
-            var nodeList = this.nodeListAsDom;
-            for (var i = 0; i < nodeList.length; i++) {
-                const n = nodeList[i];
-                n.remove();
-            }
+            this.removeChildren();
+            this._startNode.remove();
+            this._endNode.remove();
         }
-        _insertBefore(child, vdom) {
-            if (!vdom) {
-                const ind = this._parent._childList.indexOf(this);
-                if (ind < this._parent._childList.length - 1) {
-                    vdom = this._parent._childList[ind + 1];
-                }
-            }
-            this._parent._insertBefore(child, vdom);
+        getNodeList() {
+            return [this._startNode, this._endNode];
+        }
+        _addBefore(nodeList) {
+            nodeList.forEach(n => this._startNode.parentNode.insertBefore(n, this._startNode));
+        }
+        _addAfter(nodeList) {
+            let beforeNode = this._endNode.nextSibling;
+            nodeList.forEach(n => this._endNode.parentNode.insertBefore(n, beforeNode));
+        }
+        _addFirst(nodeList) {
+            nodeList.forEach(n => this._startNode.parentNode.insertBefore(n, this._endNode));
         }
         _onBuildContainer() {}
     }
-    class ElementContainer extends Container {
-        _onBuildContainer() {
-            this.ctx = evaluatorManager.build(this);
-            this._buildChildren();
-        }
-        update() {
-            this._childList.forEach(c => c.update());
-        }
-    }
+
     class DynContent extends Container {
         _onBuildContainer() {
             this.ctx = evaluatorManager.build(this);
@@ -367,7 +335,10 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, waitForScriptsTo
                         this._childList[i].update();
                     }
                 } else {
-                    this._nodeList[0].nodeValue = val;
+                    if (this._childList.length == 0) {
+                        _buildVirtualDom("", this);
+                    }
+                    this._childList[0]._e.nodeValue = val;
                 }
             } catch (e) {
                 console.error(e);
@@ -442,7 +413,7 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, waitForScriptsTo
                 } else {
                     child = this._childList[i];
                     if (pos >= 0 && pos != i) {
-                        this.removeChild(child);
+                        this._childList.splice(i, 1);
                         const afterVDom = i >= this._childList.length ? null : this._childList[i];
                         this.insertBefore(child, afterVDom);
                         currList.splice(pos, 1);
@@ -486,9 +457,37 @@ const VirtualDom = function (json, insertPoint, mimimoInstance, waitForScriptsTo
             this._iteratorContext.__set_index(i);
         }
     }
-    this.show = () => rootVDom._show();
-    this.hide = () => rootVDom._hide();
-    this.setOnRoot = (n, v) => rootVDom[n] = v;
+    if(!anchorStart){
+        anchorStart = dom.createTextNode("");
+        insertPoint.appendChild(anchorStart);
+        anchorEnd = dom.createTextNode("");
+        insertPoint.appendChild(anchorEnd);
+    }
+
+    const rootVDom = new BrowserElement({});
+
+    this.hide = () => {
+        _hidden = true;
+        this.remove();
+    }
+    let _removed;
+    this.remove = () => {
+        _removed = [];
+        let node = anchorStart.nextSibling;
+        while (node != anchorEnd) {
+            _removed.push(node);
+            node.remove();
+            node = anchorStart.nextSibling;
+        }
+    }
+    this.show = () => {
+        _hidden = false;
+        this.update();
+    }
+    rootVDom._addFirst = (nodeList) => nodeList.forEach(n => {
+        insertPoint.insertBefore(n, anchorEnd);
+    });
+    rootVDom._e = insertPoint;
 }
 
 module.exports = {

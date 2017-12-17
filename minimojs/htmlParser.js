@@ -36,7 +36,10 @@ const _getAllTextNodes = (element) =>
 
 const _generateId = (prefix = "id_") => `${prefix}${parseInt(Math.random() * 999999)}`;
 
-const _isEmptyText = (node) => node instanceof Text && !(node instanceof Comment) && node.text.trim() == '';
+const _isEmptyText = (node) => 
+{
+  return node instanceof Text && !(node instanceof Comment) && node.isEmpty();
+}
 
 const _eqIgnoreCase = (s1, s2) => s1.toUpperCase() == s2.toUpperCase();
 
@@ -228,6 +231,10 @@ class Text extends Node {
   }
   toJson() {
     return this._getNonNullText();
+  }
+  isEmpty(){
+    let txt = this._getNonNullText();
+    return txt == null || txt == '';
   }
   close() {}
 }
@@ -495,7 +502,7 @@ class TemplateScript extends Element {
       xv: this._iterateVariable,
       xi: this._indexVariable,
       h: this._hiddenAttributes,
-      c: this.children.map(c => c.toJson())
+      c: this.childrenToJson()
     });
   }
 }

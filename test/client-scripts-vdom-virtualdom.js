@@ -61,7 +61,7 @@ describe('Client scripts - virtualdom.js', () => {
             },
             _dom: new dom.DOM(this, document.body, document)
         }
-        const vdom = new virtualDom.VirtualDom(json, insertPoint, minimo, false, buildComponentBuilderFunction);
+        const vdom = new virtualDom.VirtualDom([json], insertPoint, null, null, minimo, false, buildComponentBuilderFunction);
         vdom._defaultUpdateDelay = 0;
         return vdom.build()
             .then(() => {
@@ -109,7 +109,7 @@ describe('Client scripts - virtualdom.js', () => {
             }
             this._dom = new dom.DOM(this, document.body, document);
         }
-        const vdom = new virtualDom.VirtualDom(json, insertPoint, minimo, false, buildComponentBuilderFunction);
+        const vdom = new virtualDom.VirtualDom([json], insertPoint, null, null, minimo, false, buildComponentBuilderFunction);
         vdom._defaultUpdateDelay = 0;
         return vdom.build()
             .then(vdom.update)
@@ -161,7 +161,7 @@ describe('Client scripts - virtualdom.js', () => {
             eval: function (s) {},
             _dom: new dom.DOM(this, document.body, document)
         }
-        const vdom = new virtualDom.VirtualDom(json, insertPoint, minimo, false, buildComponentBuilderFunction);
+        const vdom = new virtualDom.VirtualDom([json], insertPoint, null, null, minimo, false, buildComponentBuilderFunction);
         vdom._defaultUpdateDelay = 0;
         return vdom.build()
             .then(vdom.update)
@@ -201,7 +201,7 @@ describe('Client scripts - virtualdom.js', () => {
             }
             this._dom = new dom.DOM(this, document.body, document);
         }
-        const vdom = new virtualDom.VirtualDom(json, insertPoint, minimo, false, buildComponentBuilderFunction);
+        const vdom = new virtualDom.VirtualDom([json], insertPoint, null, null, minimo, false, buildComponentBuilderFunction);
         vdom._defaultUpdateDelay = 0;
         return vdom.build()
             .then(vdom.update)
@@ -246,7 +246,7 @@ describe('Client scripts - virtualdom.js', () => {
             }
             this._dom = new dom.DOM(this, document.body, document);
         }
-        const vdom = new virtualDom.VirtualDom(json, insertPoint, minimo, false, buildComponentBuilderFunction);
+        const vdom = new virtualDom.VirtualDom([json], insertPoint, null, null, minimo, false, buildComponentBuilderFunction);
         vdom._defaultUpdateDelay = 0;
         return vdom.build()
             .then(vdom.update)
@@ -298,7 +298,7 @@ describe('Client scripts - virtualdom.js', () => {
             }
             this._dom = new dom.DOM(this, document.body, document);
         }
-        const vdom = new virtualDom.VirtualDom(json, insertPoint, minimo, false, buildComponentBuilderFunction);
+        const vdom = new virtualDom.VirtualDom([json], insertPoint, null, null, minimo, false, buildComponentBuilderFunction);
         vdom._defaultUpdateDelay = 0;
         return vdom.build()
             .then(vdom.update)
@@ -376,7 +376,7 @@ describe('Client scripts - virtualdom.js', () => {
             }
             this._dom = new dom.DOM(this, document.body, document);
         }
-        const vdom = new virtualDom.VirtualDom(json, insertPoint, minimo, false, buildComponentBuilderFunction);
+        const vdom = new virtualDom.VirtualDom([json], insertPoint, null, null, minimo, false, buildComponentBuilderFunction);
         vdom._defaultUpdateDelay = 0;
         return vdom.build()
             .then(vdom.update)
@@ -492,7 +492,7 @@ describe('Client scripts - virtualdom.js', () => {
             }
             this._dom = new dom.DOM(this, document.body, document);
         }
-        const vdom = new virtualDom.VirtualDom(json, insertPoint, minimo, false, buildComponentBuilderFunction);
+        const vdom = new virtualDom.VirtualDom([json], insertPoint, null, null, minimo, false, buildComponentBuilderFunction);
         vdom._defaultUpdateDelay = 0;
         return vdom.build()
             .then(vdom.update)
@@ -598,7 +598,7 @@ describe('Client scripts - virtualdom.js', () => {
             }
             this._dom = new dom.DOM(this, document.body, document);
         }
-        const vdom = new virtualDom.VirtualDom(json, insertPoint, minimo, false, buildComponentBuilderFunction);
+        const vdom = new virtualDom.VirtualDom([json], insertPoint, null, null, minimo, false, buildComponentBuilderFunction);
         vdom._defaultUpdateDelay = 0;
         return vdom.build()
             .then(vdom.update)

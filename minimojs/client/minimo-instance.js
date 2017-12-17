@@ -6,7 +6,6 @@ const minimoEvents = require('./minimo-events.js');
 const cached = require('./cached-resources.js');
 const virtualDom = require('./vdom/virtualdom.js');
 
-const _ATTCTX = "data-mroot-ctx";
 let _instanceCounter = 0;
 let _templateInstance;
 let _currentInstance;
@@ -24,15 +23,12 @@ const destroyInstance = (instance) => {
 }
 
 class Minimo {
-    constructor(insertPoint, htmlStruct, parent, controller) {
+    constructor(rootElement, anchorStart, anchorEnd, htmlStruct, parent, controller) {
         this._instanceId = _instanceCounter++;
-        if (insertPoint) {
-            insertPoint.setAttribute(_ATTCTX, this._instanceId);
-            this._dom = new dom.DOM(this, insertPoint, document);
-            this._vdom = {};
-            this._vdom._list = !htmlStruct.c ? [] : htmlStruct.c
-                .map(child => new virtualDom.VirtualDom(child, insertPoint, this, true));
 
+        if (rootElement) {
+            this._dom = new dom.DOM(this, rootElement, document);
+            this._vdom = new virtualDom.VirtualDom(htmlStruct && htmlStruct.c ? htmlStruct.c : [], rootElement, anchorStart, anchorEnd, this, true);
         }
         this.parent = parent;
         if (parent) {
@@ -108,13 +104,16 @@ class Minimo {
         }
     }
     update(delay) {
-        return Promise.all(this._vdom._list.map(i => i.update(delay)));
+        return this._vdom.update(delay);
     }
     addChild(childInstance) {
         this._childInstances.push(childInstance);
     }
     build() {
-        return Promise.all(this._vdom._list.map(i => i.build()));
+        return this._vdom.build();
+    }
+    remove() {
+        this._vdom.remove();
     }
     modalS(path, toggle, elementId) {}
     import (path) {}
@@ -149,9 +148,9 @@ const _configInit = (instance, modal) => {
     }
     return onInitFn();
 }
-const startScript = (controller) => startInstance(null, null, controller, false);
-const startInstance = (insertPoint, htmlStruct, controller, modal) => {
-    const m = new Minimo(insertPoint, htmlStruct, null, controller);
+const startScript = (controller) => startInstance(null, null, null, null, controller, false);
+const startInstance = (insertPoint, anchorStart, anchorEnd, htmlStruct, controller, modal) => {
+    const m = new Minimo(insertPoint, anchorStart, anchorEnd, htmlStruct, null, controller);
     let binds = [];
     try {
         binds = m.eval('__binds__');
@@ -164,9 +163,7 @@ const startInstance = (insertPoint, htmlStruct, controller, modal) => {
         .then(() => m);
 }
 const startMainInstance = (htmlStruct) => {
-    document.body.setAttribute(_ATTCTX, 'true');
-    document.body.setAttribute('data-m-ctx', 'true');
-    const m = new Minimo(document.body, htmlStruct, null, function () {
+    const m = new Minimo(document.body, null, null, htmlStruct, null, function () {
         this.eval = (f) => {
             return eval(f);
         };
@@ -197,7 +194,7 @@ const createLoadingVDom = () => {
     const m = {
         _dom: new dom.DOM({}, document.body)
     };
-    _loading = new virtualDom.VirtualDom({
+    _loading = new virtualDom.VirtualDom([{
         n: 'div',
         a: {
             style: "position:absolute;top:0px;left:0px;height: 100%;width:100%;z-index: 99999;background-color: white;"
@@ -211,8 +208,8 @@ const createLoadingVDom = () => {
                 src: '"%loader.gif%"'
             }
         }]
-    }, document.body, m);
-    return _loading.build().then(() => _loading.setOnRoot('main_loader', true));
+    }], document.body, null, null, m);
+    return _loading.build();
 }
 
 const _parseUrl = (url) => {
@@ -238,18 +235,14 @@ const _pushState = (url) => {
         window.location = goto.path + goto.query;
     } else {
         _setLastUrl();
-        var tempNode = document.createElement('div');
-        remote.htmlPage(goto.path).then(js => eval(js)(tempNode, false)).then((instance) => {
-            const _oldInstance = _currentInstance;
+        const _oldInstance = _currentInstance;
+        remote.htmlPage(goto.path).then(js => {
+            if (_currentInstance) {
+                _currentInstance.remove();
+            }
+            return eval(js)(_mainInsertPointStart.parentNode, _mainInsertPointStart, _mainInsertPointEnd, false);
+        }).then((instance) => {
             _currentInstance = instance;
-            while (_mainInsertPointStart.nextSibling != _mainInsertPointEnd) {
-                if (!_mainInsertPointStart.nextSibling.main_loader) {
-                    _mainInsertPointStart.nextSibling.remove();
-                }
-            }
-            while (tempNode.childNodes.length > 0) {
-                _mainInsertPointStart.parentElement.insertBefore(tempNode.childNodes[0], _mainInsertPointEnd);
-            }
             history.pushState(null, null, url);
             minimoEvents.pageChanged();
             window._minimo_href_current_location = url;
@@ -309,7 +302,7 @@ const _updateAll = (delay) => {
             _firstUpdate = false;
             //.closeInitLoad();
         }
-        _templateInstance.update(delay).then(() => 
+        _templateInstance.update(delay).then(() =>
             _instances.forEach(instance => instance.update(delay)));
     }
 }

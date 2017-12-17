@@ -5,63 +5,14 @@ appcache com htmx e .js de tela
 
 X.import, X.modalS retorna promise
 mutation 
-    href novos - capturar o link e disparar o url change event
 
 import
     implementar require do node?
     importando outro recurso js no padrao minimo (em vez do require) o recurso so pode ser dado como iniciado se ele chamou seu onInit() e o mesmo terminou.
+eliminar textos vazios da compilacao final do struct
+ver BrowserElements being created withoun struct
+modal
 
-onInit
-    se for retornada uma promise, o onInit so é dado como terminado quando a promise terminar
+GenericBrowserElement retirar
 
-appcache
-    usar fallback para templates - testar
-    para cada item que tem template e foi referenciado no cache, tem um item de fallback apontando para seu template
-
-html
-    sempre (com ou sem template) sera renderizado um html vazio.
-        se for um com template
-            renderiza os scripts e css link
-            renderiza no body um script com o json do template e controi o html
-                incluir os elementos dentro do head faltantes
-                incluir os elementos dentro do body e scripts
-        chama via rest o json da paginda pegando da url qual pagina é
-            renderiza no ponto de insercao
-
-steps
-    url no browser ou no evento the change url onde o template da pagina é diferente da pagina atual ou se a pagina tem htmlelement
-        carrega template se tiver
-            o template tera o script para carregar o json e o script da pagina no target element do template
-                com o uso do fallback, o template sera repetido. Ele pegara da url o caminho para fazer o load do json de pagina correto
-            no oncreate de href: alterar os links para disparar o change url event
-    url event e o template é o mesmo (ou ambas nao usam template?) - 
-        limpar o target element
-        recarregar o json e o script da pagina no target element do template
-
-
-get htmx
-    find js pair
-    set as valid resource
-    parse html
-        get all bound modals data-xbind
-        get all bound variables data-xmodal
-        get all scripts global -> global
-        get all imported -> jsonly
-    compile components parse html -> coloca no json as infos dos components
-    instrument controller
-        html struct json
-        promise for imports e modals e binds das variaveis
-        expor public functions
-        declare undeclared bound variables
-
-get js only
-    set as valid resource
-    instrument controller
-        promise for imports
-        expor public functions
-
-get global
-    set as valid resource
-    instrument global controller
-        promise for imports
-        expor public functions
+show hide

@@ -499,8 +499,8 @@ const _instrumentController = (htmlJson, jsData, isGlobal, resInfo, boundVars = 
             }
         })();`;
     } else {
-        return `function _m_temp_startInstance(insertPoint, modal){
-            return startInstance(insertPoint,${JSON.stringify(htmlJson)}, ${controllerObject}, modal);
+        return `function _m_temp_startInstance(insertPoint, anchorStart, anchorEnd, modal){
+            return startInstance(insertPoint, anchorStart, anchorEnd, ${JSON.stringify(htmlJson)}, ${controllerObject}, modal);
         };_m_temp_startInstance;`;
     }
 }
