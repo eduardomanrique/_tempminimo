@@ -457,7 +457,7 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
             this._iteratorContext.__set_index(i);
         }
     }
-    if(!anchorStart){
+    if (!anchorStart) {
         anchorStart = dom.createTextNode("");
         insertPoint.appendChild(anchorStart);
         anchorEnd = dom.createTextNode("");
@@ -481,8 +481,12 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
         }
     }
     this.show = () => {
-        _hidden = false;
-        this.update();
+        if (_hidden) {
+            _hidden = false;
+            _removed.forEach(node => insertPoint.insertBefore(node, anchorEnd));
+            _removed = [];
+            this.update();
+        }
     }
     rootVDom._addFirst = (nodeList) => nodeList.forEach(n => {
         insertPoint.insertBefore(n, anchorEnd);

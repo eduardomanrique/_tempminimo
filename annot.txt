@@ -9,10 +9,5 @@ mutation
 import
     implementar require do node?
     importando outro recurso js no padrao minimo (em vez do require) o recurso so pode ser dado como iniciado se ele chamou seu onInit() e o mesmo terminou.
-eliminar textos vazios da compilacao final do struct
-ver BrowserElements being created withoun struct
 modal
 
-GenericBrowserElement retirar
-
-show hide

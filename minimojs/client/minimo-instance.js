@@ -224,7 +224,6 @@ const _parseUrl = (url) => {
     }
 }
 
-let firstPush = true;
 const _pushState = (url) => {
     _loading.show();
     minimoEvents.startPageChange();
@@ -235,20 +234,19 @@ const _pushState = (url) => {
         window.location = goto.path + goto.query;
     } else {
         _setLastUrl();
-        const _oldInstance = _currentInstance;
         remote.htmlPage(goto.path).then(js => {
             if (_currentInstance) {
                 _currentInstance.remove();
             }
             return eval(js)(_mainInsertPointStart.parentNode, _mainInsertPointStart, _mainInsertPointEnd, false);
         }).then((instance) => {
+            const _oldInstance = _currentInstance;
             _currentInstance = instance;
             history.pushState(null, null, url);
             minimoEvents.pageChanged();
             window._minimo_href_current_location = url;
-            if (firstPush) {
-                firstPush = false;
-                minimoEvents.onPageChanged(() => destroyInstance(_oldInstance));
+            if (_oldInstance) {
+                destroyInstance(_oldInstance);
             }
             _loading.hide();
         });
