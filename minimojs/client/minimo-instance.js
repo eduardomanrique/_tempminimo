@@ -231,7 +231,7 @@ const _pushState = (url) => {
     var goto = _parseUrl(url);
     if (current && (!goto.tpl || !current.tpl || goto.tpl != current.tpl)) {
         //incompatible window (not the same tamplate, or no template at all)
-        window.location = goto.path + goto.query;
+        window.location = `${goto.path}.html${goto.query}`;
     } else {
         _setLastUrl();
         remote.htmlPage(goto.path).then(js => {

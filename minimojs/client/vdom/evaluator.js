@@ -70,10 +70,9 @@ const EvaluatorManager = function (minimoInstance, ctxManager) {
             this._listening = {};
         }
         evalSet(left, value) {
-            const tempName = Math.random();
-            minimoInstance[tempName] = value;
+            window.__temp_val__ = value;
             try {
-                const exp = left + '=m[' + tempName + ']';
+                const exp = left + '=window.__temp_val__';
                 let varName = left.trim().split('.')[0];
                 let found = false;
                 for (let j = 0; j < this._ctxList.length; j++) {
@@ -89,7 +88,7 @@ const EvaluatorManager = function (minimoInstance, ctxManager) {
                     this._ctxList[this._ctxList.length - 1].eval(exp);
                 }
             } finally {
-                delete minimoInstance[tempName]
+                delete minimoInstance.__temp_val__;
             }
         }
         eval(exp) {

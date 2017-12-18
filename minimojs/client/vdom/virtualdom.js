@@ -231,7 +231,7 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
                     this._objects = new Objects(val, this.ctx, _getValue);
                     const onChange = () => {
                         this._objects.updateVariable();
-                        _updateAll(100);
+                        _updateAll(50);
                     }
                     this._e.addEventListener('change', onChange);
                     if (this._e.nodeName != 'SELECT') {
@@ -390,15 +390,17 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
             let list = this.eval(this._listName);
             //remove from html the removed
             const currList = [];
+            const toRemove = [];
             for (let i = 0; i < this._lastList.length; i++) {
                 let item = this._lastList[i];
                 const pos = list.indexOf(item);
                 if (pos < 0) {
-                    this.removeChild(this._childList[i]);
+                    toRemove.push(this._childList[i]);
                 } else {
                     currList.push(item);
                 }
             }
+            toRemove.forEach(c => this.removeChild(c));
             for (let i = 0; i < list.length; i++) {
                 let item = list[i];
                 const pos = currList.indexOf(item);
@@ -436,11 +438,11 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
                 this.eval = function(s){
                     return eval(s);
                 }
-                this.__set_item = function(i){
-                    ${this._itemVarName} = i;
+                this.__set_item = function(__m_param__){
+                    ${this._itemVarName} = __m_param__;
                 }
-                this.__set_index = function(i){
-                    ${this._indexVarName} = i;
+                this.__set_index = function(__m_param__){
+                    ${this._indexVarName} = __m_param__;
                 }
             }`);
             this.ctx = evaluatorManager.buildWith(this, this._iteratorContext);
