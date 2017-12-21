@@ -202,7 +202,7 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
         _setAttribute(n, v) {
             if (n.startsWith('on')) {
                 this._e.addEventListener(n.substring(2), () => {
-                    Promise.all([this.ctx.eval(v)]).then(() => _updateAll(100));
+                    Promise.all([this.ctx.eval(v)]).then(() => _updateAll(1));
                 });
                 dom.setAttribute(this._e, `event-${n}`, v);
             } else {
@@ -353,6 +353,7 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
             this.ctx = evaluatorManager.build(this);
             this._componenCtx = evaluatorManager.buildWith(this, this._internalContext);
             this._parametersDefinition = this._internalContext.__defineAttributes();
+            this._componenCtx._aliases = this._internalContext._aliases;
         }
         _postBuild() {
             this._buildChildren();

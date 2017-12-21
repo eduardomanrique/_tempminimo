@@ -17,9 +17,10 @@ const generateMinimoJs = (parameters) => {
         const _copyResource = (name) => resources.readModuleFile(`./client/${name}`)
             .then(data => resources.writeFile(`${parameters.destinationPath}/m/scripts/${name}`, data
                 .replace('"%importableResources%"', JSON.stringify(importableResources))
-                .replace('"%%component-types%%"', components.getComponentTypes())
-                .replace('"%%component%%"', components.getScripts())
+                .replace('"%component-types%"', components.getComponentTypes())
+                .replace('"%components%"', components.getScripts())
                 .replace('"%devmode%"', parameters.devMode == true)
+                .replace('"%__setUpGetterForAttributes%"', components.getSetUpGetterForAttributesScript())
                 .replace('"%loader.gif%"', loader)));
 
         return Promise.all([resources.mkdirTree(context.destinationPath), resources.mkdirTree(`${parameters.destinationPath}/m/scripts`)])

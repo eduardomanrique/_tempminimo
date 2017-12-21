@@ -27,7 +27,7 @@ before(() => startComponents()
             const script = clientComponents
                 .replace('"%components%"', comp.getScripts())
                 .replace('"%component-types%"', comp.getComponentTypes())
-                .replace("'%__setUpGetterForAttributes%'", comp.getSetUpGetterForAttributesScript());
+                .replace('"%__setUpGetterForAttributes%"', comp.getSetUpGetterForAttributesScript());
             buildComponentBuilderFunction = eval(`${script};buildComponentBuilderFunction`);
         })));
 
@@ -539,7 +539,7 @@ describe('Client scripts - virtualdom.js', () => {
             "cn": "htmxstyle.wrapper_html_attribute",
             "ip": {
                 "id": "wid",
-                "innerattribute": {
+                "innerattribute": [{
                     "test": [{
                         "s": "this.id"
                     }, "_test"],
@@ -566,7 +566,7 @@ describe('Client scripts - virtualdom.js', () => {
                             "x": "obj.id"
                         }]
                     }]
-                },
+                }],
                 "wraperVarName": "wvar",
                 "wraperTestVarName": "wtestvar"
             },
@@ -578,11 +578,11 @@ describe('Client scripts - virtualdom.js', () => {
                     }]
                 },
                 "c": [{
-                    "x": "this.innerattribute.test"
+                    "x": "this.innerattribute[0].test"
                 }, {
                     "t": ": "
                 }, {
-                    "x": "this.innerattribute.content"
+                    "x": "this.innerattribute[0].content"
                 }]
             }]
         };
@@ -603,7 +603,6 @@ describe('Client scripts - virtualdom.js', () => {
         return vdom.build()
             .then(vdom.update)
             .then(() => {
-                //console.log(document.body.innerHTML)
                 expect(document.getElementById("wid")).not.be.null;
                 document.getElementById("sp").innerHTML.should.eq("abcd");
                 document.getElementById("sp2").innerHTML.should.eq("wid_test-objid");

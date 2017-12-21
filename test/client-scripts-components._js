@@ -17,9 +17,9 @@ before(() => startComponents()
     .then(c => resources.readModuleFile('../minimojs/client/components.js')
         .then((clientComponents) => {
             const script = clientComponents
-                .replace("'%components%'", comp.getScripts())
-                .replace("'%component-types%'", comp.getComponentTypes())
-                .replace("'%__setUpGetterForAttributes%'", comp.getSetUpGetterForAttributesScript());
+                .replace('"%components%"', comp.getScripts())
+                .replace('"%component-types%"', comp.getComponentTypes())
+                .replace('"%__setUpGetterForAttributes%"', comp.getSetUpGetterForAttributesScript());
             createComponentCtx = eval(`${script};buildComponentBuilderFunction`);
         })));
 

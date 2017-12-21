@@ -21,9 +21,9 @@ function __setUpGetterForAttributes(obj, evaluator, internalEval, __instanceProp
     Object.defineProperty(obj, k, {
       get: function () {
         if (tp.getTypeName() == 'boundVariable') {
-          return evaluator.eval(a);
+          return evaluator.eval(a instanceof Array ? a[0] : a);
         } else if (tp.getTypeName() == 'bind') {
-          return a;
+          return a instanceof Array ? a[0] : a;
         } else if (tp.getTypeName() == 'html') {
           return {
             __htmlContent: true,
@@ -41,12 +41,21 @@ function __setUpGetterForAttributes(obj, evaluator, internalEval, __instanceProp
   for (var k in __instanceProperties) {
     var tp = __instanceProperties[k];
     if (__types.isComponentType(tp)) {
+      if (tp.getTypeName() == 'exportedVariable') {
+        internalEval._aliases = internalEval._aliases || {};
+        internalEval._aliases[tp.getDefaultValue()] = internalEval._aliases[tp.getDefaultValue()] || [];
+        internalEval._aliases[tp.getDefaultValue()].push(k);
+      }
       _createProperty(obj, 
         tp.getTypeName() == 'exportedVariable' ? _attrs[k] : k, 
         tp, _attrs[k])
     } else {
-      obj[k] = obj[k] || {};
-      __setUpGetterForAttributes(obj[k], evaluator, internalEval, tp, _attrs[k], __types)
+      obj[k] = obj[k] || [];
+      for(let i = 0; i < _attrs[k].length; i++){
+        let item = {};
+        obj[k].push(item);
+        __setUpGetterForAttributes(item, evaluator, internalEval, tp, _attrs[k][i], __types)
+      }
     }
   }
 }
@@ -153,7 +162,7 @@ const _exposeFunctions = (js) => {
 const _createHtmxComponent = (compJs = "", varPath, compName) =>
   `${varPath} = new function(){
      this.htmxContext = function(_attrs, __m, __types){
-       var selfcomp = this;
+       var $comp = this;
        this._compName = '${compName}';
        this.eval = function(s){
           var r = eval(s);
@@ -165,7 +174,7 @@ const _createHtmxComponent = (compJs = "", varPath, compName) =>
           try{
            var r = defineAttributes(__types.types);
            if(_attrs){
-            __setUpGetterForAttributes(selfcomp, __m, this, r, _attrs, __types);
+            __setUpGetterForAttributes($comp, __m, this, r, _attrs, __types);
            }
            return r;
           }catch(e){return {}}

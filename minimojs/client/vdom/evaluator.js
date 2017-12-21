@@ -8,7 +8,9 @@ const _findIdentifiersOnScript = (e, a) => {
             _findIdentifiersOnScript(e.right, a);
             break;
         case "Identifier":
-            a.push(e.name);
+            if (e.name != 'eval') {
+                a.push(e.name);
+            }
             break;
         case "MemberExpression":
             _findIdentifiersOnScript(e.object, a);
@@ -62,6 +64,16 @@ const EvaluatorManager = function (minimoInstance, ctxManager) {
     }
     this.buildWith = (virtualDom, newCtx) => {
         const e = this.build(virtualDom);
+        let aliases = {};
+        for(let i = 0; i < e._ctxList.length; i++){
+            let ctx = e._ctxList[i];
+            if(ctx._aliases){
+                for(let k in ctx._aliases){
+                    aliases[k] = (aliases[k] || []).concat(ctx._aliases[k]);
+                }
+            }
+        }
+        newCtx._aliases = aliases;
         e._ctxList = [newCtx].concat(e._ctxList);
         return e;
     }
@@ -98,15 +110,28 @@ const EvaluatorManager = function (minimoInstance, ctxManager) {
                 const varName = cache.variables[i];
                 for (let j = 0; j < this._ctxList.length; j++) {
                     const ctx = this._ctxList[j];
-                    try {
-                        var obj = ctx.eval(varName);
-                        variables.push(obj);
-                        if (!this._listening[exp]) {
-                            this._listening[exp] = true;
-                            ctxManager.listen(ctx, varName, this._virtualDom);
-                        }
-                        break;
-                    } catch (e) {}
+                    let aliases = [varName];
+                    if (ctx._aliases && ctx._aliases[varName]) {
+                        aliases = ctx._aliases[varName].concat(aliases);
+                    }
+                    var obj;
+                    var found = false;
+                    for (let n = 0; n < aliases.length; n++) {
+                        try {
+                            obj = ctx.eval(aliases[n]);
+                            found = true;
+                            break;
+                        } catch (e) {}
+                    }
+                    if (!found) {
+                        continue;
+                    }
+                    variables.push(obj);
+                    if (!this._listening[exp]) {
+                        this._listening[exp] = true;
+                        ctxManager.listen(ctx, varName, this._virtualDom);
+                    }
+                    break;
                 }
             }
             const wrapper = new(Function.prototype.bind.apply(cache.fn, [null].concat(variables)));
