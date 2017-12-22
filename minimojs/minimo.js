@@ -38,6 +38,7 @@ const generateMinimoJs = (parameters) => {
                 _copyResource('minimo-events.js'),
                 _copyResource('importable-resources.js'),
                 _copyResource('dom.js'),
+                _copyResource('modals.js'),
                 _copyResource('components.js'),
                 _copyResource('cached-resources.js'),
                 _copyResource('vdom/context-manager.js'),
@@ -48,13 +49,9 @@ const generateMinimoJs = (parameters) => {
             .then(() => browserify(`${parameters.destinationPath}/m/scripts/minimo-instance.js`)
                 .bundle()
                 .on('error', function (err) {
+                    console.log(err.message)
                     console.log("ERROR!!! " + JSON.stringify(err))
                     console.log(err.stack);
-
-                    notifier.notify({
-                        'title': 'Compile Error',
-                        'message': err.message
-                    });
                 }).pipe(fs.createWriteStream(`${parameters.destinationPath}/m/scripts/m.js`)))
     });
 }

@@ -1,116 +1,47 @@
-const _ = require('underscore');
+const remote = require('./remote');
 
-minimoEvents.onNewPage(() => {
-    //destroy floating modal instances  
-})
+class Modal {
+    constructor(path, parentMinimo, anchorStart, anchorEnd) {
+        this._parentMinimo = parentMinimo;
+        this._startPromise = remote.htmlPage(path)
+        this._as = anchorStart;
+        this._ad = anchorEnd;
+    }
 
-let isShowingLoading = false;
-const setBlurryBackground = (toggleOn, idPopup, zIndex) => {
-    const id = `__m_bb_${idPopup}__`;
-    if(toggleOn){
-        const div = document.createElement('div');
-        div.setAttribute("id", id);
-        const blurryCss = ` position: fixed;
-                            top: 0px;
-                            left: 0px; 
-                            width: 100%; 
-                            height: 100%;
-                            opacity: 0.5;
-                            background-color:white;
-                            z-index: ${zIndex};`;
-        div.setAttribute("style", blurryCss);
-        document.body.appendChild(div);
-    }else{
-        var div = _byId(id);
-        if(div){
-            div.remove();
+    show(parameters) {
+        return this._startPromise
+            .then(js => eval(js)())
+            .then(([htmlStruct, controller]) => Minimo.builder()
+                .insertPoint(this._as.parentNode)
+                .anchorStart(this._as)
+                .anchorEnd(this._ae)
+                .parent(this._parentMinimo)
+                .controller(controller)
+                .htmlStruct(htmlStruct)
+                .modal(true)
+                .build()
+                .start(parameters))
+            .then(m => this._minimo = m);
+    }
+
+    update() {
+        if (this._minimo) {
+            this._minimo.update(100);
         }
     }
 }
 
-const highestZIndex = () => {
-    const zindexes = [];
-    document.getElementsByTagName('*').forEach(e => {
-        if(e.style.position && e.style.zIndex) {
-            zindexes.push(parseInt(e.style.zIndex));
-        };
-    });
-    return Math.max(...zindexes) + 1;
-}
-
-const showLoading = () => {
-    if(!isShowingLoading){
-        isShowingLoading = true;
-        const zIndex = highestZIndex();
-        setBlurryBackground(true, 'loading', zIndex);
-        const dv = document.createElement("div");
-        dv.setAttribute("style", _oneline`
-                        background:white;
-                        width: 100%;
-                        margin: 0;
-                        position: fixed;
-                        height: 100%;
-                        left: 0;
-                        top: 0;
-                        border: 0;
-                        -webkit-border-radius: 0;
-                        -moz-border-radius: 0;
-                        -o-border-radius: 0;
-                        border-radius: 0;
-                        z-index: ${zIndex + 1};`);
-        dv.setAttribute('id', '_loading_modal_');
-        const size = 40;
-        const left = parseInt((window.innerWidth - size) / 2);
-        const top = parseInt((window.innerHeight - size) / 2);
-        dv.innerHTML = _oneline`
-                <img style="position: relative;
-                            width: ${size}px; 
-                            height: ${size}px; 
-                            left: ${left}px; 
-                              top: ${top}px;" src="/x/loader.gif"/>`;
-        document.body.appendChild(dv);
-    }
-}
-
-const closeLoading = (before, after) => {
-    if(isShowingLoading){
-        setTimeout(function(){
-            if(before){
-                before();
-            }
-            var dv = _byId("_loading_modal_");
-            if(dv){
-                dv.parentNode.removeChild(dv);
-            }
-            setBlurryBackground(false, 'loading');
-            isShowingLoading = false;
-            if(after){
-                after();
-            }
-        }, 200);
-    }
-};
-
-const closeInitLoad = function(){
-    var tempLoadDiv = _byId("_xtemploaddiv_");
-    tempLoadDiv.remove();
-}
-
-const _modalProperties = {};
-const _currentModalResource;
-
-const setModalResource = (res) => _currentModalResource = res;
-
-const setModalInfo = (json) => {
-    _modalProperties[_currentModalResource] = {};
-    _.values(json.a).forEach(att => 
-        _modalProperties[_currentModalResource][k] = att.map(a => a.v).join(''));
-}
-
 module.exports = {
-    showLoading: showLoading,
-    closeLoading: closeLoading,
-    closeInitLoad: closeInitLoad,
-    setModalResource: setModalResource,
-    setModalInfo: setModalInfo
+    createModal: (path, parentMinimo, anchorStart, anchorEnd) => {
+        const modal = new Modal(path, parentMinimo, anchorStart, anchorEnd);
+        return new Proxy(modal, {
+            get: (target, name) => {
+                if (name in modal) {
+                    return modal[name];
+                } else if (modal._minimo) {
+                    return modal._minimo.controller[name];
+                }
+            }
+        })
+    }
 }

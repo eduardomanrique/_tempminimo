@@ -3,16 +3,16 @@ const EvaluatorManager = require('./evaluator');
 const Objects = require('../objects');
 const inputs = require('./inputs');
 const events = require('../minimo-events');
+const createModal = require('../modals').createModal;
 const ContextManager = require('./context-manager');
 const buildComponentBuilder = require('../components').buildComponentBuilderFunction;
-//const modals = require('./modal.js');
 
-const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, mimimoInstance, waitForScriptsToLoad = true, buildComponentBuilderFunction = buildComponentBuilder) {
-    const dom = mimimoInstance._dom;
+const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, minimoInstance, waitForScriptsToLoad = true, buildComponentBuilderFunction = buildComponentBuilder) {
+    const dom = minimoInstance._dom;
     const selfVDom = this;
     const ctxManager = new ContextManager();
-    const evaluatorManager = new EvaluatorManager(mimimoInstance, ctxManager);
-    const componentBuilderFunction = buildComponentBuilderFunction(mimimoInstance);
+    const evaluatorManager = new EvaluatorManager(minimoInstance, ctxManager);
+    const componentBuilderFunction = buildComponentBuilderFunction(minimoInstance);
     this._defaultUpdateDelay = 100;
 
     const _buildVirtualDom = (json, parentVDom) => {
@@ -24,7 +24,13 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
         } else if (json.xl) {
             vdom = new ListIteratorContainer(json);
         } else if (json.n) {
-            vdom = new Element(json);
+            if (json.n == 'modal') {
+                vdom = new ModalElement(json);
+            } else if (json.n == 'modalcontent') {
+                vdom = new ModalContent(json);
+            } else {
+                vdom = new Element(json);
+            }
         } else if (json.x) {
             vdom = new DynContent(json);
         } else {
@@ -357,6 +363,32 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
         }
         _postBuild() {
             this._buildChildren();
+        }
+    }
+
+    class ModalElement extends BrowserElement {
+        _onCreateBrowserElement() {
+            this._e = dom.createElement('div');
+            this._buildChildren();
+        }
+        _updateDom() {}
+    }
+    class ModalContent extends Container {
+        _onBuildContainer() {
+            const getModalElement = (e) => e._parent instanceof ModalElement ? e._parent : getModalElement(e._parent);
+            this._modalElement = getModalElement(this);
+            const path = this._modalElement._struct.a.path;
+            const bindTo = this._modalElement._struct.a.bindto;
+            this._modalObj = createModal(path, m, this._startNode, this._endNode);
+            if (bindTo) {
+                this._modalElement._parent.ctx.evalSet(bindTo, this._modalObj);
+            }
+            if (this._modalElement._struct.a.start) {
+                minimoInstance.addToBinds(this._modalObj);
+            }
+        }
+        _updateDom() {
+            this._modalObj.update();
         }
     }
     class ScriptContainer extends Container {}

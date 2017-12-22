@@ -296,7 +296,7 @@ const _loadTemplate = (resourceInfo) => {
 
 const _compilePage = (resInfo, htmxData, jsData) => {
     const parser = new htmlParser.HTMLParser();
-    const doc = util.nullableOption(htmxData.map(html => parser.parse(html)));
+    const doc = util.nullableOption(htmxData.map(html => parser.parse(html.replace(/\{modal-content\}/, '<modalcontent></modalcontent>'))));
     resInfo.templateName = null;
     //place real html of components, prepare iterators and labels
     doc.ifPresent(d => _prepareHTML(d, parser.boundObjects, parser.boundModals));
@@ -424,14 +424,6 @@ const _prepareInjections = (js, boundModals) => {
         }
 
     }
-    boundModals.forEach(val => {
-        const toggle = val.toggled;
-        binds.push(`m.modalS('${val.path}', ${toggle},'${val.elementId}').then(function(o){${val.varName} = o;})`);
-        if (!new RegExp(`\\s*var\\s+${val.varName}\\s*;`).exec(js)) {
-            result.unshift(`var ${val.varName};\n`);
-        }
-        hasBoundVar = true;
-    });
     return `var __binds__ = [${binds.join(',')}];
     //user code start
 
@@ -491,7 +483,7 @@ const _instrumentController = (htmlJson, jsData, isGlobal, resInfo, boundVars = 
     if (isGlobal) {
         return `
         (function (){
-            const _load = () => startScript(${controllerObject});
+            const _load = () => Minimo.builder().controller(${controllerObject}).build().start();
             if(window.addEventListener) {
                 window.addEventListener('load', _load, false);
             } else if(window.attachEvent) {
@@ -499,9 +491,9 @@ const _instrumentController = (htmlJson, jsData, isGlobal, resInfo, boundVars = 
             }
         })();`;
     } else {
-        return `function _m_temp_startInstance(insertPoint, anchorStart, anchorEnd, modal){
-            return startInstance(insertPoint, anchorStart, anchorEnd, ${JSON.stringify(htmlJson)}, ${controllerObject}, modal);
-        };_m_temp_startInstance;`;
+        return `function _m_temp_fn(){
+            return [${JSON.stringify(htmlJson)},${controllerObject}];
+        };_m_temp_fn;`;
     }
 }
 

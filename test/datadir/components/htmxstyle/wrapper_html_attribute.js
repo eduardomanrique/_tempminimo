@@ -7,7 +7,7 @@ function defineAttributes(types){
       "content": types.mandatory.html
     },
     "wraperVarName": types.exportedVariable.of("wrapperInternalVar"),
-    "wraperTestVarName": types.exportedVariable.of("this.innerattribute.test"),
+    "wraperTestVarName": types.exportedVariable.of("this.innerattribute[0].test"),
   }
 }
 

@@ -23,7 +23,7 @@ describe('Test compiler', function () {
     beforeEach(() => resources.rmDirR(context.destinationPath)
         .then(() => resources.mkdirTree(context.destinationPath)));
     afterEach(() => resources.rmDirR(context.destinationPath));
-   
+
 
     it('Get resource info htmx/js OK', () => compiler._restart()
         .then(() => compiler._getResourceInfo('/dir1/test1.htmx', false)
@@ -73,15 +73,10 @@ describe('Test compiler', function () {
         var i;
         //import:/import/i2
         var i2;
-        //modal:/modal/modal1,element,toggle
-        var modal1;
-        //modal:/modal/modal2,element
-        var modal2;
         `;
         const prepared = compiler._prepareInjections(js, [new htmlParser.ModalBind('modal3', '/modal/modal3', 'element3', true)]);
         const imported = [];
         const instance = {};
-        const modals = [];
         const vars = {};
         let setVars;
         const m = {
@@ -90,15 +85,7 @@ describe('Test compiler', function () {
                 imported.push(path);
                 return new Promise((resolve) => resolve(instance))
             },
-            bindService: name => services.push(name),
-            modalS: (path, toggle, elementId) => {
-                modals.push({
-                    t: toggle,
-                    p: path,
-                    e: elementId
-                });
-                return new Promise((resolve) => resolve(instance));
-            }
+            bindService: name => services.push(name)
         }
         var binds;
         eval(`${prepared}; 
@@ -106,25 +93,14 @@ describe('Test compiler', function () {
             setVars = function(){
                 vars.i=i;
                 vars.i2=i2;
-                vars.modal1=modal1;
-                vars.modal2=modal2;
-                vars.modal3=modal3;
             }`);
         return Promise.all(binds).then(() => {
             setVars();
-            instance.CTX.should.equal('_CTX');
             imported.should.have.lengthOf(2);
             imported.filter(i => i == '/import/i1.js').should.have.lengthOf(1);
             imported.filter(i => i == '/import/i2.js').should.have.lengthOf(1);
-            modals.should.have.lengthOf(3);
-            modals.filter(i => i.t && i.p == '/modal/modal1' && i.e == 'element').should.have.lengthOf(1);
-            modals.filter(i => !i.t && i.p == '/modal/modal2' && i.e == 'element').should.have.lengthOf(1);
-            modals.filter(i => i.t && i.p == '/modal/modal3' && i.e == 'element3').should.have.lengthOf(1);
             expect(vars.i).to.be.equal(instance);
             expect(vars.i2).to.be.equal(instance);
-            expect(vars.modal1).to.be.equal(instance);
-            expect(vars.modal2).to.be.equal(instance);
-            expect(vars.modal3).to.be.equal(instance);
         });
     });
     it('Test instrument controller', () => {
@@ -132,7 +108,7 @@ describe('Test compiler', function () {
         const docJson = parser.parse(`<html>
             <body>
                 <input bind="obj.test">
-                <div data-modal-mod="/modal/mod"></div>
+                <modal path="/modal/mod"/>
             </body>
         </html>`).toJson();
         const boundVars = parser.boundVars;
@@ -158,50 +134,32 @@ describe('Test compiler', function () {
         const resInfo = new compiler.Resource('/dir1/test1', true, true, realPath.substring(0, realPath.lastIndexOf('.')), false);
         const controllerJs = compiler._instrumentController(docJson, jsData, false, resInfo, boundVars, boundModals);
 
-        let htmlStruct;
         let resourceName;
         let insertPoint;
         let modal;
-        const rootElement = {};
-        const m = {
-            setInterval: 1,
-            setTimeout: 2,
-            clearInterval: 3,
-            clearTimeout: 4,
-            modalS: (path, bool, id) => new Promise(resolve => resolve({}))
+        const rootElement = {
+            appendChild: () => {}
         };
-        const startInstance = (ip, as, ae, html, constructorFn, isModal) => new Promise(r => {
-            htmlStruct = html;
-            modal = isModal;
-            insertPoint = ip
-            m._controller = new constructorFn(m);
-            r(m);
-        });
-        let fnStartInstance = eval(controllerJs);
-        return fnStartInstance(rootElement, false).then(instance => {
-            let controller = instance._controller;
-            expect(controller.onInit).not.null;
-            expect(controller.onChange).not.null;
-            expect(controller.resourceName).to.be.eq('dir1.test1');
-            expect(controller.__eval__('setInterval')).to.eq(1);
-            expect(controller.__eval__('setTimeout')).to.eq(2);
-            expect(controller.__eval__('clearInterval')).to.eq(3);
-            expect(controller.__eval__('clearTimeout')).to.eq(4);
-            expect(controller.__eval__('init')).to.eq(0);
-            expect(controller.onInit).not.to.be.null;
-            expect(controller.onChange).not.to.be.null;
-            expect(controller._privateFn).not.to.be.null;
-            controller.onInit();
-            expect(controller.__eval__('init')).to.eq(1);
-            expect(controller.__eval__('change')).to.eq(0);
-            controller.onChange();
-            expect(controller.__eval__('change')).to.eq(1);
-            expect(controller.__eval__('mod')).not.null;
-            var binds = controller.__eval__('__binds__');
-            return Promise.all(binds).then(() => {
-                expect(binds).to.have.lengthOf(1);
-            })
-        });
+        const [htmlStruct, fnController] = eval(controllerJs)();
+        const instance = Minimo.builder().insertPoint(rootElement).htmlStruct(htmlStruct).controller(fnController).build();
+        let controller = instance._controller;
+        expect(controller.onInit).not.null;
+        expect(controller.onChange).not.null;
+        expect(controller.resourceName).to.be.eq('dir1.test1');
+        expect(controller.__eval__('setInterval')).to.be.instanceof(Function);
+        expect(controller.__eval__('setTimeout')).to.be.instanceof(Function);
+        expect(controller.__eval__('clearInterval')).to.be.instanceof(Function);
+        expect(controller.__eval__('clearTimeout')).to.be.instanceof(Function);
+        expect(controller.__eval__('init')).to.eq(0);
+        expect(controller.onInit).not.to.be.null;
+        expect(controller.onChange).not.to.be.null;
+        expect(controller._privateFn).not.to.be.null;
+        controller.onInit();
+        expect(controller.__eval__('init')).to.eq(1);
+        expect(controller.__eval__('change')).to.eq(0);
+        controller.onChange();
+        expect(controller.__eval__('change')).to.eq(1);
+        expect(controller.__eval__('mod')).not.null;
     });
     it('Get empty template data', () =>
         compiler._getTemplateData().then(data => {
@@ -252,16 +210,15 @@ describe('Test compiler', function () {
         return components.startComponents().then(() =>
             Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
             .then(([htmx, js]) => compiler._compilePage(resInfo, util.optionOf(htmx.data), util.optionOf(js.data)).then(scripts => {
-                let controller;
-                const startInstance = (ip, as, ae, html, constructorFn, isModal) => new Promise(r => {
-                    htmlStruct = html;
-                    controller = new constructorFn({});
-                    r({});
-                });
-                return eval(scripts.js)({}, false).then(() => {
-                    expect(scripts.globalJs).to.be.undefined;
-                    controller.__eval__('param').should.be.eq(1);
-                });
+
+                const [htmlStruct, fnController] = eval(scripts.js)();
+                const instance = Minimo.builder().insertPoint({
+                    appendChild: () => {}
+                }).htmlStruct(htmlStruct).controller(fnController).build();
+                let controller = instance._controller;
+
+                expect(scripts.globalJs).to.be.undefined;
+                controller.__eval__('param').should.be.eq(1);
             })));
     });
     it('Compile page htmx and no js no components with template', () => {
@@ -270,19 +227,18 @@ describe('Test compiler', function () {
         return components.startComponents().then(() =>
             Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
             .then(([htmx, js]) => compiler._compilePage(resInfo, util.nullableOption(htmx).optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data)).then(compiled => {
-                const m = {};
-                let controller;
-                const startInstance = (ip, as, ae, html, constructorFn, isModal) => new Promise(r => {
-                    controller = new constructorFn(m);
-                    r(m);
-                });
-                return eval(compiled.js)({}, false).then(() => {
-                    expect(compiled.globalJs).to.be.undefined;
-                    var param;
-                    controller.__eval__('param = 1');
-                    param = 3;
-                    controller.__eval__('param').should.be.eq(1);
-                });
+
+                const [htmlStruct, fnController] = eval(compiled.js)();
+                const instance = Minimo.builder().insertPoint({
+                    appendChild: () => {}
+                }).htmlStruct(htmlStruct).controller(fnController).build();
+                let controller = instance._controller;
+
+                expect(compiled.globalJs).to.be.undefined;
+                var param;
+                controller.__eval__('param = 1');
+                param = 3;
+                controller.__eval__('param').should.be.eq(1);
             })));
     });
     it('Compile page js only', () => {
@@ -291,40 +247,39 @@ describe('Test compiler', function () {
         return components.startComponents().then(() =>
             Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
             .then(([htmx, js]) => compiler._compilePage(resInfo, util.nullableOption(htmx).optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data)).then(compiled => {
-                const m = {};
-                let controller;
-                const startInstance = (ip, as, ae, html, constructorFn, isModal) => new Promise(r => {
-                    controller = new constructorFn(m);
-                    r(m);
-                });
-                const startScript = (controller) => startInstance(null, null, null, null, controller, false);
-                return eval(compiled.js)({}, false).then(() => {
-                    var param;
-                    controller.__eval__('param = 1');
-                    param = 3;
-                    controller.__eval__('param').should.be.eq(1);
-                    controller.showSomething().should.be.equal('Param: 1');
-                    controller.resourceName.should.be.eq('dir2.js-only');
 
-                    function _Minimo() {
-                        this.value = true
-                    };
-                    let loadScript;
-                    const window = {
-                        addEventListener: (eventName, fn) => {
-                            loadScript = fn;
-                        }
+                const [htmlStruct, fnController] = eval(compiled.js)();
+                const instance = Minimo.builder().insertPoint({
+                    appendChild: () => {}
+                }).htmlStruct(htmlStruct).controller(fnController).build();
+                let controller = instance._controller;
+
+                var param;
+                controller.__eval__('param = 1');
+                param = 3;
+                controller.__eval__('param').should.be.eq(1);
+                controller.showSomething().should.be.equal('Param: 1');
+                controller.resourceName.should.be.eq('dir2.js-only');
+
+                function _Minimo() {
+                    this.value = true
+                };
+                let loadScript;
+                const window = {
+                    addEventListener: (eventName, fn) => {
+                        loadScript = fn;
                     }
-                    let jsName;
-                    eval(compiled.globalJs);
+                }
+                let jsName;
+                eval(compiled.globalJs);
 
-                    return loadScript().then(() => {
-                        controller.__eval__('param = 2');
-                        controller.__eval__('param').should.be.eq(2);
-                        controller.showSomething().should.be.equal('Param: 2');
-                        controller.resourceName.should.be.eq('dir2.js-only');
-                        expect(window.jsOnly == controller).to.be.true;
-                    });
+                loadScript().then(mScript => {
+                    controller = mScript._controller;
+                    controller.__eval__('param = 2');
+                    controller.__eval__('param').should.be.eq(2);
+                    controller.showSomething().should.be.equal('Param: 2');
+                    controller.resourceName.should.be.eq('dir2.js-only');
+                    expect(window.jsOnly == controller).to.be.true;
                 });
             })));
     });
@@ -334,26 +289,24 @@ describe('Test compiler', function () {
         return components.startComponents().then(() =>
             Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
             .then(([htmx, js]) => compiler._compilePage(resInfo, util.nullableOption(htmx).optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data)).then(compiled => {
-                const m = {};
-                let controller;
-                const startInstance = (ip, html, constructorFn, isModal) => new Promise(r => {
-                    controller = new constructorFn(m);
-                    r(m);
-                });
-                eval(compiled.js)({}, false).then(() => {
-                    //console.log(compiled.js)
-                    expect(compiled.globalJs).to.be.undefined;
-                    var bindV;
-                    controller.__eval__('bindV = 1');
-                    bindV = 3;
-                    controller.__eval__('bindV').should.be.eq(1);
-                    var obj = {
-                        val: null
-                    };
-                    controller.__eval__('obj = {val:1}');
-                    obj.val = 3
-                    controller.__eval__('obj.val').should.be.eq(1);
-                });
+
+                const [htmlStruct, fnController] = eval(compiled.js)();
+                const instance = Minimo.builder().insertPoint({
+                    appendChild: () => {}
+                }).htmlStruct(htmlStruct).controller(fnController).build();
+                let controller = instance._controller;
+                //console.log(compiled.js)
+                expect(compiled.globalJs).to.be.undefined;
+                var bindV;
+                controller.__eval__('bindV = 1');
+                bindV = 3;
+                controller.__eval__('bindV').should.be.eq(1);
+                var obj = {
+                    val: null
+                };
+                controller.__eval__('obj = {val:1}');
+                obj.val = 3
+                controller.__eval__('obj.val').should.be.eq(1);
             })));
     });
     it('Reload files', () => compiler._restart()

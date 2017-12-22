@@ -23,24 +23,6 @@ const destroyInstance = (instance) => {
 }
 
 class Minimo {
-    constructor(rootElement, anchorStart, anchorEnd, htmlStruct, parent, controller) {
-        this._instanceId = _instanceCounter++;
-
-        if (rootElement) {
-            this._dom = new dom.DOM(this, rootElement, document);
-            this._vdom = new virtualDom.VirtualDom(htmlStruct && htmlStruct.c ? htmlStruct.c : [], rootElement, anchorStart, anchorEnd, this, true);
-        }
-        this.parent = parent;
-        if (parent) {
-            parent.addChild(this);
-        }
-        this._scriptOnly = htmlStruct == null;
-        this._isDevMode = "%devmode%";
-        this._childInstances = [];
-        this._intervals = [];
-        this._timeouts = [];
-        this._controller = new controller(this);
-    }
     get id() {
         return this._instanceId;
     }
@@ -89,6 +71,22 @@ class Minimo {
     get referrer() {
         return _lastUrl || document.referrer;
     }
+    get controller() {
+        return this._controller;
+    }
+    addToBinds(promise) {
+        this.getBinds().push(promise);
+    }
+    getBinds() {
+        return this.eval('__binds__');
+    }
+    start(parameters) {
+        return this.build()
+            .then(Promise.all(this.getBinds()))
+            .then(() => _fireOnInit(this, parameters))
+            .then(() => this.update(1))
+            .then(() => this);
+    }
     byId(id) {
         this._dom.getElementById(id);
     }
@@ -110,7 +108,13 @@ class Minimo {
         this._childInstances.push(childInstance);
     }
     build() {
-        return this._vdom.build();
+        return new Promise(r => {
+            if(this._vdom){
+                r(this._vdom.build());
+            }else{
+                r();
+            }
+        });
     }
     remove() {
         this._vdom.remove();
@@ -118,28 +122,73 @@ class Minimo {
     modalS(path, toggle, elementId) {}
     import (path) {}
     bindService() {}
+    static builder(){
+        const builder = {
+            insertPoint: (p) => {
+                builder._insertPoint = p;
+                return builder;
+            },
+            anchorStart: (p) => {
+                builder._startAnchor = p;
+                return builder;
+            },
+            anchorEnd: (p) => {
+                builder._endAnchor = p;
+                return builder;
+            },
+            parent: (p) => {
+                builder._parent = p;
+                return builder;
+            },
+            controller: (p) => {
+                builder._controller = p;
+                return builder;
+            },
+            htmlStruct: (p) => {
+                builder._htmlStruct = p;
+                return builder;
+            },
+            modal: (p) => {
+                builder._modal = p;
+                return builder;
+            },
+            build: () => {
+                const m = new Minimo()
+                m._instanceId = _instanceCounter++;
+                m._modal = builder._modal;
+                if (builder._insertPoint) {
+                    m._dom = new dom.DOM(m, builder._insertPoint, document);
+                    m._vdom = new virtualDom.VirtualDom(builder._htmlStruct && builder._htmlStruct.c ? builder._htmlStruct.c : [], builder._insertPoint, builder._startAnchor, builder._endAnchor, m, true);
+                }
+                m.parent = builder._parent;
+                if (builder._parent) {
+                    builder._parent.addChild(m);
+                }
+                m._scriptOnly = builder._htmlStruct == null;
+                m._isDevMode = "%devmode%";
+                m._childInstances = [];
+                m._intervals = [];
+                m._timeouts = [];
+                m._controller = new builder._controller(m);
+                return m;
+            }
+        };
+        return builder;
+    }
 }
-const _configInit = (instance, modal) => {
+const _fireOnInit = (instance, parameters) => {
     _instances.push(instance);
     let onInitFn;
     try {
         var fn = instance.eval('onInit');
         onInitFn = () => {
-            if (modal) {
-                var param = {};
-                var parameters = window['_m_modal_parameters'];
-                if (parameters) {
-                    var queue = parameters[instance._controller.resourceName.split(".")[0]];
-                    if (queue) {
-                        param = queue.shift();
-                    }
-                }
-                return fn(param.callback, (cached.get('modal_parameters', resourceName.split(".")) || {}).parameter);
+            if (instance._modal) {
+                return fn(parameters);
             } else {
                 var query = util.getQueryParams();
                 var param = query._mjp ? JSON.parse(atob(decodeURIComponent(query._mjp))) : {};
-                util.keyValues(query).filter((k, v) => k != '_mjp' && k != '_xref')
-                    .forEach((k, v) => param[k] = v);
+                util.keyValues(query).filter(([k, v]) => k != '_mjp' && k != '_xref')
+                    .forEach(([k, v]) => param[k] = v);
                 return fn(param);
             }
         };
@@ -148,26 +197,13 @@ const _configInit = (instance, modal) => {
     }
     return onInitFn();
 }
-const startScript = (controller) => startInstance(null, null, null, null, controller, false);
-const startInstance = (insertPoint, anchorStart, anchorEnd, htmlStruct, controller, modal) => {
-    const m = new Minimo(insertPoint, anchorStart, anchorEnd, htmlStruct, null, controller);
-    let binds = [];
-    try {
-        binds = m.eval('__binds__');
-    } catch (e) {}
 
-    return m.build()
-        .then(Promise.all(binds))
-        .then(() => _configInit(m, modal))
-        .then(() => m.update())
-        .then(() => m);
-}
 const startMainInstance = (htmlStruct) => {
-    const m = new Minimo(document.body, null, null, htmlStruct, null, function () {
-        this.eval = (f) => {
+    const m = Minimo.builder().insertPoint(document.body).htmlStruct(htmlStruct).controller(function () {
+        this.__eval__ = (f) => {
             return eval(f);
         };
-    });
+    }).build();
     if (window) {
         window.m = m;
     }
@@ -183,6 +219,7 @@ const startMainInstance = (htmlStruct) => {
             mcontent.remove();
         })
         .then(() => minimoEvents.onStart(this))
+        .then(() => m.update())
         .then(() => _pushState(window.location.pathname + window.location.search))
         .then(() => {
             //setTimeout(()=>_loading.hide(), 3000);
@@ -238,17 +275,27 @@ const _pushState = (url) => {
             if (_currentInstance) {
                 _currentInstance.remove();
             }
-            return eval(js)(_mainInsertPointStart.parentNode, _mainInsertPointStart, _mainInsertPointEnd, false);
-        }).then((instance) => {
-            const _oldInstance = _currentInstance;
-            _currentInstance = instance;
             history.pushState(null, null, url);
-            minimoEvents.pageChanged();
-            window._minimo_href_current_location = url;
-            if (_oldInstance) {
-                destroyInstance(_oldInstance);
-            }
-            _loading.hide();
+            const [htmlStruct, controller] = eval(js)();
+            return Minimo.builder()
+                .insertPoint(_mainInsertPointStart.parentNode)
+                .anchorStart(_mainInsertPointStart)
+                .anchorEnd(_mainInsertPointEnd)
+                .htmlStruct(htmlStruct)
+                .controller(controller)
+                .parent(m)
+                .build();
+        }).then((instance) => {
+            instance.start().then(() => {
+                const _oldInstance = _currentInstance;
+                _currentInstance = instance;
+                minimoEvents.pageChanged();
+                window._minimo_href_current_location = url;
+                if (_oldInstance) {
+                    destroyInstance(_oldInstance);
+                }
+                _loading.hide();
+            });
         });
     }
 }
@@ -305,12 +352,12 @@ const _updateAll = (delay) => {
     }
 }
 
-global.startInstance = startInstance;
+global.Minimo = Minimo;
 global.startMainInstance = startMainInstance;
 global._updateAll = _updateAll;
 
 module.exports = {
-    startInstance: startInstance,
+    Minimo: Minimo,
     startMainInstance: startMainInstance,
     _updateAll: _updateAll
 }

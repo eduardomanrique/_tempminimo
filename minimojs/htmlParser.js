@@ -36,8 +36,7 @@ const _getAllTextNodes = (element) =>
 
 const _generateId = (prefix = "id_") => `${prefix}${parseInt(Math.random() * 999999)}`;
 
-const _isEmptyText = (node) => 
-{
+const _isEmptyText = (node) => {
   return node instanceof Text && !(node instanceof Comment) && node.isEmpty();
 }
 
@@ -179,13 +178,13 @@ class Attribute {
   }
   toJson() {
     const result = {};
-    result[this.name] = this._value.length == 1 && typeof(this._value[0]) == "string" ? this._value[0] : this._value;
+    result[this.name] = this._value.length == 1 && typeof (this._value[0]) == "string" ? this._value[0] : this._value;
     return result;
   }
 }
 
 class ModalBind {
-  constructor(varName, path, elementId = null, toggled = false){
+  constructor(varName, path, elementId = null, toggled = false) {
     this._varName = varName;
     this._path = path;
     this._elementId = elementId;
@@ -232,7 +231,7 @@ class Text extends Node {
   toJson() {
     return this._getNonNullText();
   }
-  isEmpty(){
+  isEmpty() {
     let txt = this._getNonNullText();
     return txt == null || txt == '';
   }
@@ -282,9 +281,12 @@ class Element extends Node {
   set root(root) {
     this._root = root;
   }
-  get attributes(){
+  get attributes() {
     return _.values(this._attributes).map(a => {
-      return {name: a.name, value: a.stringValue}
+      return {
+        name: a.name,
+        value: a.stringValue
+      }
     });
   }
   getElementsByName(name) {
@@ -744,7 +746,6 @@ class HTMLParser {
       return;
     }
     let element = new Element(name, this._doc);
-    let modalBindMap = {};
     let isRequiresTag = _eqIgnoreCase(name, "requires");
     if (isRequiresTag) {
       this._doc._requiredResourcesList.push(element);
@@ -808,23 +809,12 @@ class HTMLParser {
               if (attName == "bind") {
                 let bind = val.trim();
                 if (!endNoAspas) {
-                  bind = bind.substring(1, bind.length-1);
+                  bind = bind.substring(1, bind.length - 1);
                 }
                 let varName = bind.split(".")[0];
                 if (varName != "window" && varName != "xuser") {
                   this._boundObjects.push(varName.split("[")[0]);
                 }
-              } else if (attName.startsWith("data-modal") && attName != "data-modal-toggle") {
-                let varName;
-                if (attName.startsWith("data-modal-")) { // has
-                  // a
-                  // bound
-                  // var
-                  varName = attName.substring("data-modal-".length);
-                } else {
-                  varName = _generateId("xvmd_");
-                }
-                modalBindMap[varName] = new ModalBind(varName, element.getAttribute(attName).trim());
               }
               currentAttributeValue = [];
               break;
@@ -837,26 +827,16 @@ class HTMLParser {
         currentAttributeValue.push(s);
       }
     }
-    if (!_.isEmpty(modalBindMap)) {
-      let elementId = element.getAttribute("id");
-      if (!elementId) {
-        elementId = _generateId("xmd_");
-        element.setAttribute("id", elementId);
+    if (name == 'modal') {
+      let varName;
+      if (element.getAttribute("bindto")) {
+        varName = element.getAttribute("bindto");
+      } else {
+        varName = _generateId("xvmd_");
       }
-      let toggle = element.getAttribute("data-modal-toggle");
-      if (toggle) {
-        let bind = modalBindMap[toggle];
-        if (bind) {
-          bind.toggled = true;
-        }
+      if (element.getAttribute("start") == 'true') {
+        this._boundModals.push(new ModalBind(varName, element.getAttribute('path').trim()));
       }
-      _.values(modalBindMap).forEach(v => {
-        if (_.size(modalBindMap) == 1) {
-          v.toggled = true;
-        }
-        v.elementId = elementId;
-        this._boundModals.push(v);
-      });
     }
     this.prepareElementsWithSource(element);
   }

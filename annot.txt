@@ -11,3 +11,8 @@ import
     importando outro recurso js no padrao minimo (em vez do require) o recurso so pode ser dado como iniciado se ele chamou seu onInit() e o mesmo terminou.
 modal
 
+tests.js
+modal
+nao esta limpando as instancias 
+    quando vai pra withmobile e volta pro index fica com erro
+nao esta fazendo o update apos o onInit
