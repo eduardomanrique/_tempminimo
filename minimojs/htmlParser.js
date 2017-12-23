@@ -44,10 +44,10 @@ const _eqIgnoreCase = (s1, s2) => s1.toUpperCase() == s2.toUpperCase();
 
 const _validateJS = (js) => {
   try {
-    esprima.parse(js.replace(/"/g, '\\"'));
+    esprima.parse(js);
     return true;
   } catch (e) {
-    return false;
+    throw new Error(`Invalid script on htmx '${js}': ${e.message}`);
   }
 }
 
@@ -178,7 +178,7 @@ class Attribute {
   }
   toJson() {
     const result = {};
-    result[this.name] = this._value.length == 1 && typeof (this._value[0]) == "string" ? this._value[0] : this._value;
+    result[this.name] = !this._value ? null : this._value.length == 1 && typeof (this._value[0]) == "string" ? this._value[0] : this._value;
     return result;
   }
 }
@@ -619,7 +619,7 @@ class HTMLParser {
         this._current = null;
         this._templateScriptList.push(templateFor);
         this.advanceLine();
-      } else if (this._templateScriptList.length > 0 && this.isEndOfTemplateScript()) {
+      } else if (!this._inTextScript && this._templateScriptList.length > 0 && this.isEndOfTemplateScript()) {
         this.closeCurrentText();
         //end of template script eg: }
         let ind = this._templateScriptList.length - 1;

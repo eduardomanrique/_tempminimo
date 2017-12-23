@@ -5,6 +5,7 @@ const util = require('./util');
 const _ = require('underscore');
 const esprima = require('esprima');
 const esprimaUtil = require('./esprimaUtil');
+const TraceError = require('trace-error');
 
 const context = require('./context');
 const fs = require('fs');
@@ -151,6 +152,7 @@ const _reloadFile = (_resources, path) => _getResourceInfo(path.replace(/\.\/pag
     .then(resInfoOption => resInfoOption.map(resInfo => {
         const htmx = util.nullableOption(resInfo.htmxPath.isPresent() ? (_resources[0].path.endsWith('.htmx') ? _resources[0].data : _resources[1].data) : null);
         const js = util.nullableOption(resInfo.jsPath.isPresent() ? (_resources[0].path.endsWith('.js') ? _resources[0].data : _resources[1].data) : null);
+        
         return _compilePage(resInfo, htmx, js)
             .then(compiled => _loadFileAndCache(resInfo, compiled))
             .then(() => {
@@ -288,7 +290,12 @@ const _loadTemplate = (resourceInfo) => {
 
 const _compilePage = (resInfo, htmxData, jsData) => {
     const parser = new htmlParser.HTMLParser();
-    const doc = util.nullableOption(htmxData.map(html => parser.parse(html.replace(/\{modal-content\}/, '<modalcontent></modalcontent>'))));
+    let doc;
+    try{
+        doc = util.nullableOption(htmxData.map(html => parser.parse(html.replace(/\{modal-content\}/, '<modalcontent></modalcontent>'))));
+    }catch(e){
+        throw new TraceError(`Error parsing htmx file: ${resInfo._htmxPath.value}`, e);
+    }
     resInfo.templateName = null;
     //place real html of components, prepare iterators and labels
     doc.ifPresent(d => _prepareHTML(d, parser.boundObjects, parser.boundModals));
@@ -316,7 +323,7 @@ const _prepareHTML = (doc, boundVars, boundModals) => {
     const recValues = doc.addElement("xrs");
     recValues.addChildList(doc.requiredResourcesList);
     doc.requiredResourcesList.forEach(requiredElement => {
-        const src = requiredElement.getAttribute("src");
+        let src = requiredElement.getAttribute("src");
         if (src.startsWith("/")) {
             src = src.substring(1);
         }
@@ -421,6 +428,12 @@ const _instrumentController = (htmlJson, jsData, resInfo, boundVars = [], boundM
         }
     });
     const scriptOnly = htmlJson == null;
+    let parsedJs;
+    try{
+        parsedJs = esprima.parse(preparedJs);
+    } catch (e) {
+        throw new Error(`Invalid js controller '${jsName}': ${e.message}`);
+    }
     const controllerObject = `function(instance){
         var m=instance;
         var setInterval=m.setInterval;
@@ -433,7 +446,7 @@ const _instrumentController = (htmlJson, jsData, resInfo, boundVars = [], boundM
 
         `:''}
         ${preparedJs}
-        ${esprimaUtil.getFirstLevelFunctions(esprima.parse(preparedJs)).map(fn => `this.${fn} = ${fn}`).join(';')};
+        ${esprimaUtil.getFirstLevelFunctions(parsedJs).map(fn => `this.${fn} = ${fn}`).join(';')};
         this.resourceName = '${jsName}';
         ${resInfo.htmxPath.isPresent() && resInfo.relativeHtmxPath.value.endsWith(".modal.htmx") ?
             `this.isModal = true;

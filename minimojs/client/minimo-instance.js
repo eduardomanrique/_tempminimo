@@ -85,7 +85,7 @@ class Minimo {
     }
     start(parameters) {
         return this.build()
-            .then(Promise.all(this.getBinds()))
+            .then(() => Promise.all(this.getBinds()))
             .then(() => _fireOnInit(this, parameters))
             .then(() => this.update(1))
             .then(() => this);
@@ -96,6 +96,11 @@ class Minimo {
     _clear() {
         this._intervals.forEach(() => this.clearInterval());
         this._timeouts.forEach(() => this.clearTimeout());
+    }
+    evalSet(v, val){
+        (window||global).__temp_var__ = val;
+        this.eval(v + '=(window||global).__temp_var__');
+        delete (window||global).__temp_var__;
     }
     eval(fn) {
         try {
@@ -221,7 +226,7 @@ const startMainInstance = (htmlStruct) => {
         };
     }).build();
     if (window) {
-        window.m = m;
+        window._mainInstance = m;
     }
     _templateInstance = m;
     createLoadingVDom(m).then(() =>
@@ -238,7 +243,9 @@ const startMainInstance = (htmlStruct) => {
         .then(() => m.update())
         .then(() => _pushState(window.location.pathname + window.location.search))
         .then(() => {
-            //setTimeout(()=>_loading.hide(), 3000);
+            if (window) {
+                window.m._readyListeners.forEach(fn => fn());
+            }
             console.log('Minimo started (spa)')
         }));
 }
@@ -371,6 +378,22 @@ const _updateAll = (delay) => {
 global.Minimo = Minimo;
 global.startMainInstance = startMainInstance;
 global._updateAll = _updateAll;
+
+if (window) {
+    const mwrapper = {
+        _readyListeners: [],
+        ready: (fn) => window.m._readyListeners.push(fn)
+    };
+    window.m = new Proxy(mwrapper, {
+        get: (target, name) => {
+            if (name in mwrapper) {
+                return mwrapper[name];
+            } else if (window._mainInstance) {
+                return window._mainInstance[name];
+            }
+        }
+    });
+}
 
 module.exports = {
     Minimo: Minimo,

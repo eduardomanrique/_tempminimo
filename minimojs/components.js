@@ -46,12 +46,12 @@ function __setUpGetterForAttributes(obj, evaluator, internalEval, __instanceProp
         internalEval._aliases[tp.getDefaultValue()] = internalEval._aliases[tp.getDefaultValue()] || [];
         internalEval._aliases[tp.getDefaultValue()].push(k);
       }
-      _createProperty(obj, 
-        tp.getTypeName() == 'exportedVariable' ? _attrs[k] : k, 
+      _createProperty(obj,
+        tp.getTypeName() == 'exportedVariable' ? _attrs[k] : k,
         tp, _attrs[k])
     } else {
       obj[k] = obj[k] || [];
-      for(let i = 0; i < _attrs[k].length; i++){
+      for (let i = 0; i < _attrs[k].length; i++) {
         let item = {};
         obj[k].push(item);
         __setUpGetterForAttributes(item, evaluator, internalEval, tp, _attrs[k][i], __types)
@@ -154,8 +154,13 @@ const _loadComponents = (groupedResources) => {
   };
 }
 
-const _exposeFunctions = (js) => {
-  const parsed = esprima.parse(js);
+const _exposeFunctions = (js, compName) => {
+  let parsed;
+  try {
+    parsed = esprima.parse(js);
+  } catch (e) {
+    throw new Error(`Error on component '${compName}': ${e.message}`);
+  }
   return esprimaUtil.getFirstLevelFunctions(parsed).map(e => `this.${e} = ${e};`).join('\n');
 }
 
@@ -169,7 +174,7 @@ const _createHtmxComponent = (compJs = "", varPath, compName) =>
           return r;
        };
        ${compJs};
-       ${_exposeFunctions(compJs)};
+       ${_exposeFunctions(compJs, compName)};
         this.__defineAttributes = function(){
           try{
            var r = defineAttributes(__types.types);
@@ -298,7 +303,7 @@ class ComponentWrapper extends htmlParser.Element {
     const _flagNodes = nodes => {
       nodes.forEach(n => {
         n.setHiddenAttribute("componentInternal", true);
-        if(n.children){
+        if (n.children) {
           _flagNodes(n.children);
         }
       });

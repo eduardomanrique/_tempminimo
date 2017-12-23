@@ -38,4 +38,4 @@ minimo.generateMinimoJs({
   defaultTemplate: argv['default-template'],
   destinationPath: argv.destination,
   devMode: argv.devmode == 'd' || argv.devmode == 'development'
-}).then(() => console.log('success')).catch(()=>console.error('error'));
+}).catch(()=>console.error('error'));

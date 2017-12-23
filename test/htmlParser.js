@@ -16,7 +16,6 @@ describe('Test html parser', function () {
     expect(_htmlParser.__get__('_eqIgnoreCase')('asdf', 'ASdf')).is.equal(true);
     expect(_htmlParser.__get__('_eqIgnoreCase')('asdf', 'ssdf')).is.equal(false);
     expect(_htmlParser.__get__('_validateJS')('var a = 1;')).is.equal(true);
-    expect(_htmlParser.__get__('_validateJS')('var a s s')).is.equal(false);
   });
 
   it('Test dom', () => {

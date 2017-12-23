@@ -53,6 +53,11 @@ const generateMinimoJs = (parameters) => {
                     console.log("ERROR!!! " + JSON.stringify(err))
                     console.log(err.stack);
                 }).pipe(fs.createWriteStream(`${parameters.destinationPath}/m/scripts/m.js`)))
+            .catch(reason => {
+                console.log(reason.message);
+                console.trace(reason);
+                throw reason;
+            })
     });
 }
 

@@ -30,7 +30,13 @@ const _updateChild = (prePath, child) => {
 
 class Objects {
     constructor(bind, ctx, getValue) {
-        const parsed = esprima.parse(bind).body[0];
+        let parsed;
+        try{
+            parsed = esprima.parse(bind).body[0];
+        }catch(e){
+            console.trace(e);
+            throw new Error(`Error creating Objects instance: invalid bind ${bind}`);
+        }
         if (parsed.type != 'ExpressionStatement') {
             throw new Error(`Invalid bind value ${bind}`);
         }

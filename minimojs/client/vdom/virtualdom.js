@@ -122,11 +122,14 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
         set ctx(c) {
             this._ctx = c;
         }
-        get ctx() {
+        _getCtx() {
             if (!this._ctx && this._parent) {
-                return this._parent.ctx;
+                return this._parent._getCtx();
             }
             return this._ctx;
+        }
+        get ctx(){
+            return this._getCtx() || minimoInstance;
         }
         get isComponentInternal() {
             return (this._struct.h || {}).componentInternal == true;
@@ -383,8 +386,8 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
             if (bindTo) {
                 this._modalElement._parent.ctx.evalSet(bindTo, this._modalObj);
             }
-            if (this._modalElement._struct.a.start) {
-                minimoInstance.addToBinds(this._modalObj);
+            if ((this._modalElement._struct.a.start||'').toLowerCase() == 'true') {
+                minimoInstance.addToBinds(this._modalObj.show());
             }
         }
         _updateDom() {

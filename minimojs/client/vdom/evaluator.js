@@ -9,7 +9,7 @@ const _findIdentifiersOnScript = (e, a) => {
             break;
         case "Identifier":
             if (e.name != 'eval') {
-                a.push(e.name);
+                a.add(e.name);
             }
             break;
         case "MemberExpression":
@@ -65,10 +65,10 @@ const EvaluatorManager = function (minimoInstance, ctxManager) {
     this.buildWith = (virtualDom, newCtx) => {
         const e = this.build(virtualDom);
         let aliases = {};
-        for(let i = 0; i < e._ctxList.length; i++){
+        for (let i = 0; i < e._ctxList.length; i++) {
             let ctx = e._ctxList[i];
-            if(ctx._aliases){
-                for(let k in ctx._aliases){
+            if (ctx._aliases) {
+                for (let k in ctx._aliases) {
                     aliases[k] = (aliases[k] || []).concat(ctx._aliases[k]);
                 }
             }
@@ -135,24 +135,35 @@ const EvaluatorManager = function (minimoInstance, ctxManager) {
                 }
             }
             const wrapper = new(Function.prototype.bind.apply(cache.fn, [null].concat(variables)));
-            return wrapper.eval.bind(this._ctxList[0])(exp);
+            try{
+                return wrapper.eval.bind(this._ctxList[0])(exp);
+            }catch(e){
+                console.trace(e);
+                throw new Error(`Error evaluating js expression '${exp}': ${e.message}`);
+            }
         }
         getVariables(exp) {
             var cached = _cache[exp];
             if (!cached) {
-                var parsed = esprima.parse(exp);
+                var parsed;
+                try {
+                    parsed = esprima.parse(exp);
+                } catch (e) {
+                    throw new Error(`Invalid js expression '${exp}': ${e.message}`);
+                }
                 if (parsed.body[0].type != "ExpressionStatement") {
-                    throw new Error(`Invalid expression ${exp}`);
+                    throw new Error(`${exp} is not and js expression`);
                 }
                 var expression = parsed.body[0].expression;
-                var cached = {
-                    variables: []
-                };
+                var variables = new Set();
                 try {
-                    _findIdentifiersOnScript(expression, cached.variables);
+                    _findIdentifiersOnScript(expression, variables);
                 } catch (e) {
                     throw new Error(`Invalid expression ${exp}`);
                 }
+                var cached = {
+                    variables: Array.from(variables)
+                };
                 cached.fn = eval(`function _evaluator(${cached.variables.join(',')}){
                     return {
                         eval: function(s){
