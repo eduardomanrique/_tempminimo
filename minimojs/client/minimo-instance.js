@@ -74,6 +74,9 @@ class Minimo {
     get controller() {
         return this._controller;
     }
+    get isGlobalScriptImport() {
+        return this._isGlobalScriptImport;
+    }
     addToBinds(promise) {
         this.getBinds().push(promise);
     }
@@ -101,28 +104,36 @@ class Minimo {
             throw new Error('Error on script: ' + fn + '. Cause: ' + e.message);
         }
     }
+    _vdomPromise(fn) {
+        return new Promise(r => {
+            if (this._vdom) {
+                r(fn());
+            } else {
+                r();
+            }
+        });
+    }
     update(delay) {
-        return this._vdom.update(delay);
+        return this._vdomPromise(() => this._vdom.update(delay));
     }
     addChild(childInstance) {
         this._childInstances.push(childInstance);
     }
     build() {
-        return new Promise(r => {
-            if(this._vdom){
-                r(this._vdom.build());
-            }else{
-                r();
-            }
-        });
+        return this._vdomPromise(() => this._vdom.build());
     }
     remove() {
-        this._vdom.remove();
+        if (this._vdom) {
+            this._vdom.remove();
+        }
     }
-    modalS(path, toggle, elementId) {}
-    import (path) {}
-    bindService() {}
-    static builder(){
+    import (path) {
+        return remote.js(path)
+            .then(js => {
+                return eval(js.substring(0, js.lastIndexOf('(false)')))(true)
+            });
+    }
+    static builder() {
         const builder = {
             insertPoint: (p) => {
                 builder._insertPoint = p;
@@ -152,6 +163,10 @@ class Minimo {
                 builder._modal = p;
                 return builder;
             },
+            localJs: (p) => {
+                builder._localJs = p;
+                return builder;
+            },
             build: () => {
                 const m = new Minimo()
                 m._instanceId = _instanceCounter++;
@@ -166,6 +181,7 @@ class Minimo {
                 }
                 m._scriptOnly = builder._htmlStruct == null;
                 m._isDevMode = "%devmode%";
+                m._isGlobalScriptImport = m._scriptOnly && !builder._localJs;
                 m._childInstances = [];
                 m._intervals = [];
                 m._timeouts = [];
@@ -276,7 +292,7 @@ const _pushState = (url) => {
                 _currentInstance.remove();
             }
             history.pushState(null, null, url);
-            const [htmlStruct, controller] = eval(js)();
+            const [htmlStruct, controller] = eval(js);
             return Minimo.builder()
                 .insertPoint(_mainInsertPointStart.parentNode)
                 .anchorStart(_mainInsertPointStart)

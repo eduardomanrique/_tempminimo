@@ -138,12 +138,7 @@ const _getResourceInfo = (path, isGlobal) => new Promise((resolve) => {
 });
 const _loadFileAndCache = (resInfo, compiled) => Promise.all([
     resources.writeFile(`${context.destinationPath}${resInfo.path}.html`, compiled.html),
-    resources.writeFile(`${context.destinationPath}${resInfo.path}.m.js`, compiled.js)
-        .then(() => {
-            if(compiled.globalJs){
-                return resources.writeFile(`${context.destinationPath}${resInfo.path}.js`, compiled.js)
-            }
-        })]);
+    resources.writeFile(`${context.destinationPath}${resInfo.path}.js`, compiled.js)]);
 
 const _reloadFiles = () =>
     resources.getResources("./pages", r => r.endsWith(".htmx") || r.endsWith(".js"))
@@ -160,10 +155,7 @@ const _reloadFile = (_resources, path) => _getResourceInfo(path.replace(/\.\/pag
             .then(compiled => _loadFileAndCache(resInfo, compiled))
             .then(() => {
                 _cached.importableResourceInfo[resInfo.path] = new ImportableResourceInfo(resInfo.path, resInfo.templateName);
-                _cached.appcacheResources.add(`${resInfo.path}.m.js`);
-                htmx.ifNotPresent(() => {
-                    _cached.appcacheResources.add(`${resInfo.path}.js`);
-                });
+                _cached.appcacheResources.add(`${resInfo.path}.js`);
             });
     }));
 
@@ -302,8 +294,7 @@ const _compilePage = (resInfo, htmxData, jsData) => {
     doc.ifPresent(d => _prepareHTML(d, parser.boundObjects, parser.boundModals));
     const boundVars = _.uniq(parser.boundObjects);
     const boundModals = _.uniq(parser.boundModals);
-    const compiled = {js: _instrumentController(doc.map(d => d.toJson()), jsData, false, resInfo, boundVars, boundModals)};
-    htmxData.ifNotPresent(() => compiled.globalJs = _instrumentController(util.emptyOption(), jsData, true, resInfo, boundVars, boundModals));
+    const compiled = {js: _instrumentController(doc.map(d => d.toJson()), jsData, resInfo, boundVars, boundModals)};
     if (doc.isPresent() && !doc.value.htmlElement) {
         //has template
         let templateInfo = util.firstOption(doc.value.getElementsByName("template-info"));
@@ -382,42 +373,20 @@ const _prepareInjections = (js, boundModals) => {
         let isAnnot = false;
         const annotation = _checkAnnotation(lines, i);
         if (annotation) {
-            if (annotation == Annotation.service) {
-                //prepares service injection from js annotations (//service:pathtoservice)
-                const nextLine = lines[++i];
-                const [varName, params, next] = _parseVar("//service:", line, nextLine);
-                binds.push(`${varName} = m.bindService('${params}');`);
-                result.push(`var ${varName};\n`);
-                hasBoundVar = true;
-                if (next) {
-                    result.push(`${next}\n`);
-                }
-                isAnnot = true;
-            } else if (annotation == Annotation.importJs) {
+            if (annotation == Annotation.importJs) {
                 //prepares import injection from js annotations (//import:pathtojs)
                 const nextLine = lines[++i];
                 const [varName, params, next] = _parseVar("//import:", line, nextLine);
-                binds.push(`m.import('${params}.js').then(function(o){o.CTX=m.CTX;${varName} = o;})`);
+                binds.push(`m.import('${params}').then(function(m){
+                    ${varName} = m.controller;
+                })`);
                 result.push(`var ${varName};\n`);
                 hasBoundVar = true;
                 if (next) {
                     result.push(`${next}\n`);
                 }
                 isAnnot = true;
-            } else if (annotation == Annotation.modal) {
-                //prepares modal injection from js annotation (//modal:path,parameters)
-                const nextLine = lines[++i];
-                const [varName, params, next] = _parseVar("//modal:", line, nextLine);
-                const paramArray = params.split(",");
-                const toggle = paramArray.length > 2 && paramArray[2].toLowerCase() == "toggle";
-                binds.push(`m.modalS('${paramArray[0].trim()}',${toggle},'${paramArray[1].trim()}').then(function(o){${varName} = o;})`);
-                result.push(`var ${varName};\n`);
-                hasBoundVar = true;
-                if (next) {
-                    result.push(next + "\n");
-                }
-                isAnnot = true;
-            }
+            } 
         }
         if (!isAnnot) {
             result.push(`${line}\n`);
@@ -442,7 +411,7 @@ const _parseGlovalVarName = (name) => {
     return result.startsWith("_") ? result.substring(1) : result;
 }
 
-const _instrumentController = (htmlJson, jsData, isGlobal, resInfo, boundVars = [], boundModals = []) => {
+const _instrumentController = (htmlJson, jsData, resInfo, boundVars = [], boundModals = []) => {
     const jsName = resInfo.resourceName.replace(/\./g, '').replace(/\//g, '.');
     const preparedJs = jsData.map(js => _prepareInjections(js, boundModals), "");
     const boundVarDeclaration = [];
@@ -451,6 +420,7 @@ const _instrumentController = (htmlJson, jsData, isGlobal, resInfo, boundVars = 
             boundVarDeclaration.push(`var ${boundVar};\n`);
         }
     });
+    const scriptOnly = htmlJson == null;
     const controllerObject = `function(instance){
         var m=instance;
         var setInterval=m.setInterval;
@@ -473,27 +443,30 @@ const _instrumentController = (htmlJson, jsData, isGlobal, resInfo, boundVars = 
             };
             this.closeModal = closeModal;
         `: ''}
-        ${isGlobal ? `window.${_parseGlovalVarName(resInfo.resourceName)} = this;
-        `: ''}
+        ${scriptOnly ? `if(m.isGlobalScriptImport){window${_parseGlovalVarName(resInfo.resourceName)} = this};` : ''}
         this.__eval__ = function(f){
             return eval(f);
         };
     }`;
 
-    if (isGlobal) {
+    if (scriptOnly) {
         return `
-        (function (){
-            const _load = () => Minimo.builder().controller(${controllerObject}).build().start();
-            if(window.addEventListener) {
-                window.addEventListener('load', _load, false);
-            } else if(window.attachEvent) {
-                window.attachEvent('onload', _load);
+        (function (localJs){
+            const _load = () => {
+                return Minimo.builder().controller(${controllerObject}).localJs(localJs).build().start();
             }
-        })();`;
+            if(localJs){
+                return _load();
+            }else{
+                if(window.addEventListener) {
+                    window.addEventListener('load', _load, false);
+                } else if(window.attachEvent) {
+                    window.attachEvent('onload', _load);
+                }
+            }
+        })(false)`;
     } else {
-        return `function _m_temp_fn(){
-            return [${JSON.stringify(htmlJson)},${controllerObject}];
-        };_m_temp_fn;`;
+        return `[${JSON.stringify(htmlJson)},${controllerObject}]`;
     }
 }
 

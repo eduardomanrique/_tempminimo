@@ -76,7 +76,9 @@ describe('Test compiler', function () {
         `;
         const prepared = compiler._prepareInjections(js, [new htmlParser.ModalBind('modal3', '/modal/modal3', 'element3', true)]);
         const imported = [];
-        const instance = {};
+        const instance = {
+            controller: {}
+        };
         const vars = {};
         let setVars;
         const m = {
@@ -97,10 +99,10 @@ describe('Test compiler', function () {
         return Promise.all(binds).then(() => {
             setVars();
             imported.should.have.lengthOf(2);
-            imported.filter(i => i == '/import/i1.js').should.have.lengthOf(1);
-            imported.filter(i => i == '/import/i2.js').should.have.lengthOf(1);
-            expect(vars.i).to.be.equal(instance);
-            expect(vars.i2).to.be.equal(instance);
+            imported.filter(i => i == '/import/i1').should.have.lengthOf(1);
+            imported.filter(i => i == '/import/i2').should.have.lengthOf(1);
+            expect(vars.i).to.be.equal(instance.controller);
+            expect(vars.i2).to.be.equal(instance.controller);
         });
     });
     it('Test instrument controller', () => {
@@ -132,7 +134,7 @@ describe('Test compiler', function () {
         `);
         const realPath = resources.getRealPath('/pages/dir1/test1.htmx');
         const resInfo = new compiler.Resource('/dir1/test1', true, true, realPath.substring(0, realPath.lastIndexOf('.')), false);
-        const controllerJs = compiler._instrumentController(docJson, jsData, false, resInfo, boundVars, boundModals);
+        const controllerJs = compiler._instrumentController(docJson, jsData, resInfo, boundVars, boundModals);
 
         let resourceName;
         let insertPoint;
@@ -140,7 +142,7 @@ describe('Test compiler', function () {
         const rootElement = {
             appendChild: () => {}
         };
-        const [htmlStruct, fnController] = eval(controllerJs)();
+        const [htmlStruct, fnController] = eval(controllerJs);
         const instance = Minimo.builder().insertPoint(rootElement).htmlStruct(htmlStruct).controller(fnController).build();
         let controller = instance._controller;
         expect(controller.onInit).not.null;
@@ -211,7 +213,7 @@ describe('Test compiler', function () {
             Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
             .then(([htmx, js]) => compiler._compilePage(resInfo, util.optionOf(htmx.data), util.optionOf(js.data)).then(scripts => {
 
-                const [htmlStruct, fnController] = eval(scripts.js)();
+                const [htmlStruct, fnController] = eval(scripts.js);
                 const instance = Minimo.builder().insertPoint({
                     appendChild: () => {}
                 }).htmlStruct(htmlStruct).controller(fnController).build();
@@ -228,7 +230,7 @@ describe('Test compiler', function () {
             Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
             .then(([htmx, js]) => compiler._compilePage(resInfo, util.nullableOption(htmx).optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data)).then(compiled => {
 
-                const [htmlStruct, fnController] = eval(compiled.js)();
+                const [htmlStruct, fnController] = eval(compiled.js);
                 const instance = Minimo.builder().insertPoint({
                     appendChild: () => {}
                 }).htmlStruct(htmlStruct).controller(fnController).build();
@@ -246,42 +248,42 @@ describe('Test compiler', function () {
         const resInfo = new compiler.Resource('/dir2/js-only', true, false, realPath.substring(0, realPath.lastIndexOf('.')), false);
         return components.startComponents().then(() =>
             Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
-            .then(([htmx, js]) => compiler._compilePage(resInfo, util.nullableOption(htmx).optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data)).then(compiled => {
+            .then(([htmx, js]) => {
+                compiler._compilePage(resInfo, util.nullableOption(htmx)
+                    .optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data)).then(compiled => {
+                        eval(compiled.js.substring(0, compiled.js.lastIndexOf('(false)')))(true).then(instance => {
+                        
+                            let controller = instance._controller;
 
-                const [htmlStruct, fnController] = eval(compiled.js)();
-                const instance = Minimo.builder().insertPoint({
-                    appendChild: () => {}
-                }).htmlStruct(htmlStruct).controller(fnController).build();
-                let controller = instance._controller;
+                            var param;
+                            controller.__eval__('param = 1');
+                            param = 3;
+                            controller.__eval__('param').should.be.eq(1);
+                            controller.showSomething().should.be.equal('Param: 1');
+                            controller.resourceName.should.be.eq('dir2.js-only');
 
-                var param;
-                controller.__eval__('param = 1');
-                param = 3;
-                controller.__eval__('param').should.be.eq(1);
-                controller.showSomething().should.be.equal('Param: 1');
-                controller.resourceName.should.be.eq('dir2.js-only');
+                            function _Minimo() {
+                                this.value = true
+                            };
+                            let loadScript;
+                            const window = {
+                                addEventListener: (eventName, fn) => {
+                                    loadScript = fn;
+                                }
+                            }
+                            let jsName;
+                            eval(compiled.globalJs);
 
-                function _Minimo() {
-                    this.value = true
-                };
-                let loadScript;
-                const window = {
-                    addEventListener: (eventName, fn) => {
-                        loadScript = fn;
-                    }
-                }
-                let jsName;
-                eval(compiled.globalJs);
-
-                loadScript().then(mScript => {
-                    controller = mScript._controller;
-                    controller.__eval__('param = 2');
-                    controller.__eval__('param').should.be.eq(2);
-                    controller.showSomething().should.be.equal('Param: 2');
-                    controller.resourceName.should.be.eq('dir2.js-only');
-                    expect(window.jsOnly == controller).to.be.true;
-                });
-            })));
+                            loadScript().then(mScript => {
+                                controller = mScript._controller;
+                                controller.__eval__('param = 2');
+                                controller.__eval__('param').should.be.eq(2);
+                                controller.showSomething().should.be.equal('Param: 2');
+                                controller.resourceName.should.be.eq('dir2.js-only');
+                                expect(window.jsOnly == controller).to.be.true;
+                            });
+                        });
+            })}));
     });
     it('Compile page htmx and js with components', () => {
         const realPath = resources.getRealPath('/pages/dir1/with_components.htmx');
@@ -290,7 +292,7 @@ describe('Test compiler', function () {
             Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
             .then(([htmx, js]) => compiler._compilePage(resInfo, util.nullableOption(htmx).optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data)).then(compiled => {
 
-                const [htmlStruct, fnController] = eval(compiled.js)();
+                const [htmlStruct, fnController] = eval(compiled.js);
                 const instance = Minimo.builder().insertPoint({
                     appendChild: () => {}
                 }).htmlStruct(htmlStruct).controller(fnController).build();
@@ -317,14 +319,13 @@ describe('Test compiler', function () {
         ].toPromise())
         .then(([dir1, dir2]) => {
             dir1.should.have.lengthOf(6);
-            dir1.should.contain(`${context.destinationPath}/dir1/test1.m.js`);
-            dir1.should.contain(`${context.destinationPath}/dir1/test1_template_no_js.m.js`);
-            dir1.should.contain(`${context.destinationPath}/dir1/with_components.m.js`);
-            dir2.should.have.lengthOf(7);
-            dir2.should.contain(`${context.destinationPath}/dir2/htmxonly.m.js`);
-            dir2.should.contain(`${context.destinationPath}/dir2/js-only.m.js`);
+            dir1.should.contain(`${context.destinationPath}/dir1/test1.js`);
+            dir1.should.contain(`${context.destinationPath}/dir1/test1_template_no_js.js`);
+            dir1.should.contain(`${context.destinationPath}/dir1/with_components.js`);
+            dir2.should.have.lengthOf(6);
+            dir2.should.contain(`${context.destinationPath}/dir2/htmxonly.js`);
             dir2.should.contain(`${context.destinationPath}/dir2/js-only.js`);
-            dir2.should.contain(`${context.destinationPath}/dir2/test_appcache.m.js`);
+            dir2.should.contain(`${context.destinationPath}/dir2/test_appcache.js`);
         }));
     it('Compile Resources', () => components.startComponents()
         .then(compiler.compileResources)

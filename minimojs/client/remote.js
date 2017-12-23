@@ -24,6 +24,20 @@ function ajax(param){
 	xmlhttp.send(param.data);
 }
 
+const getResource = (url) => new Promise((resolve, reject) => ajax({
+	type : "get",
+	url : url,
+	async : true,
+	success : resolve,
+	error : (status) => {
+		if(403){
+			reject('Resource ' + url + ' not found');
+		}else{
+			reject('Error ' + status + ' on resource ' + url);
+		}
+	}
+}))
+
 module.exports = {
 	get: (url) => new Promise((resolve, reject) => ajax({
 		type : "get",
@@ -41,17 +55,6 @@ module.exports = {
 		success : resolve,
 		error: reject
 	})),
-	htmlPage: (url) => new Promise((resolve, reject) => ajax({
-		type : "get",
-		url : url + ".m.js",
-		async : true,
-		success : resolve,
-		error : (status) => {
-			if(403){
-				reject('Resource ' + url + ' not found');
-			}else{
-				reject('Error ' + status + ' on resource ' + url);
-			}
-		}
-	}))
+	htmlPage: (url) => getResource(`${url}.js`),
+	js: (url) => getResource(`${url}.js`)
 }

@@ -10,7 +10,7 @@ class Modal {
 
     show(parameters) {
         return this._startPromise
-            .then(js => eval(js)())
+            .then(js => eval(js))
             .then(([htmlStruct, controller]) => Minimo.builder()
                 .insertPoint(this._as.parentNode)
                 .anchorStart(this._as)
