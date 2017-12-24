@@ -27,7 +27,7 @@ const prepareInputElement = (vdom) => {
         });
         vdom._getValue = () => f.extract();
         vdom._setValue = (v) => f.update(v);
-    }else if(e.getValue){
+    } else if (e.getValue) {
         vdom._getValue = () => e.getValue();
         vdom._setValue = (v) => e.setValue ? e.setValue(v) : null;
     }
@@ -95,10 +95,12 @@ const _getRawSetterAndGetter = (e, inputType, ctx) => {
                 _set: (a) => {
                     for (let i = 0; i < e.options.length; i++) {
                         e.options[i].selected = false;
-                        for (let j = 0; j < a.length; j++) {
-                            if (_compareOptionValue(e.options[i], a[j], ctx)) {
-                                e.options[i].selected = true;
-                                break;
+                        if (a) {
+                            for (let j = 0; j < a.length; j++) {
+                                if (_compareOptionValue(e.options[i], a[j], ctx)) {
+                                    e.options[i].selected = true;
+                                    break;
+                                }
                             }
                         }
                     }

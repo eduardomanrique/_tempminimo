@@ -28,6 +28,16 @@ const _findIdentifiersOnScript = (e, a) => {
                 }
             }
             break;
+        case "ObjectExpression":
+            for (let i = 0; i < e.properties.length; i++) {
+                _findIdentifiersOnScript(e.properties[i].value, a);
+            }
+            break;
+        case "ArrayExpression":
+            for (let i = 0; i < e.elements.length; i++) {
+                _findIdentifiersOnScript(e.elements[i], a);
+            }
+            break;
         case "UpdateExpression":
         case "UnaryExpression":
             _findIdentifiersOnScript(e.argument, a);
@@ -103,7 +113,7 @@ const EvaluatorManager = function (minimoInstance, ctxManager) {
                 delete minimoInstance.__temp_val__;
             }
         }
-        eval(exp) {
+        _eval(exp) {
             const cache = this.getVariables(exp);
             const variables = [];
             for (let i = 0; i < cache.variables.length; i++) {
@@ -135,11 +145,21 @@ const EvaluatorManager = function (minimoInstance, ctxManager) {
                 }
             }
             const wrapper = new(Function.prototype.bind.apply(cache.fn, [null].concat(variables)));
+            return () => wrapper.eval.bind(this._ctxList[0])(exp);
+        }
+        eval(exp){
             try{
-                return wrapper.eval.bind(this._ctxList[0])(exp);
+                return this._eval(exp)();
             }catch(e){
                 console.trace(e);
                 throw new Error(`Error evaluating js expression '${exp}': ${e.message}`);
+            }
+        }
+        unsafeEval(exp){
+            try{
+                return this._eval(exp)();
+            }catch(e){
+                return null;
             }
         }
         getVariables(exp) {

@@ -28,6 +28,8 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
                 vdom = new ModalElement(json);
             } else if (json.n == 'modalcontent') {
                 vdom = new ModalContent(json);
+            } else if (json.n == 'a') {
+                vdom = new Link(json);
             } else {
                 vdom = new Element(json);
             }
@@ -128,7 +130,7 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
             }
             return this._ctx;
         }
-        get ctx(){
+        get ctx() {
             return this._getCtx() || minimoInstance;
         }
         get isComponentInternal() {
@@ -143,6 +145,9 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
         }
         eval(s) {
             return this.ctx.eval(s);
+        }
+        unsafeEval(s) {
+            return this.ctx.unsafeEval(s);
         }
         removeChild(c) {
             const indChild = this._childList.indexOf(c);
@@ -249,18 +254,20 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
                         this._e.addEventListener('focus', () => this._focused = true);
                         this._e.addEventListener('blur', () => this._focused = false);
                     }
-                    inputs.prepareInputElement(this);
-                    this._objects.getOrCreateVariable();
                 } else if (a instanceof Array) {
                     this._dynAtt[k] = a;
                 } else {
                     this._setAttribute(k, a);
                 }
             }
+            if(this._objects){
+                inputs.prepareInputElement(this);
+                this._objects.getOrCreateVariable();
+            }
         }
-        _updateValue(){
+        _updateValue() {
             if (!this._focused && this._bind) {
-                this._setValue(this._ctx.eval(this._bind));
+                this._setValue(this._ctx.unsafeEval(this._bind));
             }
         }
         _postBuild() {
@@ -336,7 +343,7 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
         }
         update() {
             try {
-                const val = this.eval(this._struct.x);
+                const val = this.unsafeEval(this._struct.x);
                 if (this._isHtmlContent || (val && val.__htmlContent)) {
                     if (!this._isHtmlContent) {
                         this._isHtmlContent = true;
@@ -390,7 +397,7 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
             if (bindTo) {
                 this._modalElement._parent.ctx.evalSet(bindTo, this._modalObj);
             }
-            if ((this._modalElement._struct.a.start||'').toLowerCase() == 'true') {
+            if ((this._modalElement._struct.a.start || '').toLowerCase() == 'true') {
                 minimoInstance.addToBinds(this._modalObj.show());
             }
         }
@@ -427,7 +434,7 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
             this._lastList = [];
         }
         update() {
-            let list = this.eval(this._listName);
+            let list = this.unsafeEval(this._listName)||[];
             //remove from html the removed
             const currList = [];
             const toRemove = [];

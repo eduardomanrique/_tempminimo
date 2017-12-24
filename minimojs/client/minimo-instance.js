@@ -97,10 +97,10 @@ class Minimo {
         this._intervals.forEach(() => this.clearInterval());
         this._timeouts.forEach(() => this.clearTimeout());
     }
-    evalSet(v, val){
-        (window||global).__temp_var__ = val;
+    evalSet(v, val) {
+        (window || global).__temp_var__ = val;
         this.eval(v + '=(window||global).__temp_var__');
-        delete (window||global).__temp_var__;
+        delete(window || global).__temp_var__;
     }
     eval(fn) {
         try {
@@ -137,6 +137,14 @@ class Minimo {
             .then(js => {
                 return eval(js.substring(0, js.lastIndexOf('(false)')))(true)
             });
+    }
+    go(url, parameters) {
+        setTimeout(() => {
+            if (parameters) {
+                url += (url.indexOf('?') >= 0 ? '&' : '?') + '_mjp=' + encodeURIComponent(btoa(JSON.stringify(parameters)));
+            }
+            _pushState(url);
+        }, 10);
     }
     static builder() {
         const builder = {

@@ -178,7 +178,7 @@ class Attribute {
   }
   toJson() {
     const result = {};
-    result[this.name] = !this._value ? null : this._value.length == 1 && typeof (this._value[0]) == "string" ? this._value[0] : this._value;
+    result[this.name] = !this._value ? '' : this._value.length == 1 && typeof (this._value[0]) == "string" ? this._value[0] : this._value;
     return result;
   }
 }
