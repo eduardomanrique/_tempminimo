@@ -4,14 +4,22 @@ const _ = require('underscore');
 const assert = require('assert');
 const Objects = require('../minimojs/client/objects.js');
 
+const createEvalSet = (obj) => {
+    obj.evalSet = (l, r) => {
+        global._temp_var_ = r;
+        let s = `${l}=global._temp_var_`;
+        obj.eval(s);
+    };
+}
+
 describe('Test Objects', () => {
     it('Test simple var', () => {
         const ctx = new function(){
             var name;
             this.eval = (s) => eval(s);
-            this.evalSet = (l, r) => eval(`${l}=${r}`);
+            createEvalSet(this);
         }
-        const value = () => JSON.stringify("new name");
+        const value = () => "new name"
         const o = new Objects('name', ctx, value);
         o.updateVariable();
         ctx.eval('name').should.eq("new name");
@@ -20,9 +28,9 @@ describe('Test Objects', () => {
         const ctx = new function(){
             var obj;
             this.eval = (s) => eval(s);
-            this.evalSet = (l, r) => eval(`${l}=${r}`);
+            createEvalSet(this);
         }
-        const value = () => JSON.stringify("new name");
+        const value = () => "new name"
         const o = new Objects('obj.name', ctx, value);
         o.updateVariable();
         const obj = ctx.eval('obj');
@@ -36,9 +44,9 @@ describe('Test Objects', () => {
                 value: 1
             };
             this.eval = (s) => eval(s);
-            this.evalSet = (l, r) => eval(`${l}=${r}`);
+            createEvalSet(this);
         }
-        const value = () => JSON.stringify("new name");
+        const value = () => "new name"
         const o = new Objects('obj.name', ctx, value);
         o.updateVariable();
         const obj = ctx.eval('obj');
@@ -51,9 +59,9 @@ describe('Test Objects', () => {
         const ctx = new function(){
             var obj;
             this.eval = (s) => eval(s);
-            this.evalSet = (l, r) => eval(`${l}=${r}`);
+            createEvalSet(this);
         }
-        const value = () => JSON.stringify("new name");
+        const value = () => "new name"
         const o = new Objects('obj["name"]', ctx, value);
         o.updateVariable();
         const obj = ctx.eval('obj');
@@ -66,9 +74,9 @@ describe('Test Objects', () => {
             var property = "name";
             var obj;
             this.eval = (s) => eval(s);
-            this.evalSet = (l, r) => eval(`${l}=${r}`);
+            createEvalSet(this);
         }
-        const value = () => JSON.stringify("new name");
+        const value = () => "new name"
         const o = new Objects('obj[property]', ctx, value);
         o.updateVariable();
         const obj = ctx.eval('obj');
@@ -80,10 +88,10 @@ describe('Test Objects', () => {
         const ctx = new function(){
             var array;
             this.eval = (s) => eval(s);
-            this.evalSet = (l, r) => eval(`${l}=${r}`);
+            createEvalSet(this);
         }
-        const value1 = () => JSON.stringify("value1");
-        const value2 = () => JSON.stringify("value2");
+        const value1 = () => "value1";
+        const value2 = () => "value2";
         const o1 = new Objects('array[0]', ctx, value1);
         const o2 = new Objects('array[1]', ctx, value2);
         o1.updateVariable();
@@ -99,10 +107,10 @@ describe('Test Objects', () => {
             var i2 = 1;
             var array;
             this.eval = (s) => eval(s);
-            this.evalSet = (l, r) => eval(`${l}=${r}`);
+            createEvalSet(this);
         }
-        const value1 = () => JSON.stringify("value1");
-        const value2 = () => JSON.stringify("value2");
+        const value1 = () => "value1";
+        const value2 = () => "value2";
         const o1 = new Objects('array[i1]', ctx, value1);
         const o2 = new Objects('array[i2]', ctx, value2);
         o1.updateVariable();
@@ -118,11 +126,11 @@ describe('Test Objects', () => {
             var i2 = 1;
             var obj;
             this.eval = (s) => eval(s);
-            this.evalSet = (l, r) => eval(`${l}=${r}`);
+            createEvalSet(this);
         }
-        const value1 = () => JSON.stringify("value1");
-        const value2 = () => JSON.stringify("value2");
-        const value3 = () => JSON.stringify(3);
+        const value1 = () => "value1";
+        const value2 = () => "value2";
+        const value3 = () => 3;
         const o1 = new Objects('obj.array[i1].name1', ctx, value1);
         const o2 = new Objects('obj.array[i1].name2', ctx, value2);
         const o3 = new Objects('obj.array[i2]', ctx, value3);

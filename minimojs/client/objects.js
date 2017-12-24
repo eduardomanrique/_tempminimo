@@ -45,10 +45,13 @@ class Objects {
         this._getValue = getValue;
     }
     updateVariable() {
+        this._ctx.evalSet(this.getOrCreateVariable().path, this._getValue());
+    }
+    getOrCreateVariable() {
         let val = this._variableStructure;
         do {
             if (!val.next) {
-                this._ctx.evalSet(val.path, this._getValue());
+                return val;
             } else {
                 let obj;
                 try{
@@ -62,10 +65,10 @@ class Objects {
                             isArray = true;
                         }
                     }
-                    this._ctx.eval(val.path + '=' + (isArray ? '[]' : '{}'));
+                    this._ctx.evalSet(val.path, isArray ? [] : {});
                 }
             }
-        } while ((val = val.next));
+        } while (val = val.next);
     }
 }
 

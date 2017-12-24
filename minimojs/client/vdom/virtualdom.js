@@ -249,21 +249,25 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
                         this._e.addEventListener('focus', () => this._focused = true);
                         this._e.addEventListener('blur', () => this._focused = false);
                     }
+                    inputs.prepareInputElement(this);
+                    this._objects.getOrCreateVariable();
                 } else if (a instanceof Array) {
                     this._dynAtt[k] = a;
                 } else {
                     this._setAttribute(k, a);
                 }
             }
-            inputs.prepareInputElement(this);
+        }
+        _updateValue(){
+            if (!this._focused && this._bind) {
+                this._setValue(this._ctx.eval(this._bind));
+            }
         }
         _postBuild() {
             this._buildChildren();
         }
         _updateDom() {
-            if (!this._focused && this._bind) {
-                this._setValue(this._ctx.eval(this._bind));
-            }
+            this._updateValue();
             for (let k in this._dynAtt) {
                 const values = this._dynAtt[k];
                 const buffer = [];
