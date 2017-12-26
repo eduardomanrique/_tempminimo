@@ -229,8 +229,17 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
         _onCreateBrowserElement() {
             this.ctx = evaluatorManager.build(this);
             this._e = dom.createElement(this._struct.n);
+            this._e._vdom = this;
             this._dom = dom;
             this._dynAtt = {};
+            if(this._struct.a && this._struct.a.value && this._struct.a.value instanceof Array){//read only value
+                if(this._struct.a.value.length > 1){
+                    throw new Error('Element value can have only one script block');
+                }
+                this._setAttribute("value", this._struct.a.value[0].s);
+                this._setAttribute("bind-type", inputs.types.OBJECT);
+                delete this._struct.a.value;
+            }
             for (let k in this._struct.a) {
                 let a = this._struct.a[k];
                 if (k == 'bind' || k == 'data-bind') {

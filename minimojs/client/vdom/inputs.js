@@ -33,37 +33,24 @@ const prepareInputElement = (vdom) => {
     }
 }
 
-const _getOptionElementValue = (e, ctx) => {
+const _getOptionElementValue = (e) => {
     if (!e._extractorFunction) {
-        e._extractorFunction = _buildFunctions(e, ctx).extract;
-        e._type = _getAttribute(e, 'm-type');
-        if (e._type) {
-            e._type = e._type.split("(")[0];
-        }
+        e._extractorFunction = _buildFunctions(e, e._vdom.ctx).extract;
     }
     return e._extractorFunction();
 }
 
-const _compareOptionValue = (option, comp, ctx) => {
-    let val = _getOptionElementValue(option, ctx);
-    if (option._type == DATE) {
-        return val instanceof Date && comp instanceof Date &&
-            val.getFullYear() == comp.getFullYear() &&
-            val.getMonth() == comp.getMonth() &&
-            val.getDate() == comp.getDate();
-    } else if (option._type == DATETIME) {
-        return val instanceof Date && comp instanceof Date &&
+const _compareOptionValue = (option, comp) => {
+    let val = _getOptionElementValue(option);
+    if (val instanceof Date) {
+        return comp instanceof Date &&
             val.getFullYear() == comp.getFullYear() &&
             val.getMonth() == comp.getMonth() &&
             val.getDate() == comp.getDate() &&
             val.getHours() == comp.getHours() &&
             val.getMinutes() == comp.getMinutes();
-    } else if (option._type == TIME) {
-        return val instanceof Date && comp instanceof Date &&
-            val.getHours() == comp.getHours() &&
-            val.getMinutes() == comp.getMinutes();
     } else {
-        return val === comp;
+        return val == comp;
     }
 }
 
@@ -71,10 +58,10 @@ const _getRawSetterAndGetter = (e, inputType, ctx) => {
     if (inputType == 'select') {
         if (e.getAttribute('multiple') == null) {
             return {
-                _get: () => _getOptionElementValue(e.options[e.selectedIndex], ctx),
+                _get: () => _getOptionElementValue(e.options[e.selectedIndex]),
                 _set: (v) => {
                     for (let i = 0; i < e.options.length; i++) {
-                        if (_compareOptionValue(e.options[i], v, ctx)) {
+                        if (_compareOptionValue(e.options[i], v)) {
                             e.selectedIndex = i;
                             break;
                         }
@@ -87,7 +74,7 @@ const _getRawSetterAndGetter = (e, inputType, ctx) => {
                     values = [];
                     for (let i = 0; i < e.options.length; i++) {
                         if (e.options[i].selected) {
-                            values.push(_getOptionElementValue(e.options[i], ctx));
+                            values.push(_getOptionElementValue(e.options[i]));
                         }
                     }
                     return values;
@@ -97,7 +84,7 @@ const _getRawSetterAndGetter = (e, inputType, ctx) => {
                         e.options[i].selected = false;
                         if (a) {
                             for (let j = 0; j < a.length; j++) {
-                                if (_compareOptionValue(e.options[i], a[j], ctx)) {
+                                if (_compareOptionValue(e.options[i], a[j])) {
                                     e.options[i].selected = true;
                                     break;
                                 }
@@ -126,7 +113,7 @@ const _getRawSetterAndGetter = (e, inputType, ctx) => {
 }
 
 const _getTypeAndMask = (e, inputType) => {
-    let type = _getAttribute(e, "m-type");
+    let type = _getAttribute(e, "bind-type");
     let mask;
     if (!type) {
         if (inputType == "select" || inputType == "radio") {
@@ -147,6 +134,11 @@ const _getTypeAndMask = (e, inputType) => {
             type = STRING;
         }
     }
+    const indexOfMask = type.indexOf('(');
+    if (indexOfMask >= 0) {
+        mask = type.substring(indexOfMask + 1, type.length - 1);
+        type = type.substring(0, indexOfMask);
+    }
     if (!mask) {
         if (type == BOOLEAN) {
             mask = "true,false";
@@ -162,16 +154,12 @@ const _getTypeAndMask = (e, inputType) => {
             mask = "";
         }
     }
-    const indexOfMask = type.indexOf('(');
-    if (indexOfMask >= 0) {
-        mask = type.substring(indexOfMask + 1, type.length - 1);
-        type = type.substring(0, indexOfMask);
-    }
+    
     return [type, mask];
 }
 
 const _buildFunctions = (e, ctx) => {
-    if (_getAttribute(e, "m-type") == OBJECT) { //read only
+    if (_getAttribute(e, "bind-type") == OBJECT) { //read only
         const jsValue = _getAttribute(e, "value");
         return {
             partialValidate: () => true,
@@ -274,6 +262,9 @@ const _buildTimeFunctions = (mask, accessors) => new function () {
             date = new Date();
             date.setHours(parseInt(exec[order.indexOf('HH') + 1]));
             date.setMinutes(parseInt(exec[order.indexOf('mm') + 1]));
+            date.setFullYear(0);
+            date.setMonth(0);
+            date.setDate(0);
         }
         return date;
     };
@@ -334,6 +325,8 @@ const _buildDateFunctions = (mask, accessors) => new function () {
             date.setFullYear(parseInt(exec[order.indexOf('yyyy') + 1]));
             date.setMonth(parseInt(exec[order.indexOf('MM') + 1]) - 1);
             date.setDate(parseInt(exec[order.indexOf('dd') + 1]));
+            date.setHours(0);
+            date.setMinutes(0);
         }
         return date;
     };
@@ -354,6 +347,17 @@ const _getAttribute = (e, attrib) => e.getAttribute(attrib) || e.getAttribute("d
 
 module.exports = {
     prepareInputElement: prepareInputElement,
+    types: {
+        STRING: STRING,
+        OBJECT: OBJECT,
+        INTEGER: INTEGER,
+        FLOAT: FLOAT,
+        DATE: DATE,
+        BOOLEAN: BOOLEAN,
+        DATETIME: DATETIME,
+        TIME: TIME,
+        ANY: ANY
+    },
     _test: {
         _buildFunctions: _buildFunctions
     }

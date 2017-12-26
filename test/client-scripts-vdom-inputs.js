@@ -30,11 +30,12 @@ describe('Test Inputs', () => {
     });
     it('Integer text', () => {
         document.body.innerHTML = `
-            <input type="text" id="i1" m-type="integer" value="12">
+            <input type="text" id="i1" bind-type="integer" value="12">
         `;
         let input = document.getElementById("i1");
         vdom = new function () {
             this._e = input;
+            input._vdom = this;
         }
         const f = inputs._test._buildFunctions(input);
         f.partialValidate('c', '12c').should.be.false;
@@ -47,7 +48,7 @@ describe('Test Inputs', () => {
     });
     it('Float text', () => {
         document.body.innerHTML = `
-            <input type="text" id="i1" m-type="float" value="1.01">
+            <input type="text" id="i1" bind-type="float" value="1.01">
         `;
         let input = document.getElementById("i1");
         vdom = new function () {
@@ -68,7 +69,7 @@ describe('Test Inputs', () => {
     });
     it('Float text masked', () => {
         document.body.innerHTML = `
-            <input type="text" id="i1" m-type="float(,000)" value="2,3">
+            <input type="text" id="i1" bind-type="float(,000)" value="2,3">
         `;
         let input = document.getElementById("i1");
         vdom = new function () {
@@ -92,7 +93,7 @@ describe('Test Inputs', () => {
     });
     it('Date text', () => {
         document.body.innerHTML = `
-            <input type="text" id="i1" m-type="date" value="2017-12-27">
+            <input type="text" id="i1" bind-type="date" value="2017-12-27">
         `;
         let input = document.getElementById("i1");
         vdom = new function () {
@@ -117,7 +118,7 @@ describe('Test Inputs', () => {
     });
     it('Date text masked', () => {
         document.body.innerHTML = `
-            <input type="text" id="i1" m-type="date(dd/MM/yyyy)" value="27/12/2017">
+            <input type="text" id="i1" bind-type="date(dd/MM/yyyy)" value="27/12/2017">
         `;
         let input = document.getElementById("i1");
         vdom = new function () {
@@ -168,7 +169,7 @@ describe('Test Inputs', () => {
 
     it('Datetime text', () => {
         document.body.innerHTML = `
-            <input type="text" id="i1" m-type="datetime" value="2017-12-27T14:50">
+            <input type="text" id="i1" bind-type="datetime" value="2017-12-27T14:50">
         `;
         let input = document.getElementById("i1");
         vdom = new function () {
@@ -195,7 +196,7 @@ describe('Test Inputs', () => {
     });
     it('Datetime text masked', () => {
         document.body.innerHTML = `
-            <input type="text" id="i1" m-type="datetime(dd/MM/yyyy, HH:mm)" value="27/12/2017, 01:30">
+            <input type="text" id="i1" bind-type="datetime(dd/MM/yyyy, HH:mm)" value="27/12/2017, 01:30">
         `;
         let input = document.getElementById("i1");
         vdom = new function () {
@@ -271,7 +272,7 @@ describe('Test Inputs', () => {
     });
     it('String boolean', () => {
         document.body.innerHTML = `
-            <input type="text" id="i1" m-type="boolean">
+            <input type="text" id="i1" bind-type="boolean">
         `;
         let input = document.getElementById("i1");
         vdom = new function () {
@@ -297,7 +298,7 @@ describe('Test Inputs', () => {
     });
     it('String masked boolean', () => {
         document.body.innerHTML = `
-            <input type="text" id="i1" m-type="boolean(yes,no)">
+            <input type="text" id="i1" bind-type="boolean(yes,no)">
         `;
         let input = document.getElementById("i1");
         vdom = new function () {
@@ -323,7 +324,7 @@ describe('Test Inputs', () => {
     });
     it('Any', () => {
         document.body.innerHTML = `
-            <input type="radio" id="i1" name="r" m-type="object" value="innerObj">
+            <input type="radio" id="i1" name="r" bind-type="object" value="innerObj">
         `;
         let input = document.getElementById("i1");
         var obj = {
@@ -348,10 +349,10 @@ describe('Test Inputs', () => {
         document.body.innerHTML = `
             <select id="i1">
                 <option value="string">v1</option>
-                <option m-type="integer">1</option>
-                <option m-type="float(,0)" value="2,1">2,1</option>
-                <option m-type="date(dd/MM/yyyy)" value="01/02/2017">01/02/2017</option>
-                <option m-type="object" value="obj">object</option>
+                <option bind-type="integer">1</option>
+                <option bind-type="float(,0)" value="2,1">2,1</option>
+                <option bind-type="date(dd/MM/yyyy)" value="01/02/2017">01/02/2017</option>
+                <option bind-type="object" value="obj">object</option>
             </select>
         `;
         let input = document.getElementById("i1");
@@ -361,6 +362,10 @@ describe('Test Inputs', () => {
         vdom = new function () {
             var innerObj = obj;
             this._e = input;
+            input._vdom = this;
+            for(let i = 0; i < input.options.length; i++){
+                input.options[i]._vdom = this;
+            }
             this.ctx = {
                 eval: function (s) {
                     return eval(s);
@@ -400,7 +405,7 @@ describe('Test Inputs', () => {
         f.update(2.1)
         input.selectedIndex.should.eq(2);
 
-        f.update(new Date(2017, 1, 1))
+        f.update(new Date(2017, 1, 1, 0, 0, 0, 0))
         input.selectedIndex.should.eq(3);
 
         f.update(obj);
@@ -411,10 +416,10 @@ describe('Test Inputs', () => {
         document.body.innerHTML = `
             <select id="i1" multiple>
                 <option value="string">v1</option>
-                <option m-type="integer">1</option>
-                <option m-type="float(,0)" value="2,1">2,1</option>
-                <option m-type="date(dd/MM/yyyy)" value="01/02/2017">01/02/2017</option>
-                <option m-type="object" value="obj">object</option>
+                <option bind-type="integer">1</option>
+                <option bind-type="float(,0)" value="2,1">2,1</option>
+                <option bind-type="date(dd/MM/yyyy)" value="01/02/2017">01/02/2017</option>
+                <option bind-type="object" value="obj">object</option>
             </select>
         `;
         let input = document.getElementById("i1");
@@ -424,6 +429,10 @@ describe('Test Inputs', () => {
         vdom = new function () {
             var innerObj = obj;
             this._e = input;
+            input._vdom = this;
+            for(let i = 0; i < input.options.length; i++){
+                input.options[i]._vdom = this;
+            }
             this.ctx = {
                 eval: function (s) {
                     return eval(s);
