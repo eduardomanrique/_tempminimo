@@ -3,6 +3,7 @@ require('chai').should();
 const _ = require('underscore');
 const assert = require('assert');
 const jsdom = require('mocha-jsdom');
+const EventImpl = require('jsdom/lib/jsdom/living/events/Event-impl').implementation;
 const dom = require('../minimojs/client/dom.js');
 const virtualDom = require('../minimojs/client/vdom/virtualdom');
 const comp = require('../minimojs/components.js');
@@ -587,8 +588,8 @@ describe('Client scripts - virtualdom.js', () => {
             }]
         };
         const insertPoint = document.body;
-        
-        const minimo = new function(){
+
+        const minimo = new function () {
             const obj = {
                 id: 'objid'
             }
@@ -606,6 +607,129 @@ describe('Client scripts - virtualdom.js', () => {
                 expect(document.getElementById("wid")).not.be.null;
                 document.getElementById("sp").innerHTML.should.eq("abcd");
                 document.getElementById("sp2").innerHTML.should.eq("wid_test-objid");
+            })
+    });
+
+    it('Checkbox init', () => {
+        document.body.innerHTML = `
+            <html>
+                <body></body>
+            </html>
+        `;
+        const json = {
+            "n": "input",
+            "a": {
+                "type": "checkbox",
+                "id": "c1",
+                "bind": "obj.b"
+            }
+        };
+        const insertPoint = document.body;
+        const minimo = new function () {
+            var obj;
+            this.eval = function (s) {
+                return eval(s);
+            };
+            this.root = {
+                ready: (fn) => this.onReady = fn
+            }
+            this._dom = new dom.DOM(this, document.body, document);
+        }
+        const vdom = new virtualDom.VirtualDom([json], insertPoint, null, null, minimo, false, buildComponentBuilderFunction);
+        vdom._defaultUpdateDelay = 0;
+        return vdom.build()
+            .then(() => {
+                expect(minimo.eval('obj').b).to.be.undefined;
+                minimo.onReady();
+                expect(minimo.eval('obj').b).to.be.false;
+            })
+    });
+
+    it('Checkbox list', () => {
+        document.body.innerHTML = `
+            <html>
+                <body></body>
+            </html>
+        `;
+        const json = {
+            "n": "div",
+            "c": [{
+                "n": "input",
+                "a": {
+                    "type": "checkbox",
+                    "id": "c1",
+                    "value": [{
+                        "s": "v1"
+                    }],
+                    "bind": "obj.list"
+                }
+            }, {
+                "n": "input",
+                "a": {
+                    "type": "checkbox",
+                    "id": "c2",
+                    "value": [{
+                        "s": "v2"
+                    }],
+                    "bind": "obj.list"
+                }
+            }]
+        };
+        const insertPoint = document.body;
+        const minimo = new function () {
+            var v1 = {
+                name: "val1"
+            }
+            var v2 = {
+                name: "val2"
+            }
+            var obj;
+            this.eval = function (s) {
+                return eval(s);
+            };
+            this.root = {
+                ready: (fn) => this.onReady = fn
+            }
+            this._dom = new dom.DOM(this, document.body, document);
+        }
+        const vdom = new virtualDom.VirtualDom([json], insertPoint, null, null, minimo, false, buildComponentBuilderFunction);
+        vdom._defaultUpdateDelay = 0;
+        return vdom.build()
+            .then(() => {
+                let obj = minimo.eval('obj');
+                let v1 = minimo.eval('v1');
+                let v2 = minimo.eval('v2');
+                expect(obj.list).to.be.undefined;
+                minimo.onReady();
+                obj.list.should.have.lengthOf(0);
+                document.getElementById("c1").checked = true;
+                document.getElementById("c1").dispatchEvent(new EventImpl(['change', {}], {}));
+                return new Promise(r => {
+                    setTimeout(() => {
+                        obj.list.should.have.lengthOf(1);
+                        obj.list.indexOf(v1).should.be.greaterThan(-1);
+                        document.getElementById("c2").checked = true;
+                        document.getElementById("c2").dispatchEvent(new EventImpl(['change', {}], {}));
+                        setTimeout(() => {
+                            obj.list.should.have.lengthOf(2);
+                            obj.list.indexOf(v1).should.be.greaterThan(-1);
+                            obj.list.indexOf(v2).should.be.greaterThan(-1);
+                            document.getElementById("c1").checked = false;
+                            document.getElementById("c1").dispatchEvent(new EventImpl(['change', {}], {}));
+                            setTimeout(() => {
+                                obj.list.should.have.lengthOf(1);
+                                obj.list.indexOf(v1).should.eq(-1);
+                                obj.list.indexOf(v2).should.be.greaterThan(-1);
+                                document.getElementById("c2").checked = false;
+                                document.getElementById("c2").dispatchEvent(new EventImpl(['change', {}], {}));
+                                setTimeout(() => {
+                                    obj.list.should.have.lengthOf(0);
+                                    r();
+                                }, 100);
+                            }, 100);
+                        }, 100);
+                    }, 100);
+                })
             })
     });
 });

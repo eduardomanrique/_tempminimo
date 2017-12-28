@@ -14,7 +14,12 @@ let _mainInsertPointStart;
 let _mainInsertPointEnd;
 let _lastUrl;
 let _loading;
-const _setLastUrl = () => _lastUrl = window ? window.location.pathname + window.location.search : "";
+
+let _window = util.getWindow();
+
+const _setLastUrl = () => _lastUrl = _window.location.pathname + _window.location.search;
+
+
 
 const destroyInstance = (instance) => {
     instance._clear();
@@ -23,6 +28,9 @@ const destroyInstance = (instance) => {
 }
 
 class Minimo {
+    get root() {
+        return _window.m;
+    }
     get id() {
         return this._instanceId;
     }
@@ -32,7 +40,7 @@ class Minimo {
     //controller context interval functions
     get setInterval() {
         return (f, t) => {
-            const i = window.setInterval(() => {
+            const i = _window.setInterval(() => {
                 f();
                 _updateAll(500);
             }, t);
@@ -42,13 +50,13 @@ class Minimo {
     }
     get clearInterval() {
         return (i) => {
-            window.clearInterval(i);
+            _window.clearInterval(i);
             this._intervals.splice(this._intervals.indexOf(i), 1);
         };
     }
     get setTimeout() {
         return (f, t) => {
-            var i = window.setTimeout(() => {
+            var i = _window.setTimeout(() => {
                 f();
                 _updateAll(500);
             }, t);
@@ -58,7 +66,7 @@ class Minimo {
     }
     get clearTimeout() {
         return (i) => {
-            window.clearTimeout(i);
+            _window.clearTimeout(i);
             this._timeouts.splice(this._timeouts.indexOf(i), 1);
         };
     }
@@ -98,15 +106,22 @@ class Minimo {
         this._timeouts.forEach(() => this.clearTimeout());
     }
     evalSet(v, val) {
-        (window || global).__temp_var__ = val;
-        this.eval(v + '=(window||global).__temp_var__');
-        delete(window || global).__temp_var__;
+        _window.__temp_var__ = val;
+        this.eval(v + '=_window.__temp_var__');
+        delete _window.__temp_var__;
     }
     eval(fn) {
         try {
             return this._controller.__eval__(fn);
         } catch (e) {
             throw new Error('Error on script: ' + fn + '. Cause: ' + e.message);
+        }
+    }
+    unsafeEval(fn) {
+        try {
+            return this._controller.__eval__(fn);
+        } catch (e) {
+            return null;
         }
     }
     _vdomPromise(fn) {
@@ -233,9 +248,8 @@ const startMainInstance = (htmlStruct) => {
             return eval(f);
         };
     }).build();
-    if (window) {
-        window._mainInstance = m;
-    }
+    _window._mainInstance = m;
+
     _templateInstance = m;
     createLoadingVDom(m).then(() =>
         m.build()
@@ -249,11 +263,8 @@ const startMainInstance = (htmlStruct) => {
         })
         .then(() => minimoEvents.onStart(this))
         .then(() => m.update())
-        .then(() => _pushState(window.location.pathname + window.location.search))
+        .then(() => _pushState(_window.location.pathname + _window.location.search))
         .then(() => {
-            if (window) {
-                window.m._readyListeners.forEach(fn => fn());
-            }
             console.log('Minimo started (spa)')
         }));
 }
@@ -299,10 +310,10 @@ const _pushState = (url) => {
     var goto = _parseUrl(url);
     if (current && (!goto.tpl || !current.tpl || goto.tpl != current.tpl)) {
         //incompatible window (not the same tamplate, or no template at all)
-        window.location = `${goto.path}.html${goto.query}`;
+        _window.location = `${goto.path}.html${goto.query}`;
     } else {
         _setLastUrl();
-        remote.htmlPage(goto.path).then(js => {
+        return remote.htmlPage(goto.path).then(js => {
             if (_currentInstance) {
                 _currentInstance.remove();
             }
@@ -316,24 +327,23 @@ const _pushState = (url) => {
                 .controller(controller)
                 .parent(m)
                 .build();
-        }).then((instance) => {
-            instance.start().then(() => {
-                const _oldInstance = _currentInstance;
-                _currentInstance = instance;
-                minimoEvents.pageChanged();
-                window._minimo_href_current_location = url;
-                if (_oldInstance) {
-                    destroyInstance(_oldInstance);
-                }
-                _loading.hide();
-            });
-        });
+        }).then((instance) => instance.start().then(() => {
+            const _oldInstance = _currentInstance;
+            _currentInstance = instance;
+            minimoEvents.pageChanged();
+            _window._minimo_href_current_location = url;
+            if (_oldInstance) {
+                destroyInstance(_oldInstance);
+            }
+            _loading.hide()
+            _window.m._readyListeners.forEach(fn => fn());
+        }));
     }
 }
 
-if (window && !window._minimo_href_current_location) {
-    window._minimo_href_current_location = window.location.toString();
-    window.addEventListener('click', function (e) {
+if (!_window._minimo_href_current_location) {
+    _window._minimo_href_current_location = _window.location.toString();
+    _window.addEventListener('click', function (e) {
         const node = e.target;
         //set the pushState
         if (node.nodeName.toUpperCase() == 'A' && !node.href.startsWith('javascript:')) {
@@ -358,14 +368,14 @@ if (window && !window._minimo_href_current_location) {
             }
         }
     }, false);
-    window.addEventListener('popstate', function (event) {
-        var url = window.location.toString().split("#")[0]
-        if (url != window._minimo_href_current_location) {
-            _pushState(window.location.pathname + window.location.search);
+    _window.addEventListener('popstate', function (event) {
+        var url = _window.location.toString().split("#")[0]
+        if (url != _window._minimo_href_current_location) {
+            _pushState(_window.location.pathname + _window.location.search);
         }
     });
-    if (window.applicationCache) {
-        window.applicationCache.addEventListener('updateready', () => window.location.reload(), false);
+    if (_window.applicationCache) {
+        _window.applicationCache.addEventListener('updateready', () => _window.location.reload(), false);
     }
 }
 
@@ -378,8 +388,10 @@ const _updateAll = (delay) => {
             _firstUpdate = false;
             //.closeInitLoad();
         }
-        _templateInstance.update(delay).then(() =>
-            _instances.forEach(instance => instance.update(delay)));
+        if (_templateInstance) {
+            _templateInstance.update(delay).then(() =>
+                _instances.forEach(instance => instance.update(delay)));
+        }
     }
 }
 
@@ -387,21 +399,19 @@ global.Minimo = Minimo;
 global.startMainInstance = startMainInstance;
 global._updateAll = _updateAll;
 
-if (window) {
-    const mwrapper = {
-        _readyListeners: [],
-        ready: (fn) => window.m._readyListeners.push(fn)
-    };
-    window.m = new Proxy(mwrapper, {
-        get: (target, name) => {
-            if (name in mwrapper) {
-                return mwrapper[name];
-            } else if (window._mainInstance) {
-                return window._mainInstance[name];
-            }
+const mwrapper = {
+    _readyListeners: [],
+    ready: (fn) => _window.m._readyListeners.push(fn)
+};
+_window.m = new Proxy(mwrapper, {
+    get: (target, name) => {
+        if (name in mwrapper) {
+            return mwrapper[name];
+        } else if (_window._mainInstance) {
+            return _window._mainInstance[name];
         }
-    });
-}
+    }
+});
 
 module.exports = {
     Minimo: Minimo,

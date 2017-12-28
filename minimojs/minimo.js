@@ -46,13 +46,16 @@ const generateMinimoJs = (parameters) => {
                 _copyResource('vdom/inputs.js'),
                 _copyResource('vdom/virtualdom.js')
             ]))
-            .then(() => browserify(`${parameters.destinationPath}/m/scripts/minimo-instance.js`)
-                .bundle()
-                .on('error', function (err) {
-                    console.log(err.message)
-                    console.log("ERROR!!! " + JSON.stringify(err))
-                    console.log(err.stack);
-                }).pipe(fs.createWriteStream(`${parameters.destinationPath}/m/scripts/m.js`)))
+            .then(() => new Promise(r => {
+                setTimeout(r, 3000);//TODO workaround...
+                browserify(`${parameters.destinationPath}/m/scripts/minimo-instance.js`)
+                    .bundle()
+                    .on('error', (err) => {
+                        console.log(err.message)
+                        console.log("ERROR!!! " + JSON.stringify(err))
+                        console.log(err.stack);
+                    }).pipe(fs.createWriteStream(`${parameters.destinationPath}/m/scripts/m.js`));
+            }))
             .catch(reason => {
                 console.log(reason.message);
                 console.trace(reason);

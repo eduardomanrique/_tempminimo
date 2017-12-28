@@ -29,36 +29,36 @@ const tail = a => a.filter((v, i) => i > 0);
 const genId = () => `ID_${parseInt(Math.random()*9999999)}`;
 const keyValues = (obj) => {
     const result = [];
-    for(let k in obj){
+    for (let k in obj) {
         result.push([k, obj[k]]);
     }
     return result;
 }
 const values = (obj) => {
     const result = [];
-    for(let k in obj){
+    for (let k in obj) {
         result.push(obj[k]);
     }
     return result;
 }
 const safeToString = (x) => {
     switch (typeof x) {
-      case 'object':
-        return 'object';
-      case 'function':
-        return 'function';
-      case 'string':
-        return x;
-      default:
-        return x + '';
+        case 'object':
+            return 'object';
+        case 'function':
+            return 'function';
+        case 'string':
+            return x;
+        default:
+            return x + '';
     }
 }
 const getQueryParams = () => {
     var m = {};
-    var pairs = (location.search||"").substring(1).split("&");
-    for(var i = 0; i < pairs.length; i++){
+    var pairs = (location.search || "").substring(1).split("&");
+    for (var i = 0; i < pairs.length; i++) {
         var kv = pairs[i].split('=');
-        if(kv.length == 2){
+        if (kv.length == 2) {
             m[kv[0]] = kv[1];
         }
     }
@@ -75,5 +75,16 @@ module.exports = {
     keyValues: keyValues,
     values: values,
     safeToString: safeToString,
-    getQueryParams: getQueryParams
+    getQueryParams: getQueryParams,
+    getWindow: () => {
+        let _temp = window;
+        if (!_temp) {
+            _temp = global;
+            global.location = {
+                pathname: "",
+                search: ""
+            };
+        }
+        return _temp;
+    }
 };

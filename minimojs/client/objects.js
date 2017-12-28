@@ -22,7 +22,7 @@ const node = (parsed, child) => {
 }
 
 const _updateChild = (prePath, child) => {
-    if(child){
+    if (child) {
         child.path = prePath + (child.computed ? '' : '.') + child.path;
         _updateChild(child.path, child.next);
     }
@@ -31,9 +31,9 @@ const _updateChild = (prePath, child) => {
 class Objects {
     constructor(bind, ctx, getValue) {
         let parsed;
-        try{
+        try {
             parsed = esprima.parse(bind).body[0];
-        }catch(e){
+        } catch (e) {
             console.trace(e);
             throw new Error(`Error creating Objects instance: invalid bind ${bind}`);
         }
@@ -45,7 +45,24 @@ class Objects {
         this._getValue = getValue;
     }
     updateVariable() {
-        this._ctx.evalSet(this.getOrCreateVariable().path, this._getValue());
+        let val = this._getValue();
+        if (this._arrayFn) {
+            let current = this._ctx.eval(this.getOrCreateVariable().path) || [];
+            if (!val) {
+                let nonNullVal = this._arrayFn();
+                let ind = current.indexOf(nonNullVal);
+                if (ind >= 0) {
+                    current.splice(ind, 1);
+                }
+            } else {
+                if (current.indexOf(val) < 0) {
+                    current.push(val);
+                }
+            }
+            val = current;
+        }
+        this._ctx.evalSet(this.getOrCreateVariable().path, val);
+
     }
     getOrCreateVariable() {
         let val = this._variableStructure;
@@ -54,10 +71,10 @@ class Objects {
                 return val;
             } else {
                 let obj;
-                try{
+                try {
                     obj = this._ctx.eval(val.path);
-                }catch(e){}
-                if(!obj){
+                } catch (e) {}
+                if (!obj) {
                     let isArray = false;
                     if (val.next && val.next.computed) {
                         const dynName = this._ctx.eval(val.next.name);
@@ -69,6 +86,9 @@ class Objects {
                 }
             }
         } while (val = val.next);
+    }
+    useArray(fn) {
+        this._arrayFn = fn;
     }
 }
 

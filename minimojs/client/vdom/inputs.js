@@ -27,9 +27,11 @@ const prepareInputElement = (vdom) => {
         });
         vdom._getValue = () => f.extract();
         vdom._setValue = (v) => f.update(v);
+        vdom._getNonNullValue = () => f.extractNonNull();
     } else if (e.getValue) {
         vdom._getValue = () => e.getValue();
         vdom._setValue = (v) => e.setValue ? e.setValue(v) : null;
+        vdom._getNonNullValue = () => e.getNonNullValue ? e.getNonNullValue() : null;
     }
 }
 
@@ -95,14 +97,22 @@ const _getRawSetterAndGetter = (e, inputType, ctx) => {
             }
         }
     } else if (inputType == 'checkbox') {
-        return {
-            _get: () => e.checked,
-            _set: (v) => e.checked = v == 'true'
+        if (e.value) {
+            return {
+                _get: () => e.checked ? e.value : null,
+                _set: (v) => e.checked = v != null
+            }
+        } else {
+            return {
+                _get: () => e.checked,
+                _set: (v) => e.checked = v == 'true'
+            }
         }
     } else if (inputType == 'option') {
         return {
             _get: () => e.value || e.text,
-            _set: (v) => {}
+            _set: (v) => {},
+            _getNonNull: () => e.value
         }
     } else {
         return {
@@ -154,23 +164,32 @@ const _getTypeAndMask = (e, inputType) => {
             mask = "";
         }
     }
-    
+
     return [type, mask];
 }
 
 const _buildFunctions = (e, ctx) => {
-    if (_getAttribute(e, "bind-type") == OBJECT) { //read only
-        const jsValue = _getAttribute(e, "value");
-        return {
-            partialValidate: () => true,
-            validate: () => true,
-            extract: () => ctx.eval(jsValue),
-            update: () => {}
-        }
-    }
     const inputType = (e.nodeName == "INPUT" ?
         (e.getAttribute("type") ? e.getAttribute("type") : "text") :
         e.nodeName).toLowerCase();
+
+    if (_getAttribute(e, "bind-type") == OBJECT) { //read only
+        const jsValue = _getAttribute(e, "value");
+        const _extract = (v) => {
+            if(inputType == "checkbox"){
+                return e.checked ? v : null;
+            }else{
+                return v;
+            } 
+        }
+        return {
+            partialValidate: () => true,
+            validate: () => true,
+            extract: () => _extract(ctx.eval(jsValue)),
+            extractNonNull: () => ctx.eval(jsValue),
+            update: () => {}
+        }
+    }
 
     let accessors = _getRawSetterAndGetter(e, inputType, ctx);
     let [type, mask] = _getTypeAndMask(e, inputType);
@@ -205,6 +224,7 @@ const _buildStringFunction = (mask, accessors) => new function () {
     this.validate = (v) => regex.test(v);
     this.extract = () => accessors._get();
     this.update = (v) => accessors._set(v);
+    this.extractNonNull = () => accessors._getNonNull();
 }
 
 const _buildAnyFunction = (mask, accessors) => {
@@ -212,14 +232,17 @@ const _buildAnyFunction = (mask, accessors) => {
         partialValidate: () => true,
         validate: () => true,
         extract: () => accessors._get(),
-        update: (v) => accessors._set(v)
+        update: (v) => accessors._set(v),
+        extractNonNull: () => accessors._getNonNull(),
     }
 }
 
 const _buildIntegerFunction = (mask, accessors) => new function () {
     this.validate = (v) => /^\d*$/.test(v);
     this.partialValidate = (c, value) => /\d/.test(c);
-    this.extract = () => parseInt(accessors._get() || 0);
+    this.extract = () => _extract(accessors._get());
+    this.extractNonNull = () => _extract(accessors._getNonNull());
+    const _extract = (v) => parseInt(v || 0);
     this.update = (i) => accessors._set(i);
 }
 
@@ -229,7 +252,12 @@ const _buildFloatFunction = (mask, accessors) => new function () {
     let partialRegex = new RegExp(`^(\\d|${mask[0] == '.' ? '\\.' : ','})$`);
     this.validate = (v) => regex.test(v);
     this.partialValidate = (c, value) => partialRegex.test(c) && regex.test(value);
-    this.extract = () => parseFloat(accessors._get().replace(decimalSep, '.') || 0);
+    this.extract = () => _extract(accessors._get());
+
+    this.extractNonNull = () => _extract(accessors._getNonNull());
+
+    const _extract = (v) => parseFloat(v.replace(decimalSep, '.') || 0);
+
     this.update = (i) => accessors._set((i + "").replace('.', decimalSep));
 }
 
@@ -237,10 +265,9 @@ const _buildBooleanFunction = (mask, accessors) => new function () {
     const [t, f] = (mask || "true,false").split(',').map(v => v.trim());
     this.validate = (v) => v.trim() == t || v.trim() == f;
     this.partialValidate = (c, value) => t.startsWith(value) || f.startsWith(value);
-    this.extract = () => {
-        let v = accessors._get();
-        return typeof (v) == "string" ? v == t : v;
-    }
+    this.extract = () => _extract(accessors._get());
+    this.extractNonNull = () => _extract(accessors._getNonNull());
+    const _extract = (v) => typeof (v) == "string" ? v == t : v;
     this.update = (v) => accessors._set(v ? t : f);
 }
 
@@ -256,6 +283,10 @@ const _buildTimeFunctions = (mask, accessors) => new function () {
         if (!v) {
             return unmasked;
         }
+        return _extract(v);
+    }
+    this.extractNonNull = () => _extract(accessors._getNonNull());
+    const _extract = (v) => {
         let exec = regex.exec(v);
         let date;
         if (exec) {
@@ -287,6 +318,10 @@ const _buildDateTimeFunctions = (mask, accessors) => new function () {
         if (!v) {
             return unmasked;
         }
+        return _extract(v);
+    }
+    this.extractNonNull = () => _extract(accessors._getNonNull());
+    const _extract = (v) => {
         let exec = regex.exec(v);
         let date;
         if (exec) {
@@ -318,6 +353,10 @@ const _buildDateFunctions = (mask, accessors) => new function () {
         if (!v) {
             return unmasked;
         }
+        return _extract(v);
+    }
+    this.extractNonNull = () => _extract(accessors._getNonNull());
+    const _extract = (v) => {
         let exec = regex.exec(v);
         let date;
         if (exec) {

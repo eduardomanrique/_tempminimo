@@ -248,10 +248,24 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
                         val = val.map(v => util.safeToString(v)).join('');
                     }
                     this._bind = val;
-                    const type = (this._e.getAttribute("type") || "").toLowerCase();
+                    const type = (this._struct.a.type || "").toLowerCase();
                     const valuePropName = type == "checkbox" || type == "radio" ? "checked" : "value";
                     const _getValue = () => this._getValue ? this._getValue() : this._e[valuePropName];
+
                     this._objects = new Objects(val, this.ctx, _getValue);
+
+                    if(type == "checkbox"){
+                        if(this._e.value){
+                            this._objects.useArray(() => this._getNonNullValue());
+                        }
+                        minimoInstance.root.ready(() => {
+                            if(this.ctx.unsafeEval(this._bind) == null){
+                                this._objects.updateVariable();
+                                _updateAll(100);
+                            }
+                        });
+                    }
+                    
                     const onChange = () => {
                         this._objects.updateVariable();
                         _updateAll(50);

@@ -420,7 +420,7 @@ const _parseGlovalVarName = (name) => {
 
 const _instrumentController = (htmlJson, jsData, resInfo, boundVars = [], boundModals = []) => {
     const jsName = resInfo.resourceName.replace(/\./g, '').replace(/\//g, '.');
-    const preparedJs = jsData.map(js => _prepareInjections(js, boundModals), "");
+    const preparedJs = jsData.map(js => _prepareInjections(js, boundModals), "var __binds__ = [];");
     const boundVarDeclaration = [];
     boundVars.forEach(boundVar => {
         if (!boundVar.trim() == "" && !boundVar.trim().startsWith("${") && !boundVar.trim() != "this") {
