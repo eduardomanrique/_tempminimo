@@ -215,7 +215,8 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
         }
         _setAttribute(n, v) {
             if (n.startsWith('on')) {
-                this._e.addEventListener(n.substring(2), () => {
+                this._e.addEventListener(n.substring(2), (e) => {
+                    minimoInstance.currentEvent = e;
                     Promise.all([this.ctx.eval(v)]).then(() => _updateAll(1));
                 });
                 dom.setAttribute(this._e, `event-${n}`, v);
@@ -232,15 +233,19 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
             this._e._vdom = this;
             this._dom = dom;
             this._dynAtt = {};
+            let skipValue = false;
             if(this._struct.a && this._struct.a.value && this._struct.a.value instanceof Array){//read only value
                 if(this._struct.a.value.length > 1){
                     throw new Error('Element value can have only one script block');
                 }
                 this._setAttribute("value", this._struct.a.value[0].s);
                 this._setAttribute("bind-type", inputs.types.OBJECT);
-                delete this._struct.a.value;
+                skipValue = true;
             }
             for (let k in this._struct.a) {
+                if(k == 'value' && skipValue){
+                    continue;
+                }
                 let a = this._struct.a[k];
                 if (k == 'bind' || k == 'data-bind') {
                     let val = a;
@@ -255,7 +260,7 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
                     this._objects = new Objects(val, this.ctx, _getValue);
 
                     if(type == "checkbox"){
-                        if(this._e.value){
+                        if(this._e.getAttribute("value")){
                             this._objects.useArray(() => this._getNonNullValue());
                         }
                         minimoInstance.root.ready(() => {

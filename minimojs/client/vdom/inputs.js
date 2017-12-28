@@ -97,7 +97,7 @@ const _getRawSetterAndGetter = (e, inputType, ctx) => {
             }
         }
     } else if (inputType == 'checkbox') {
-        if (e.value) {
+        if (e.getAttribute("value")) {
             return {
                 _get: () => e.checked ? e.value : null,
                 _set: (v) => e.checked = v != null

@@ -71,10 +71,10 @@ class Minimo {
         };
     }
     set currentEvent(e) {
-        this._event = e;
+        this.root._event = e;
     }
     get event() {
-        return this._event;
+        return this.root._event;
     }
     get referrer() {
         return _lastUrl || document.referrer;
