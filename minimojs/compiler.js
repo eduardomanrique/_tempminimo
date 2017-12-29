@@ -456,7 +456,7 @@ const _instrumentController = (htmlJson, jsData, resInfo, boundVars = [], boundM
             };
             this.closeModal = closeModal;
         `: ''}
-        ${scriptOnly ? `if(m.isGlobalScriptImport){window${_parseGlovalVarName(resInfo.resourceName)} = this};` : ''}
+        ${scriptOnly ? `if(m.isGlobalScriptImport){window.${_parseGlovalVarName(resInfo.resourceName)} = this};` : ''}
         this.__eval__ = function(f){
             return eval(f);
         };

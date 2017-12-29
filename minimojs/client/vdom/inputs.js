@@ -176,11 +176,11 @@ const _buildFunctions = (e, ctx) => {
     if (_getAttribute(e, "bind-type") == OBJECT) { //read only
         const jsValue = _getAttribute(e, "value");
         const _extract = (v) => {
-            if(inputType == "checkbox"){
+            if (inputType == "checkbox") {
                 return e.checked ? v : null;
-            }else{
+            } else {
                 return v;
-            } 
+            }
         }
         return {
             partialValidate: () => true,
@@ -290,12 +290,10 @@ const _buildTimeFunctions = (mask, accessors) => new function () {
         let exec = regex.exec(v);
         let date;
         if (exec) {
-            date = new Date();
-            date.setHours(parseInt(exec[order.indexOf('HH') + 1]));
-            date.setMinutes(parseInt(exec[order.indexOf('mm') + 1]));
-            date.setFullYear(0);
-            date.setMonth(0);
-            date.setDate(0);
+            date = new Date(0, 0, 0,
+                parseInt(exec[order.indexOf('HH') + 1]),
+                parseInt(exec[order.indexOf('mm') + 1]),
+                0, 0);
         }
         return date;
     };
@@ -325,12 +323,13 @@ const _buildDateTimeFunctions = (mask, accessors) => new function () {
         let exec = regex.exec(v);
         let date;
         if (exec) {
-            date = new Date();
-            date.setFullYear(parseInt(exec[order.indexOf('yyyy') + 1]));
-            date.setMonth(parseInt(exec[order.indexOf('MM') + 1] - 1));
-            date.setDate(parseInt(exec[order.indexOf('dd') + 1]));
-            date.setHours(parseInt(exec[order.indexOf('HH') + 1]));
-            date.setMinutes(parseInt(exec[order.indexOf('mm') + 1]));
+            date = new Date(
+                parseInt(exec[order.indexOf('yyyy') + 1]),
+                parseInt(exec[order.indexOf('MM') + 1] - 1),
+                parseInt(exec[order.indexOf('dd') + 1]),
+                parseInt(exec[order.indexOf('HH') + 1]),
+                parseInt(exec[order.indexOf('mm') + 1]),
+                0, 0);
         }
         return date;
     };
@@ -360,12 +359,12 @@ const _buildDateFunctions = (mask, accessors) => new function () {
         let exec = regex.exec(v);
         let date;
         if (exec) {
-            date = new Date();
-            date.setFullYear(parseInt(exec[order.indexOf('yyyy') + 1]));
-            date.setMonth(parseInt(exec[order.indexOf('MM') + 1]) - 1);
-            date.setDate(parseInt(exec[order.indexOf('dd') + 1]));
-            date.setHours(0);
-            date.setMinutes(0);
+            date = new Date(
+                parseInt(exec[order.indexOf('yyyy') + 1]),
+                parseInt(exec[order.indexOf('MM') + 1]) - 1,
+                parseInt(exec[order.indexOf('dd') + 1]),
+                0, 0, 0, 0
+            );
         }
         return date;
     };

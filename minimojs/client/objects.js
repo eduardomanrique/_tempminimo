@@ -41,7 +41,11 @@ class Objects {
             throw new Error(`Invalid bind value ${bind}`);
         }
         this._ctx = ctx;
-        this._variableStructure = node(parsed.expression);
+        try {
+            this._variableStructure = node(parsed.expression);
+        } catch (e) {
+            throw new Error(`Invalid bind expression ${bind}.`);
+        }
         this._getValue = getValue;
     }
     updateVariable() {
