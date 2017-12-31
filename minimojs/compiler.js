@@ -320,14 +320,15 @@ const _compilePage = (resInfo, htmxData, jsData) => {
 
 const _prepareHTML = (doc, boundVars, boundModals) => {
     components.buildComponentsOnPage(doc, boundVars, boundModals);
-    const recValues = doc.addElement("xrs");
-    recValues.addChildList(doc.requiredResourcesList);
     doc.requiredResourcesList.forEach(requiredElement => {
         let src = requiredElement.getAttribute("src");
         if (src.startsWith("/")) {
             src = src.substring(1);
         }
-        _cached.appcacheResources.add("/res/" + src);
+        const scriptElement = doc.addElement("script");
+        src = `/res/${src}`;
+        scriptElement.setAttribute('src', src);
+        _cached.appcacheResources.add(src);
     });
     _.values(boundModals).forEach(modal => _cached.appcacheResources.add(modal.path));
     _addChildValidElements(doc);

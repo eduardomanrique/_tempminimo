@@ -24,6 +24,9 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
         } else if (json.xl) {
             vdom = new ListIteratorContainer(json);
         } else if (json.n) {
+            if (json.n == 'script') {
+                return null;
+            }
             if (json.n == 'modal') {
                 vdom = new ModalElement(json);
             } else if (json.n == 'modalcontent') {
@@ -50,15 +53,12 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
     }
 
     const _getAllScripts = (json, array) => {
-        if (json && json.c) {
-            json.c = json.c.filter(child => {
+        if (json && json.n == 'script' && (json.a || {}).src) {
+            array.push(json);
+        } else if (json && json.c) {
+            json.c.forEach(child => {
                 _getAllScripts(child, array);
-                if (child.n == 'script' && (child.a || {}).src) {
-                    array.push(child);
-                    return false;
-                }
-                return true;
-            })
+            });
         }
     }
     let _hidden = false;
@@ -96,16 +96,17 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
             const _loadNextScript = () => {
                 if (index >= scriptsArray.length) {
                     resolve();
+                    return;
                 }
                 let scriptJson = scriptsArray[index++];
-                const script = new Element(scriptJson);
                 if (waitForScriptsToLoad) {
-                    script._onload = function () {
+                    const element = document.createElement('script');
+                    element.setAttribute("src", scriptJson.a.src);
+                    element.onload = function () {
                         _loadNextScript();
                     };
-                }
-                _postCreation(script, rootVDom);
-                if (!waitForScriptsToLoad) {
+                    document.body.appendChild(element);
+                } else {
                     _loadNextScript();
                 }
             }
@@ -215,11 +216,20 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
         }
         _setAttribute(n, v) {
             if (n.startsWith('on')) {
-                this._e.addEventListener(n.substring(2), (e) => {
-                    minimoInstance.currentEvent = e;
-                    Promise.all([this.ctx.eval(v)]).then(() => _updateAll(1));
-                });
-                dom.setAttribute(this._e, `event-${n}`, v);
+                this._addedEventListeners = this._addedEventListeners || [];
+                let propertyName = `_eventListener_${n}`;
+                if (!v || !v.trim()) {
+                    this[propertyName] = () => {};
+                } else {
+                    if (this._addedEventListeners.indexOf(n) < 0) {
+                        this._addedEventListeners.push(n);
+                        this._e.addEventListener(n.substring(2), (e) => {
+                            minimoInstance.currentEvent = e;
+                            this[propertyName]();
+                        });
+                    }
+                    this[propertyName] = () => Promise.all([this.ctx.eval(v)]).then(() => _updateAll(1));
+                }
             } else {
                 dom.setAttribute(this._e, n, v);
             }
@@ -234,8 +244,8 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
             this._dom = dom;
             this._dynAtt = {};
             let skipValue = false;
-            if(this._struct.a && this._struct.a.value && this._struct.a.value instanceof Array){//read only value
-                if(this._struct.a.value.length > 1){
+            if (this._struct.a && this._struct.a.value && this._struct.a.value instanceof Array) { //read only value
+                if (this._struct.a.value.length > 1) {
                     throw new Error('Element value can have only one script block');
                 }
                 this._setAttribute("value", this._struct.a.value[0].s);
@@ -243,7 +253,7 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
                 skipValue = true;
             }
             for (let k in this._struct.a) {
-                if(k == 'value' && skipValue){
+                if (k == 'value' && skipValue) {
                     continue;
                 }
                 let a = this._struct.a[k];
@@ -259,18 +269,18 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
 
                     this._objects = new Objects(val, this.ctx, _getValue);
 
-                    if(type == "checkbox"){
-                        if(this._e.getAttribute("value")){
+                    if (type == "checkbox") {
+                        if (this._e.getAttribute("value")) {
                             this._objects.useArray(() => this._getNonNullValue());
                         }
                         minimoInstance.root.ready(() => {
-                            if(this.ctx.unsafeEval(this._bind) == null){
+                            if (this.ctx.unsafeEval(this._bind) == null) {
                                 this._objects.updateVariable();
                                 _updateAll(100);
                             }
                         });
                     }
-                    
+
                     const onChange = () => {
                         this._objects.updateVariable();
                         _updateAll(50);
@@ -288,7 +298,7 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
                     this._setAttribute(k, a);
                 }
             }
-            if(this._objects){
+            if (this._objects) {
                 inputs.prepareInputElement(this);
                 this._objects.getOrCreateVariable();
             }
@@ -462,23 +472,25 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
             this._lastList = [];
         }
         update() {
-            let list = this.unsafeEval(this._listName)||[];
+            let list = this.unsafeEval(this._listName) || [];
             //remove from html the removed
             const currList = [];
             const toRemove = [];
+            const listCopy = [].concat(list);
             for (let i = 0; i < this._lastList.length; i++) {
                 let item = this._lastList[i];
-                const pos = list.indexOf(item);
+                const pos = typeof (item) == "object" ? listCopy.indexOf(item) : typeof (item) == typeof (listCopy[i]) ? i : -1;
                 if (pos < 0) {
                     toRemove.push(this._childList[i]);
                 } else {
+                    listCopy[pos] = NaN;
                     currList.push(item);
                 }
             }
             toRemove.forEach(c => this.removeChild(c));
             for (let i = 0; i < list.length; i++) {
                 let item = list[i];
-                const pos = currList.indexOf(item);
+                const pos = typeof (item) == "object" ? currList.indexOf(item) : typeof (item) == typeof (currList[i]) ? i : -1;
                 let child;
                 if (pos < 0) {
                     child = new ItemIteratorContainer(this._struct);
@@ -486,8 +498,8 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
                     child._onBuild();
                     this.insertBefore(child, i == this._childList.length ? null : this._childList[i]);
                     child._postBuild();
-                    child.item = item;
                 } else {
+                    currList[pos] = NaN;
                     child = this._childList[i];
                     if (pos >= 0 && pos != i) {
                         this._childList.splice(i, 1);
@@ -497,6 +509,7 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
                         currList.splice(pos, 0, item);
                     }
                 }
+                child.item = item;
                 child.index = i;
                 child.update();
             }

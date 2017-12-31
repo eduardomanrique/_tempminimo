@@ -50,7 +50,6 @@ describe('Client scripts - virtualdom.js', () => {
             }, {
                 "n": "script",
                 "a": {
-                    "id": "s1",
                     "src": "/test.js"
                 }
             }]
@@ -68,7 +67,6 @@ describe('Client scripts - virtualdom.js', () => {
             .then(() => {
                 //console.log(document.body.innerHTML)
                 document.getElementById("d1").getAttribute("class").should.eq("cl1 cl2");
-                document.getElementById("s1").getAttribute("src").should.eq("/test.js");
             })
     });
 

@@ -1,5 +1,13 @@
 const esprima = require('../esprima');
 
+const _isNode = (o) =>
+    typeof Node === "object" ? o instanceof Node :
+    o && typeof o === "object" && typeof o.nodeType === "number" && typeof o.nodeName === "string";
+
+const _isElement = (o) =>
+    typeof HTMLElement === "object" ? o instanceof HTMLElement :
+    o && typeof o === "object" && o !== null && o.nodeType === 1 && typeof o.nodeName === "string";
+
 const _findIdentifiersOnScript = (e, a) => {
     switch (e.type) {
         case "BinaryExpression":
@@ -14,6 +22,9 @@ const _findIdentifiersOnScript = (e, a) => {
             break;
         case "MemberExpression":
             _findIdentifiersOnScript(e.object, a);
+            if (e.computed) {
+                _findIdentifiersOnScript(e.property, a);
+            }
             break;
         case "ConditionalExpression":
             _findIdentifiersOnScript(e.test, a);
@@ -94,20 +105,23 @@ const EvaluatorManager = function (minimoInstance, ctxManager) {
         evalSet(left, value) {
             window.__temp_val__ = value;
             try {
-                const exp = left + '=window.__temp_val__';
-                let varName = left.trim().split('.')[0];
-                let found = false;
-                for (let j = 0; j < this._ctxList.length; j++) {
-                    const ctx = this._ctxList[j];
-                    try {
-                        ctx.eval(varName);
-                        found = true;
-                        ctx.eval(exp);
-                        break;
-                    } catch (e) {}
-                }
-                if (!found) {
-                    this._ctxList[this._ctxList.length - 1].eval(exp);
+                let exp = left + '=window.__temp_val__';
+                if (left.indexOf('.') < 0 && left.indexOf('[') < 0) { //single var
+                    let found = false;
+                    for (let j = 0; j < this._ctxList.length; j++) {
+                        const ctx = this._ctxList[j];
+                        try {
+                            ctx.eval(left);
+                            found = true;
+                            ctx.eval(exp);
+                            break;
+                        } catch (e) {}
+                    }
+                    if (!found) {
+                        this._ctxList[this._ctxList.length - 1].eval(exp);
+                    }
+                } else {
+                    this._eval(left, 'window.__temp_val__')(exp);
                 }
             } finally {
                 delete minimoInstance.__temp_val__;
@@ -118,6 +132,8 @@ const EvaluatorManager = function (minimoInstance, ctxManager) {
             const variables = [];
             for (let i = 0; i < cache.variables.length; i++) {
                 const varName = cache.variables[i];
+                var found = false;
+                var foundElement;
                 for (let j = 0; j < this._ctxList.length; j++) {
                     const ctx = this._ctxList[j];
                     let aliases = [varName];
@@ -125,12 +141,15 @@ const EvaluatorManager = function (minimoInstance, ctxManager) {
                         aliases = ctx._aliases[varName].concat(aliases);
                     }
                     var obj;
-                    var found = false;
                     for (let n = 0; n < aliases.length; n++) {
                         try {
                             obj = ctx.eval(aliases[n]);
-                            found = true;
-                            break;
+                            if (!_isNode(obj) && !_isElement(obj)) {
+                                found = true;
+                                break;
+                            }else{
+                                foundElement = obj;
+                            }
                         } catch (e) {}
                     }
                     if (!found) {
@@ -143,22 +162,25 @@ const EvaluatorManager = function (minimoInstance, ctxManager) {
                     }
                     break;
                 }
+                if(!found && foundElement){
+                    variables.push(foundElement);
+                }
             }
             const wrapper = new(Function.prototype.bind.apply(cache.fn, [null].concat(variables)));
-            return () => wrapper.eval.bind(this._ctxList[0])(exp);
+            return (exp) => wrapper.eval.bind(this._ctxList[0])(exp);
         }
-        eval(exp){
-            try{
-                return this._eval(exp)();
-            }catch(e){
+        eval(exp) {
+            try {
+                return this._eval(exp)(exp);
+            } catch (e) {
                 console.trace(e);
                 throw new Error(`Error evaluating js expression '${exp}': ${e.message}`);
             }
         }
-        unsafeEval(exp){
-            try{
-                return this._eval(exp)();
-            }catch(e){
+        unsafeEval(exp) {
+            try {
+                return this._eval(exp)(exp);
+            } catch (e) {
                 return null;
             }
         }
