@@ -100,8 +100,15 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
                 }
                 let scriptJson = scriptsArray[index++];
                 if (waitForScriptsToLoad) {
-                    const element = document.createElement('script');
-                    element.setAttribute("src", scriptJson.a.src);
+                    let element;
+                    if (scriptJson.a.src.endsWith('.css')) {
+                        element = document.createElement('link');
+                        element.setAttribute("rel", "stylesheet");
+                        element.setAttribute("media", "all");
+                        element.setAttribute("href", scriptJson.a.src);
+                    } else {
+                        element = document.createElement('script');
+                    }
                     element.onload = function () {
                         _loadNextScript();
                     };
