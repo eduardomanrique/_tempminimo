@@ -834,7 +834,7 @@ class HTMLParser {
       } else {
         varName = _generateId("xvmd_");
       }
-      if (element.getAttribute("start") == 'true') {
+      if (element.getAttribute("visible") == 'true') {
         this._boundModals.push(new ModalBind(varName, element.getAttribute('path').trim()));
       }
     }

@@ -730,4 +730,100 @@ describe('Client scripts - virtualdom.js', () => {
                 })
             })
     });
+
+    it('RadioGroup', () => {
+        document.body.innerHTML = `
+            <html>
+                <body></body>
+            </html>
+        `;
+        const json = {
+            "n": "div",
+            "c": [{
+                "n": "input",
+                "a": {
+                    "type": "radio",
+                    "id": "r1",
+                    "name": "r",
+                    "value": [{
+                        "s": "v1"
+                    }],
+                    "bind": "obj.val"
+                }
+            }, {
+                "n": "input",
+                "a": {
+                    "type": "radio",
+                    "id": "r2",
+                    "name": "r",
+                    "value": [{
+                        "s": "v2"
+                    }],
+                    "bind": "obj.val"
+                }
+            }, {
+                "n": "input",
+                "a": {
+                    "type": "radio",
+                    "id": "r3",
+                    "name": "r",
+                    "value": "val3",
+                    "bind": "obj.val"
+                }
+            }]
+        };
+        const insertPoint = document.body;
+        const minimo = new function () {
+            var v1 = {
+                name: "val1"
+            }
+            var v2 = 2;
+            var obj = {};
+            this.eval = function (s) {
+                return eval(s);
+            };
+            this._dom = new dom.DOM(this, document.body, document);
+        }
+        const vdom = new virtualDom.VirtualDom([json], insertPoint, null, null, minimo, false, buildComponentBuilderFunction);
+        vdom._defaultUpdateDelay = 0;
+        return vdom.build()
+            .then(() => {
+                let obj = minimo.eval('obj');
+                let v1 = minimo.eval('v1');
+                expect(obj.val).to.be.undefined;
+                let r1 = document.getElementById("r1");
+                let r2 = document.getElementById("r2");
+                let r3 = document.getElementById("r3");
+                expect(r1._vdom._getValueFromElement()).to.be.null;
+                expect(r2._vdom._getValueFromElement()).to.be.null;
+                expect(r3._vdom._getValueFromElement()).to.be.null;
+                r1.checked = true;
+                r1.dispatchEvent(new EventImpl(['change', {}], {}));
+                return new Promise(r => {
+                    setTimeout(() => {
+                        obj.val.should.eq(v1);
+                        expect(r1._vdom._getValueFromElement()).to.eq(v1);
+                        expect(r2._vdom._getValueFromElement()).to.eq(v1);
+                        expect(r3._vdom._getValueFromElement()).to.eq(v1);
+                        r2.checked = true;
+                        r2.dispatchEvent(new EventImpl(['change', {}], {}));
+                        setTimeout(() => {
+                            obj.val.should.eq(2);
+                            expect(r1._vdom._getValueFromElement()).to.eq(2);
+                            expect(r2._vdom._getValueFromElement()).to.eq(2);
+                            expect(r3._vdom._getValueFromElement()).to.eq(2);
+                            r3.checked = true;
+                            r3.dispatchEvent(new EventImpl(['change', {}], {}));
+                            setTimeout(() => {
+                                obj.val.should.eq("val3");
+                                expect(r1._vdom._getValueFromElement()).to.eq("val3");
+                                expect(r2._vdom._getValueFromElement()).to.eq("val3");
+                                expect(r3._vdom._getValueFromElement()).to.eq("val3");
+                                r();
+                            }, 100);
+                        }, 100);
+                    }, 100);
+                })
+            })
+    });
 });

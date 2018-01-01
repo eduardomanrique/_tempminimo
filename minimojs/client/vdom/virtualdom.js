@@ -14,7 +14,26 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
     const evaluatorManager = new EvaluatorManager(minimoInstance, ctxManager);
     const componentBuilderFunction = buildComponentBuilderFunction(minimoInstance);
     this._defaultUpdateDelay = 100;
+    const _radioGroups = {};
 
+    const _setRadioGroup = (e) => {
+        _radioGroups[e._bind] = _radioGroups[e._bind] || new function () {
+            const elements = new Set();
+            this.add = (e) => {
+                elements.add(e);
+                e._radioGroup = this;
+            }
+            this.remove = (e) => {
+                element.delete(e);
+                delete e._radioGroup;
+            }
+            this.getValue = () => {
+                const checked = Array.from(elements).filter(e => e._e.checked)[0];
+                return checked ? (checked._getValue ? checked._getValue() : checked._e.value) : null;
+            }
+        };
+        _radioGroups[e._bind].add(e);
+    }
     const _buildVirtualDom = (json, parentVDom) => {
         let vdom;
         if (json.cn) {
@@ -24,7 +43,7 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
         } else if (json.xl) {
             vdom = new ListIteratorContainer(json);
         } else if (json.n) {
-            if (json.n == 'script') {
+            if (json.n == 'script' && json.a && json.a.src) {
                 return null;
             }
             if (json.n == 'modal') {
@@ -108,6 +127,7 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
                         element.setAttribute("href", scriptJson.a.src);
                     } else {
                         element = document.createElement('script');
+                        element.setAttribute("src", scriptJson.a.src);
                     }
                     element.onload = function () {
                         _loadNextScript();
@@ -218,6 +238,9 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
             nodeList.forEach(n => this._e.appendChild(n));
         }
         _onRemove() {
+            if (this._radioGroup) {
+                this._radioGroup.remove(this);
+            }
             this.removeChildren();
             this._e.remove();
         }
@@ -271,26 +294,31 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
                     }
                     this._bind = val;
                     const type = (this._struct.a.type || "").toLowerCase();
-                    const valuePropName = type == "checkbox" || type == "radio" ? "checked" : "value";
-                    const _getValue = () => this._getValue ? this._getValue() : this._e[valuePropName];
-
+                    
+                    const _getValue = () => this._getValueFromElement();
                     this._objects = new Objects(val, this.ctx, _getValue);
-
-                    if (type == "checkbox") {
-                        if (this._e.getAttribute("value")) {
-                            this._objects.useArray(() => this._getNonNullValue());
-                        }
-                        minimoInstance.root.ready(() => {
-                            if (this.ctx.unsafeEval(this._bind) == null) {
-                                this._objects.updateVariable();
-                                _updateAll(100);
+                    if (type == 'radio') {
+                        _setRadioGroup(this);
+                        this._getValueFromElement = () => this._radioGroup.getValue();
+                    } else {
+                        if (type == "checkbox") {
+                            if (this._e.getAttribute("value")) {
+                                this._objects.useArray(() => this._getNonNullValue());
                             }
-                        });
+                            minimoInstance.root.ready(() => {
+                                if (this.ctx.unsafeEval(this._bind) == null) {
+                                    this._objects.updateVariable();
+                                    _updateAll(global._updateDelay || 100);
+                                }
+                            });
+                        }
+                        const valuePropName = type == "checkbox" || type == "radio" ? "checked" : "value";
+                        this._getValueFromElement = () => this._getValue ? this._getValue() : this._e[valuePropName];
                     }
-
+                    
                     const onChange = () => {
                         this._objects.updateVariable();
-                        _updateAll(50);
+                        _updateAll(global._updateDelay || 50);
                     }
                     this._e.addEventListener('change', onChange);
                     if (this._e.nodeName != 'SELECT') {
@@ -442,7 +470,7 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
             if (bindTo) {
                 this._modalElement._parent.ctx.evalSet(bindTo, this._modalObj);
             }
-            if ((this._modalElement._struct.a.start || '').toLowerCase() == 'true') {
+            if ((this._modalElement._struct.a.visible || '').toLowerCase() == 'true') {
                 minimoInstance.addToBinds(this._modalObj.show());
             }
         }

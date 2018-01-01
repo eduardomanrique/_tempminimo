@@ -489,4 +489,5 @@ describe('Test Inputs', () => {
         input.options[3].selected.should.be.false
         input.options[4].selected.should.be.false;
     });
+    
 });
