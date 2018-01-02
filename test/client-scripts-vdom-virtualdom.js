@@ -782,6 +782,9 @@ describe('Client scripts - virtualdom.js', () => {
             this.eval = function (s) {
                 return eval(s);
             };
+            this.root = {
+                ready: (fn) => this.onReady = fn
+            }
             this._dom = new dom.DOM(this, document.body, document);
         }
         const vdom = new virtualDom.VirtualDom([json], insertPoint, null, null, minimo, false, buildComponentBuilderFunction);
@@ -797,11 +800,10 @@ describe('Client scripts - virtualdom.js', () => {
                 expect(r1._vdom._getValueFromElement()).to.be.null;
                 expect(r2._vdom._getValueFromElement()).to.be.null;
                 expect(r3._vdom._getValueFromElement()).to.be.null;
-                r1.checked = true;
-                r1.dispatchEvent(new EventImpl(['change', {}], {}));
-                return new Promise(r => {
+                minimo.onReady();
+                obj.val = v1;
+                return vdom.update().then(() => new Promise(r => {
                     setTimeout(() => {
-                        obj.val.should.eq(v1);
                         expect(r1._vdom._getValueFromElement()).to.eq(v1);
                         expect(r2._vdom._getValueFromElement()).to.eq(v1);
                         expect(r3._vdom._getValueFromElement()).to.eq(v1);
@@ -823,7 +825,7 @@ describe('Client scripts - virtualdom.js', () => {
                             }, 100);
                         }, 100);
                     }, 100);
-                })
-            })
+                }));
+            });
     });
 });
