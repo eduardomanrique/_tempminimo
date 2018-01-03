@@ -171,6 +171,9 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
         get isComponentInternal() {
             return (this._struct.h || {}).componentInternal == true;
         }
+        isTheSameContext(minimo){
+            return minimoInstance == minimo;
+        }
         _buildChildren() {
             if (this._struct.c) {
                 for (let i = 0; i < this._struct.c.length; i++) {

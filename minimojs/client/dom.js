@@ -35,6 +35,9 @@ class DOM {
 			return e;
 		}
 		this.isInThisContext = (element) => {
+			if(element._vdom){
+				return element._vdom.isTheSameContext(minimoInstance);
+			}
 			if (!element._minimoInstance && element.parentElement) {
 				if (element.parentElement === _root) {
 					return true;
@@ -101,6 +104,8 @@ class DOM {
 			return find(element.parentElement);
 		}
 		this.getElementById = (id) => _byId(id, doc).optionMap(el => this.isInThisContext(el) ? el : null);
+
+		this.getElementsByClassName = (classes) => _byClass(classes, doc).filter(el => this.isInThisContext(el));
 
 		this.getElementsByName = (name) => _byName(name).filter(el => this.isInThisContext(el));
 

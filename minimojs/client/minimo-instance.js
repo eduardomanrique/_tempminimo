@@ -106,9 +106,9 @@ class Minimo {
         this._timeouts.forEach(() => this.clearTimeout());
     }
     evalSet(v, val) {
-        _window.__temp_var__ = val;
-        this.eval(v + '=_window.__temp_var__');
-        delete _window.__temp_var__;
+        window.__temp_var__ = val;
+        this.eval(v + '=window.__temp_var__');
+        delete window.__temp_var__;
     }
     eval(fn) {
         try {
