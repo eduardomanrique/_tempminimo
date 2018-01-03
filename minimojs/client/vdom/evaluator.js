@@ -111,7 +111,10 @@ const EvaluatorManager = function (minimoInstance, ctxManager) {
                     for (let j = 0; j < this._ctxList.length; j++) {
                         const ctx = this._ctxList[j];
                         try {
-                            ctx.eval(left);
+                            let obj = ctx.eval(left);
+                            if (_isNode(obj) || _isElement(obj)) {
+                                continue;
+                            }
                             found = true;
                             ctx.eval(exp);
                             break;
@@ -121,10 +124,10 @@ const EvaluatorManager = function (minimoInstance, ctxManager) {
                         this._ctxList[this._ctxList.length - 1].eval(exp);
                     }
                 } else {
-                    this._eval(left, 'window.__temp_val__')(exp);
+                    this._eval(left)(exp);
                 }
             } finally {
-                delete minimoInstance.__temp_val__;
+                delete window.__temp_val__;
             }
         }
         _eval(exp) {

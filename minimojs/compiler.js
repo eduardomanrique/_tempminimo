@@ -292,7 +292,7 @@ const _compilePage = (resInfo, htmxData, jsData) => {
     const parser = new htmlParser.HTMLParser();
     let doc;
     try{
-        doc = util.nullableOption(htmxData.map(html => parser.parse(html.replace(/\{modal-content\}/, '<modalcontent></modalcontent>'))));
+        doc = util.nullableOption(htmxData.map(html => parser.parse(html.replace(/\{modal-content\}/g, '<modalcontent></modalcontent>'))));
     }catch(e){
         throw new TraceError(`Error parsing htmx file: ${resInfo._htmxPath.value}`, e);
     }
