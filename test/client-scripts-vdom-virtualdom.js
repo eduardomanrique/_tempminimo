@@ -604,7 +604,7 @@ describe('Client scripts - virtualdom.js', () => {
             .then(() => {
                 expect(document.getElementById("wid")).not.be.null;
                 document.getElementById("sp").innerHTML.should.eq("abcd");
-                document.getElementById("sp2").innerHTML.should.eq("wid_test-objid");
+                document.getElementById("sp2").innerHTML.should.eq("mid_test-objid");
             })
     });
 

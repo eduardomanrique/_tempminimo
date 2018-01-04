@@ -12,7 +12,6 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
     const selfVDom = this;
     const ctxManager = new ContextManager();
     const evaluatorManager = new EvaluatorManager(minimoInstance, ctxManager);
-    const componentBuilderFunction = buildComponentBuilderFunction(minimoInstance);
     this._defaultUpdateDelay = 100;
     const _radioGroups = {};
 
@@ -454,8 +453,8 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
         _onBuildContainer() {
             this._componentName = this._struct.cn;
             this._instanceProperties = this._struct.ip;
-            this._internalContext = componentBuilderFunction(this._componentName, this._instanceProperties);
             this.ctx = evaluatorManager.build(this);
+            this._internalContext = buildComponentBuilderFunction(this.ctx)(this._componentName, this._instanceProperties);
             this._componenCtx = evaluatorManager.buildWith(this, this._internalContext);
             this._parametersDefinition = this._internalContext.__defineAttributes();
             this._componenCtx._aliases = this._internalContext._aliases;

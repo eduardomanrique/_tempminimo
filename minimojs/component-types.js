@@ -92,6 +92,7 @@ module.exports = {
         html: new ComponentType("html", _string, false),
         bind: new ComponentType("bind", _bind, false),
         any: new ComponentType("any", null, false),
+        script: new ComponentType("script", null, false),
         mandatory: {
             string: new ComponentType("string", _string, true),
             number: new ComponentType("number", _numeric, true),
@@ -100,7 +101,8 @@ module.exports = {
             exportedVariable: new ComponentType("exportedVariable", _exportedVariable, true),
             html: new ComponentType("html", _string, true),
             bind: new ComponentType("bind", _bind, true),
-            any: new ComponentType("any", null, true)
+            any: new ComponentType("any", null, true),
+            script: new ComponentType("script", null, true)
         }
     }
 };

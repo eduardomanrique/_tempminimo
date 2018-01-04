@@ -20,7 +20,9 @@ function __setUpGetterForAttributes(obj, evaluator, internalEval, __instanceProp
   function _createProperty(obj, k, tp, a) {
     Object.defineProperty(obj, k, {
       get: function () {
-        if (tp.getTypeName() == 'boundVariable') {
+        if (tp.getTypeName() == 'script') {
+          return () => evaluator.eval(a instanceof Array ? a[0] : a);
+        } else if (tp.getTypeName() == 'boundVariable') {
           return evaluator.eval(a instanceof Array ? a[0] : a);
         } else if (tp.getTypeName() == 'bind') {
           return a instanceof Array ? a[0] : a;
@@ -32,7 +34,7 @@ function __setUpGetterForAttributes(obj, evaluator, internalEval, __instanceProp
         } else if (tp.getTypeName() == 'exportedVariable') {
           return internalEval.eval(tp.getDefaultValue());
         } else {
-          var val = (a instanceof Array ? a : [a]).map(i => typeof (i) == 'string' ? i : internalEval.eval(i.s)).join('');
+          var val = (a instanceof Array ? a : [a]).map(i => typeof (i) == 'string' ? i : evaluator.eval(i.s)).join('');
           return tp.convert(val);
         }
       }
