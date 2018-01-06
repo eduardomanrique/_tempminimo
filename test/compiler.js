@@ -143,7 +143,10 @@ describe('Test compiler', function () {
             appendChild: () => {}
         };
         const [htmlStruct, fnController] = eval(controllerJs);
-        const instance = Minimo.builder().insertPoint(rootElement).htmlStruct(htmlStruct).controller(fnController).build();
+        const instance = Minimo.builder()
+            .withInsertPoint(rootElement)
+            .withHtmlStruct(htmlStruct)
+            .withController(fnController).build();
         let controller = instance._controller;
         expect(controller.onInit).not.null;
         expect(controller.onChange).not.null;
@@ -214,9 +217,9 @@ describe('Test compiler', function () {
             .then(([htmx, js]) => compiler._compilePage(resInfo, util.optionOf(htmx.data), util.optionOf(js.data)).then(scripts => {
 
                 const [htmlStruct, fnController] = eval(scripts.js);
-                const instance = Minimo.builder().insertPoint({
+                const instance = Minimo.builder().withInsertPoint({
                     appendChild: () => {}
-                }).htmlStruct(htmlStruct).controller(fnController).build();
+                }).withHtmlStruct(htmlStruct).withController(fnController).build();
                 let controller = instance._controller;
 
                 expect(scripts.globalJs).to.be.undefined;
@@ -231,9 +234,9 @@ describe('Test compiler', function () {
             .then(([htmx, js]) => compiler._compilePage(resInfo, util.nullableOption(htmx).optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data)).then(compiled => {
 
                 const [htmlStruct, fnController] = eval(compiled.js);
-                const instance = Minimo.builder().insertPoint({
+                const instance = Minimo.builder().withInsertPoint({
                     appendChild: () => {}
-                }).htmlStruct(htmlStruct).controller(fnController).build();
+                }).withHtmlStruct(htmlStruct).withController(fnController).build();
                 let controller = instance._controller;
 
                 expect(compiled.globalJs).to.be.undefined;
@@ -293,9 +296,9 @@ describe('Test compiler', function () {
             .then(([htmx, js]) => compiler._compilePage(resInfo, util.nullableOption(htmx).optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data)).then(compiled => {
 
                 const [htmlStruct, fnController] = eval(compiled.js);
-                const instance = Minimo.builder().insertPoint({
+                const instance = Minimo.builder().withInsertPoint({
                     appendChild: () => {}
-                }).htmlStruct(htmlStruct).controller(fnController).build();
+                }).withHtmlStruct(htmlStruct).withController(fnController).build();
                 let controller = instance._controller;
                 //console.log(compiled.js)
                 expect(compiled.globalJs).to.be.undefined;

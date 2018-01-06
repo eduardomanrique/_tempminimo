@@ -441,6 +441,8 @@ const _instrumentController = (htmlJson, jsData, resInfo, boundVars = [], boundM
         var setTimeout=m.setTimeout;
         var clearInterval=m.clearInterval;
         var clearTimeout=m.clearTimeout;
+        var $ask = m.ask;
+        var $alert = m.alert;
         
         ${!_.isEmpty(boundVarDeclaration) ? `//undeclared vars
         ${boundVarDeclaration.join('')}
@@ -467,7 +469,7 @@ const _instrumentController = (htmlJson, jsData, resInfo, boundVars = [], boundM
         return `
         (function (localJs){
             const _load = () => {
-                return Minimo.builder().controller(${controllerObject}).localJs(localJs).build().start();
+                return Minimo.builder().withController(${controllerObject}).withLocalJs(localJs).build().start();
             }
             if(localJs){
                 return _load();

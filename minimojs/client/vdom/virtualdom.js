@@ -15,6 +15,10 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
     this._defaultUpdateDelay = 100;
     const _radioGroups = {};
 
+    // const _screenListeners = () => {
+    //     .then(answer => e.onAnswer(answer))
+    // }
+
     const _setRadioGroup = (e) => {
         let k = `${e._bind}${e._e.getAttribute("name")}`;
         _radioGroups[k] = _radioGroups[k] || new function () {
@@ -267,7 +271,18 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
                             this[propertyName]();
                         });
                     }
-                    this[propertyName] = () => Promise.all([this.ctx.eval(v)]).then(() => _updateAll(1));
+                    const exec = () => {
+                        try{
+                            return this.ctx.eval(v);
+                        }catch(e){
+                            if(e.screenEvent){
+                                return _screenListeners(e);
+                            }else{
+                                throw e;
+                            }
+                        }
+                    }
+                    this[propertyName] = () => Promise.all([exec()]).then(() => _updateAll(1));
                 }
             } else {
                 dom.setAttribute(this._e, n, v);

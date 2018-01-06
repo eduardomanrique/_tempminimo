@@ -5,6 +5,7 @@ const importableResources = require('./importable-resources');
 const minimoEvents = require('./minimo-events.js');
 const cached = require('./cached-resources.js');
 const virtualDom = require('./vdom/virtualdom.js');
+const pubsub = require('./pubsub');
 
 let _instanceCounter = 0;
 let _templateInstance;
@@ -19,12 +20,37 @@ let _window = util.getWindow();
 
 const _setLastUrl = () => _lastUrl = _window.location.pathname + _window.location.search;
 
-
+const ASK = Symbol('ASK'), ALERT = Symbol('ALERT');
 
 const destroyInstance = (instance) => {
     instance._clear();
     _instances = _instances.filter(i => i != instance);
     instance._childInstances.forEach(destroyInstance);
+}
+
+class ScreenEvent {
+    constructor(name, type, param, callback){
+        this._name = name;
+        this._type = type;
+        this._param = param;
+        this._callback = callback;
+    }
+    get name(){
+        return this._name;
+    }
+    get type(){
+        return this._type;
+    }
+    get parameter(){
+        return this._param;
+    }
+    get callback(){
+        return this._callback;
+    }
+    static builder(){
+        return util.createBuilder('name', 'type', 'param', 'callback')
+            .onBuild((builder) => new ScreenEvent(builder.name, builder.type, builder.param, builder.callback));
+    }
 }
 
 class Minimo {
@@ -161,63 +187,41 @@ class Minimo {
             _pushState(url);
         }, 10);
     }
+    get ask() {
+        return new Proxy({}, {
+            get: (_, name) => {
+                const builder = ScreenEvent.builder().withName(name).withType(ASK);
+                return (param) => {
+                    return {
+                        then: (fn) => pubsub.emit(builder.withParam(param).withCallback(fn).build())
+                    }
+                };
+            }
+        });
+    }
     static builder() {
-        const builder = {
-            insertPoint: (p) => {
-                builder._insertPoint = p;
-                return builder;
-            },
-            anchorStart: (p) => {
-                builder._startAnchor = p;
-                return builder;
-            },
-            anchorEnd: (p) => {
-                builder._endAnchor = p;
-                return builder;
-            },
-            parent: (p) => {
-                builder._parent = p;
-                return builder;
-            },
-            controller: (p) => {
-                builder._controller = p;
-                return builder;
-            },
-            htmlStruct: (p) => {
-                builder._htmlStruct = p;
-                return builder;
-            },
-            modal: (p) => {
-                builder._modal = p;
-                return builder;
-            },
-            localJs: (p) => {
-                builder._localJs = p;
-                return builder;
-            },
-            build: () => {
+        return util.createBuilder('insertPoint', 'anchorStart', 'anchorEnd', 'parent', 'controller', 'htmlStruct', 'modal', 'localJs')
+            .onBuild((builder) => {
                 const m = new Minimo()
                 m._instanceId = _instanceCounter++;
-                m._modal = builder._modal;
-                if (builder._insertPoint) {
-                    m._dom = new dom.DOM(m, builder._insertPoint, document);
-                    m._vdom = new virtualDom.VirtualDom(builder._htmlStruct && builder._htmlStruct.c ? builder._htmlStruct.c : [], builder._insertPoint, builder._startAnchor, builder._endAnchor, m, true);
+                m._modal = builder.modal;
+                if (builder.insertPoint) {
+                    m._dom = new dom.DOM(m, builder.insertPoint, document);
+                    m._vdom = new virtualDom.VirtualDom(builder.htmlStruct && builder.htmlStruct.c ? builder.htmlStruct.c : [], builder.insertPoint, builder.anchorStart, builder.anchorEnd, m, true);
                 }
-                m.parent = builder._parent;
-                if (builder._parent) {
-                    builder._parent.addChild(m);
+                m.parent = builder.parent;
+                if (builder.parent) {
+                    builder.parent.addChild(m);
                 }
-                m._scriptOnly = builder._htmlStruct == null;
+                m._scriptOnly = builder.htmlStruct == null;
                 m._isDevMode = "%devmode%";
-                m._isGlobalScriptImport = m._scriptOnly && !builder._localJs;
+                m._isGlobalScriptImport = m._scriptOnly && !builder.localJs;
                 m._childInstances = [];
                 m._intervals = [];
                 m._timeouts = [];
-                m._controller = new builder._controller(m);
+                m._controller = new builder.controller(m);
                 return m;
-            }
-        };
-        return builder;
+            });
     }
 }
 const _fireOnInit = (instance, parameters) => {
@@ -243,7 +247,7 @@ const _fireOnInit = (instance, parameters) => {
 }
 
 const startMainInstance = (htmlStruct) => {
-    const m = Minimo.builder().insertPoint(document.body).htmlStruct(htmlStruct).controller(function () {
+    const m = Minimo.builder().withInsertPoint(document.body).withHtmlStruct(htmlStruct).withController(function () {
         this.__eval__ = (f) => {
             return eval(f);
         };
@@ -320,12 +324,12 @@ const _pushState = (url) => {
             history.pushState(null, null, url);
             const [htmlStruct, controller] = eval(js);
             return Minimo.builder()
-                .insertPoint(_mainInsertPointStart.parentNode)
-                .anchorStart(_mainInsertPointStart)
-                .anchorEnd(_mainInsertPointEnd)
-                .htmlStruct(htmlStruct)
-                .controller(controller)
-                .parent(m)
+                .withInsertPoint(_mainInsertPointStart.parentNode)
+                .withAnchorStart(_mainInsertPointStart)
+                .withAnchorEnd(_mainInsertPointEnd)
+                .withHtmlStruct(htmlStruct)
+                .withController(controller)
+                .withParent(m)
                 .build();
         }).then((instance) => instance.start().then(() => {
             const _oldInstance = _currentInstance;

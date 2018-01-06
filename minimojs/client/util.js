@@ -64,6 +64,17 @@ const getQueryParams = () => {
     }
     return m;
 }
+const createBuilder = (...fields) => new function(){
+    fields.forEach(field => this[`with${field[0].toUpperCase()}${field.substring(1)}`] = (value) => {
+        this[field] = value;
+        return this;
+    });
+    this.onBuild = (fn) => {
+        this._onBuild = fn;
+        return this;
+    }
+    this.build = () => this._onBuild(this);
+}
 module.exports = {
     flatten: flatten,
     nodeListToArray: nodeListToArray,
@@ -86,5 +97,6 @@ module.exports = {
             };
         }
         return _temp;
-    }
+    },
+    createBuilder: createBuilder
 };

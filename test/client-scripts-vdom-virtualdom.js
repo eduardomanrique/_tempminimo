@@ -3,19 +3,23 @@ require('chai').should();
 const _ = require('underscore');
 const assert = require('assert');
 const jsdom = require('mocha-jsdom');
-const EventImpl = require('jsdom/lib/jsdom/living/events/Event-impl').implementation;
 const dom = require('../minimojs/client/dom.js');
 const virtualDom = require('../minimojs/client/vdom/virtualdom');
 const comp = require('../minimojs/components.js');
 const resources = require('../minimojs/resources.js');
 const startComponents = comp.startComponents;
 
-
 let buildComponentBuilderFunction;
 
 jsdom({
     skipWindowCheck: true
 });
+
+const _createEvent = (name) => {
+    const e = document.createEvent('Event');
+    e.initEvent(name, true, true);
+    return e;
+}
 
 const m = {
     generateId: () => 1,
@@ -701,25 +705,25 @@ describe('Client scripts - virtualdom.js', () => {
                 minimo.onReady();
                 obj.list.should.have.lengthOf(0);
                 document.getElementById("c1").checked = true;
-                document.getElementById("c1").dispatchEvent(new EventImpl(['change', {}], {}));
+                document.getElementById("c1").dispatchEvent(_createEvent('change'));
                 return new Promise(r => {
                     setTimeout(() => {
                         obj.list.should.have.lengthOf(1);
                         obj.list.indexOf(v1).should.be.greaterThan(-1);
                         document.getElementById("c2").checked = true;
-                        document.getElementById("c2").dispatchEvent(new EventImpl(['change', {}], {}));
+                        document.getElementById("c2").dispatchEvent(_createEvent('change'));
                         setTimeout(() => {
                             obj.list.should.have.lengthOf(2);
                             obj.list.indexOf(v1).should.be.greaterThan(-1);
                             obj.list.indexOf(v2).should.be.greaterThan(-1);
                             document.getElementById("c1").checked = false;
-                            document.getElementById("c1").dispatchEvent(new EventImpl(['change', {}], {}));
+                            document.getElementById("c1").dispatchEvent(_createEvent('change'));
                             setTimeout(() => {
                                 obj.list.should.have.lengthOf(1);
                                 obj.list.indexOf(v1).should.eq(-1);
                                 obj.list.indexOf(v2).should.be.greaterThan(-1);
                                 document.getElementById("c2").checked = false;
-                                document.getElementById("c2").dispatchEvent(new EventImpl(['change', {}], {}));
+                                document.getElementById("c2").dispatchEvent(_createEvent('change'));
                                 setTimeout(() => {
                                     obj.list.should.have.lengthOf(0);
                                     r();
@@ -808,14 +812,14 @@ describe('Client scripts - virtualdom.js', () => {
                         expect(r2._vdom._getValueFromElement()).to.eq(v1);
                         expect(r3._vdom._getValueFromElement()).to.eq(v1);
                         r2.checked = true;
-                        r2.dispatchEvent(new EventImpl(['change', {}], {}));
+                        r2.dispatchEvent(_createEvent('change'));
                         setTimeout(() => {
                             obj.val.should.eq(2);
                             expect(r1._vdom._getValueFromElement()).to.eq(2);
                             expect(r2._vdom._getValueFromElement()).to.eq(2);
                             expect(r3._vdom._getValueFromElement()).to.eq(2);
                             r3.checked = true;
-                            r3.dispatchEvent(new EventImpl(['change', {}], {}));
+                            r3.dispatchEvent(_createEvent('change'));
                             setTimeout(() => {
                                 obj.val.should.eq("val3");
                                 expect(r1._vdom._getValueFromElement()).to.eq("val3");
