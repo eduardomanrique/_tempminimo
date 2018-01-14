@@ -31,6 +31,7 @@ const generateMinimoJs = (parameters) => {
                 resources.readModuleFile(`./util.js`).then(data => resources.writeFile(`${parameters.destinationPath}/m/util.js`, data)),
                 _copyResource('esprima.js'),
                 _copyResource('util.js'),
+                _copyResource('pubsub.js'),
                 _copyResource('remote.js'),
                 _copyResource('objects.js'),
                 _copyResource('mutation-manager.js'),
