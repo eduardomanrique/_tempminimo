@@ -69,7 +69,7 @@ class Minimo {
         return (f, t) => {
             const i = _window.setInterval(() => {
                 f();
-                _updateAll(500);
+                _updateAll(global._updateDelay || 500);
             }, t);
             this._intervals.push(i);
             return i;
@@ -85,7 +85,7 @@ class Minimo {
         return (f, t) => {
             var i = _window.setTimeout(() => {
                 f();
-                _updateAll(500);
+                _updateAll(global._updateDelay || 500);
             }, t);
             this._timeouts.push(i);
             return i;
