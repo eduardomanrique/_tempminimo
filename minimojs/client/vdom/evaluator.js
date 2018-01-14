@@ -112,7 +112,7 @@ const EvaluatorManager = function (minimoInstance, ctxManager) {
                         const ctx = this._ctxList[j];
                         try {
                             let obj = ctx.eval(left);
-                            if (_isNode(obj) || _isElement(obj)) {
+                            if (!obj._isEventOption && (_isNode(obj) || _isElement(obj))) {
                                 continue;
                             }
                             found = true;
@@ -147,10 +147,10 @@ const EvaluatorManager = function (minimoInstance, ctxManager) {
                     for (let n = 0; n < aliases.length; n++) {
                         try {
                             obj = ctx.eval(aliases[n]);
-                            if (!_isNode(obj) && !_isElement(obj)) {
+                            if (obj._isEventOption || (!_isNode(obj) && !_isElement(obj))) {
                                 found = true;
                                 break;
-                            }else{
+                            } else {
                                 foundElement = obj;
                             }
                         } catch (e) {}
@@ -165,7 +165,7 @@ const EvaluatorManager = function (minimoInstance, ctxManager) {
                     }
                     break;
                 }
-                if(!found && foundElement){
+                if (!found && foundElement) {
                     variables.push(foundElement);
                 }
             }

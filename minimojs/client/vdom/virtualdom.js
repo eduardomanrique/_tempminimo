@@ -6,6 +6,7 @@ const events = require('../minimo-events');
 const createModal = require('../modals').createModal;
 const ContextManager = require('./context-manager');
 const buildComponentBuilder = require('../components').buildComponentBuilderFunction;
+const pubsub = require('../pubsub');
 
 const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, minimoInstance, waitForScriptsToLoad = true, buildComponentBuilderFunction = buildComponentBuilder) {
     const dom = minimoInstance._dom;
@@ -14,10 +15,6 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
     const evaluatorManager = new EvaluatorManager(minimoInstance, ctxManager);
     this._defaultUpdateDelay = 100;
     const _radioGroups = {};
-
-    // const _screenListeners = () => {
-    //     .then(answer => e.onAnswer(answer))
-    // }
 
     const _setRadioGroup = (e) => {
         let k = `${e._bind}${e._e.getAttribute("name")}`;
@@ -52,6 +49,8 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
             vdom = new IfContainer(json);
         } else if (json.xl) {
             vdom = new ListIteratorContainer(json);
+        } else if (json.en) {
+            vdom = new WhenContainer(json);
         } else if (json.n) {
             if (json.n == 'script' && json.a && json.a.src) {
                 return null;
@@ -174,7 +173,7 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
         get isComponentInternal() {
             return (this._struct.h || {}).componentInternal == true;
         }
-        isTheSameContext(minimo){
+        isTheSameContext(minimo) {
             return minimoInstance == minimo;
         }
         _buildChildren() {
@@ -271,18 +270,7 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
                             this[propertyName]();
                         });
                     }
-                    const exec = () => {
-                        try{
-                            return this.ctx.eval(v);
-                        }catch(e){
-                            if(e.screenEvent){
-                                return _screenListeners(e);
-                            }else{
-                                throw e;
-                            }
-                        }
-                    }
-                    this[propertyName] = () => Promise.all([exec()]).then(() => _updateAll(1));
+                    this[propertyName] = () => Promise.all([this.ctx.eval(v)]).then(() => _updateAll(1));
                 }
             } else {
                 dom.setAttribute(this._e, n, v);
@@ -318,7 +306,7 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
                     }
                     this._bind = val;
                     const type = (this._struct.a.type || "").toLowerCase();
-                    
+
                     const _getValue = () => this._getValueFromElement();
                     this._objects = new Objects(val, this.ctx, _getValue);
                     if (type == 'radio') {
@@ -527,6 +515,57 @@ const VirtualDom = function (structArray, insertPoint, anchorStart, anchorEnd, m
             }
         }
     }
+    class WhenContainer extends ScriptContainer {
+        _onBuildContainer() {
+            this._visible = false;
+            this._empty = true;
+            this._paramVar = this._struct.pv;
+            this._optionsVar = this._struct.ov;
+            pubsub.addListener(pubsub.SCREEN_EVENT_TYPE, this._struct.en, (e) => this._consume(e));
+        }
+        _consume(e) {
+            if (this._visible) {
+                throw new Error(`Cannot consume a event before the first is consumed: event name ${e.name}.`);
+            }
+            const ctxConstructor = eval(`(function(p, o){
+                const ${this._paramVar} = p;
+                const ${this._optionsVar} = o;
+                this.eval = function(s){
+                    return eval(s);
+                }
+            })`);
+            const options = new Proxy({}, {
+                get: (_, name) => {
+                    if(name == '_isEventOption'){
+                        return true;
+                    }
+                    if (name in e.callbacks || name == 'consume') {
+                        return (answer) => {
+                            const promise = [];
+                            if (name in e.callbacks) {
+                                promise.push(e.callbacks[name](answer));
+                            }
+                            Promise.all(promise).then(() => this._visible = false);
+                        }
+                    } else {
+                        return null;
+                    }
+                }
+            });
+            this.ctx = evaluatorManager.buildWith(this, new ctxConstructor(e.parameter, options));
+            this._visible = true;
+        }
+        _updateDom() {
+            if (this._visible && this._empty) {
+                this._buildChildren();
+                this._empty = false;
+            }else if (!this._visible && !this._empty) {
+                this.removeChildren();
+                this._empty = true;
+            }
+        }
+    }
+
     class ListIteratorContainer extends ScriptContainer {
         _onBuildContainer() {
             this._listName = this._struct.xl;

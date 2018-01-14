@@ -222,7 +222,6 @@ describe('Test compiler', function () {
                 }).withHtmlStruct(htmlStruct).withController(fnController).build();
                 let controller = instance._controller;
 
-                expect(scripts.globalJs).to.be.undefined;
                 controller.__eval__('param').should.be.eq(1);
             })));
     });
@@ -239,7 +238,6 @@ describe('Test compiler', function () {
                 }).withHtmlStruct(htmlStruct).withController(fnController).build();
                 let controller = instance._controller;
 
-                expect(compiled.globalJs).to.be.undefined;
                 var param;
                 controller.__eval__('param = 1');
                 param = 3;
@@ -275,9 +273,9 @@ describe('Test compiler', function () {
                                 }
                             }
                             let jsName;
-                            eval(compiled.globalJs);
+                            eval(compiled.js);
 
-                            loadScript().then(mScript => {
+                            return loadScript().then(mScript => {
                                 controller = mScript._controller;
                                 controller.__eval__('param = 2');
                                 controller.__eval__('param').should.be.eq(2);
@@ -301,7 +299,6 @@ describe('Test compiler', function () {
                 }).withHtmlStruct(htmlStruct).withController(fnController).build();
                 let controller = instance._controller;
                 //console.log(compiled.js)
-                expect(compiled.globalJs).to.be.undefined;
                 var bindV;
                 controller.__eval__('bindV = 1');
                 bindV = 3;

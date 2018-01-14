@@ -20,8 +20,6 @@ let _window = util.getWindow();
 
 const _setLastUrl = () => _lastUrl = _window.location.pathname + _window.location.search;
 
-const ASK = Symbol('ASK'), ALERT = Symbol('ALERT');
-
 const destroyInstance = (instance) => {
     instance._clear();
     _instances = _instances.filter(i => i != instance);
@@ -29,27 +27,30 @@ const destroyInstance = (instance) => {
 }
 
 class ScreenEvent {
-    constructor(name, type, param, callback){
+    constructor(name, param, callbacks) {
         this._name = name;
-        this._type = type;
         this._param = param;
-        this._callback = callback;
+        this.callbacks = callbacks;
     }
-    get name(){
+    get type (){
+        return pubsub.SCREEN_EVENT_TYPE;
+    }
+    get name() {
         return this._name;
     }
-    get type(){
-        return this._type;
-    }
-    get parameter(){
+    get parameter() {
         return this._param;
     }
-    get callback(){
-        return this._callback;
-    }
-    static builder(){
-        return util.createBuilder('name', 'type', 'param', 'callback')
-            .onBuild((builder) => new ScreenEvent(builder.name, builder.type, builder.param, builder.callback));
+    static builder() {
+        const builder = util.createBuilder('name', 'param')
+            .onBuild((builder) => {
+                const event = new ScreenEvent(builder.name, builder.param, builder._callbacks);
+                event
+                return event;
+            });
+        builder._callbacks = {};
+        builder.addCallback = (name, fn) => builder._callbacks[name] = fn;
+        return builder;
     }
 }
 
@@ -187,15 +188,25 @@ class Minimo {
             _pushState(url);
         }, 10);
     }
-    get ask() {
+    get issue() {
         return new Proxy({}, {
-            get: (_, name) => {
-                const builder = ScreenEvent.builder().withName(name).withType(ASK);
+            get: (_, eventName) => {
+                const builder = ScreenEvent.builder().withName(eventName);
                 return (param) => {
-                    return {
-                        then: (fn) => pubsub.emit(builder.withParam(param).withCallback(fn).build())
-                    }
-                };
+                    const opt = new Proxy({}, {
+                        get: (_, answerName) => {
+                            if (answerName === 'publish') {
+                                return () => pubsub.emit(builder.withParam(param).build());
+                            } else {
+                                return (fn) => {
+                                    builder.addCallback(answerName, fn);
+                                    return opt;
+                                }
+                            }
+                        }
+                    });
+                    return opt;
+                }
             }
         });
     }

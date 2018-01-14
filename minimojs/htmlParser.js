@@ -507,7 +507,7 @@ class ForTemplateScript extends TemplateScript {
     };
   }
 }
-class AskTemplateScript extends TemplateScript {
+class WhenTemplateScript extends TemplateScript {
   constructor(eventName, paramVar, optionsVar) {
     super();
     this._paramVar = paramVar;
@@ -531,26 +531,6 @@ class AskTemplateScript extends TemplateScript {
     };
   }
 }
-class AlertTemplateScript extends TemplateScript {
-  constructor(eventName, paramVar) {
-    super();
-    this._paramVar = paramVar;
-    this._eventName = eventName;
-  }
-  get paramVar() {
-    return this._paramVar;
-  }
-  get eventName() {
-    return this._eventName;
-  }
-  getJson() {
-    return {
-      pv: this._paramVar,
-      en: this._eventName
-    };
-  }
-}
-
 
 class HTMLDoc extends Element {
   constructor() {
@@ -645,11 +625,8 @@ class HTMLParser {
     let doc = this._doc;
     while (this.hasMore()) {
       let templateScript;
-      if (!this._inTextScript && this.nextIs("$when.") && (templateScript = this.isAlertTemplateScript()) != null) {
-        this._onTemplateScript(new AlertTemplateScript(templateScript[0], templateScript[1]));
-
-      } else if (!this._inTextScript && this.nextIs("$whenAskedTo.") && (templateScript = this.isAskTemplateScript()) != null) {
-        this._onTemplateScript(new AskTemplateScript(templateScript[0], templateScript[1], templateScript[2]));
+      if (!this._inTextScript && this.nextIs("$when.") && (templateScript = this.isWhenTemplateScript()) != null) {
+        this._onTemplateScript(new WhenTemplateScript(templateScript[0], templateScript[1], templateScript[2]));
 
       } else if (!this._inTextScript && this.nextIs("$if") && (templateScript = this.isIfTemplateScript()) != null) {
         this._onTemplateScript(new IfTemplateScript(`${templateScript}`));
@@ -717,17 +694,9 @@ class HTMLParser {
   advanceLine() {
     return this.readTill("\n").toLowerCase();
   }
-  isAlertTemplateScript() {
+  isWhenTemplateScript() {
     let line = this.fullCurrentLine.trim();
-    let matcher = /^\$when.(.*?)\(\s{0,}(.*?)\s{0,}\)\s{0,}=>\s{0,}\{$/g.exec(line);
-    if (matcher) {
-      return [matcher[1], matcher[2]];
-    }
-    return null;
-  }
-  isAskTemplateScript() {
-    let line = this.fullCurrentLine.trim();
-    let matcher = /^\$whenAskedTo.(.*?)\(\s{0,}(.*?)\s{0,},\s{0,}(.*?)\s{0,}\)\s{0,}=>\s{0,}\{$/g.exec(line);
+    let matcher = /^\$when.(.*?)\(\s{0,}(.*?)\s{0,},\s{0,}(.*?)\s{0,}\)\s{0,}\{$/g.exec(line);
     if (matcher) {
       return [matcher[1], matcher[2], matcher[3]];
     }

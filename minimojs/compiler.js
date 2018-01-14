@@ -436,13 +436,13 @@ const _instrumentController = (htmlJson, jsData, resInfo, boundVars = [], boundM
         throw new Error(`Invalid js controller '${jsName}': ${e.message}`);
     }
     const controllerObject = `function(instance){
-        var m=instance;
-        var setInterval=m.setInterval;
-        var setTimeout=m.setTimeout;
-        var clearInterval=m.clearInterval;
-        var clearTimeout=m.clearTimeout;
-        var $ask = m.ask;
-        var $alert = m.alert;
+        const m=instance;
+        const setInterval=m.setInterval;
+        const setTimeout=m.setTimeout;
+        const clearInterval=m.clearInterval;
+        const clearTimeout=m.clearTimeout;
+        const $issue=m.issue;
+        const $go=m.go;
         
         ${!_.isEmpty(boundVarDeclaration) ? `//undeclared vars
         ${boundVarDeclaration.join('')}
