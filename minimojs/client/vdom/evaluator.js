@@ -1,4 +1,4 @@
-const esprima = require('../esprima');
+const esprima = require('esprima');
 
 const _isNode = (o) =>
     typeof Node === "object" ? o instanceof Node :

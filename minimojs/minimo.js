@@ -12,8 +12,11 @@ const generateMinimoJs = (parameters) => {
     });
     context.destinationPath = parameters.destinationPath;
     let importableResources;
-
+    const optionsModulePath = require.resolve('minimojs-options');
+    const esprimaModulePath = require.resolve('esprima');
+    const miscModulePath = require.resolve('minimojs-misc');
     return resources.readModuleFile('./defaultLoaderGif.txt').then((loader) => {
+
         const _copyResource = (path, destName) => resources.readModuleFile(`./client/${path}`)
             .then(data => resources.writeFile(`${parameters.destinationPath}/m/scripts/${destName || path}`, data
                 .replace('"%importableResources%"', JSON.stringify(importableResources))
@@ -28,9 +31,9 @@ const generateMinimoJs = (parameters) => {
             .then(() => compiler.compileResources())
             .then(importable => importableResources = importable)
             .then(() => Promise.all([
-                resources.readModuleFile(`../node_modules/minimojs-options/index.js`).then(data => resources.writeFile(`${parameters.destinationPath}/m/minimojs-options.js`, data)),
-                _copyResource('esprima.js'),
-                _copyResource('../../node_modules/minimojs-misc/index.js', 'minimojs-misc'),
+                resources.readModuleFile(optionsModulePath).then(data => resources.writeFile(`${parameters.destinationPath}/node_modules/minimojs-options/index.js`, data)),
+                resources.readModuleFile(esprimaModulePath).then(data => resources.writeFile(`${parameters.destinationPath}/node_modules/esprima/index.js`, data)),
+                resources.readModuleFile(miscModulePath).then(data => resources.writeFile(`${parameters.destinationPath}/node_modules/minimojs-misc/index.js`, data)),
                 _copyResource('pubsub.js'),
                 _copyResource('remote.js'),
                 _copyResource('objects.js'),

@@ -1,6 +1,6 @@
 {
   "name": "minimojs",
-  "version": "1.1.18",
+  "version": "1.2.0",
   "description": "minimo js",
   "main": "index.js",
   "scripts": {
@@ -16,10 +16,10 @@
     "chai-spies": "^0.7.1",
     "chai-string": "^1.4.0",
     "debug": "^3.1.0",
-    "esprima": "^4.0.0",
+    "esprima": "^4.0.1",
     "jsdom": "^10.0.0",
     "minimojs-misc": "^1.0.1",
-    "minimojs-options": "^1.0.1",
+    "minimojs-options": "^1.0.2",
     "mkdirp": "^0.5.1",
     "mocha-jsdom": "^1.1.0",
     "ncp": "^2.0.0",
