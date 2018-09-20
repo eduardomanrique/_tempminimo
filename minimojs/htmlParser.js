@@ -1,7 +1,7 @@
 const _ = require('underscore');
 const esprima = require('esprima');
 const context = require('./context');
-const util = require('./util');
+const options = require('minimojs-options');
 
 const _prepareMScriptsValues = (value) => {
   let last = value;
@@ -448,10 +448,10 @@ class Element extends Node {
       }));
   }
   findDeepestChild(tagName) {
-    return util.firstOption(this.getElementsByName(tagName)).map(e => e.findDeepestChild(tagName) || e);
+    return options.firstOption(this.getElementsByName(tagName)).map(e => e.findDeepestChild(tagName) || e);
   }
   findDeepestChildWithAttribute(attributeName) {
-    return util.firstOption(this.getElementsWithAttribute(attributeName)).map(e => e.findDeepestChildWithAttribute(attributeName) || e);
+    return options.firstOption(this.getElementsWithAttribute(attributeName)).map(e => e.findDeepestChildWithAttribute(attributeName) || e);
   }
 }
 

@@ -16,7 +16,7 @@ const loadComponents = require('../minimojs/components').loadComponents;
 const ctx = require('../minimojs/context');
 const _components = rewire('../minimojs/components');
 const htmlParser = require('../minimojs/htmlParser');
-const util = require('../minimojs/util');
+const options = require('minimojs-options');
 const resources = require('../minimojs/resources');
 
 process.chdir(`${__dirname}/datadir`);

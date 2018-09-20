@@ -1,4 +1,4 @@
-const util = require('../util.js');
+const util = require('minimojs-misc');
 const EvaluatorManager = require('./evaluator');
 const Objects = require('../objects');
 const inputs = require('./inputs');

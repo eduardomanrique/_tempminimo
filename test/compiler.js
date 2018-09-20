@@ -4,7 +4,7 @@ const resources = require('../minimojs/resources');
 const expect = require('chai').expect;
 const components = require('../minimojs/components');
 const htmlParser = require('../minimojs/htmlParser');
-const util = require('../minimojs/util');
+const options = require('minimojs-options');
 const context = require('../minimojs/context');
 const _ = require('underscore');
 const chai = require('chai')
@@ -90,7 +90,7 @@ describe('Test compiler', function () {
             bindService: name => services.push(name)
         }
         var binds;
-        eval(`${prepared}; 
+        eval(`${prepared};
             binds = __binds__;
             setVars = function(){
                 vars.i=i;
@@ -115,7 +115,7 @@ describe('Test compiler', function () {
         </html>`).toJson();
         const boundVars = parser.boundVars;
         const boundModals = parser.boundModals;
-        const jsData = util.optionOf(`
+        const jsData = options.optionOf(`
         var obj = {
             test:1
         };
@@ -189,7 +189,7 @@ describe('Test compiler', function () {
         return components.startComponents().then(() =>
             Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
             .then(([htmx, js]) =>
-                compiler._compilePage(resInfo, util.nullableOption(htmx).optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data))
+                compiler._compilePage(resInfo, options.nullableOption(htmx).optionMap(v => v.data), options.nullableOption(js).optionMap(v => v.data))
                 .then(compiledPage => {
                     var a = compiler._appcache();
                     a.should.contain('/test.js');
@@ -214,7 +214,7 @@ describe('Test compiler', function () {
         const resInfo = new compiler.Resource('/dir1/test1', true, true, realPath.substring(0, realPath.lastIndexOf('.')), false);
         return components.startComponents().then(() =>
             Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
-            .then(([htmx, js]) => compiler._compilePage(resInfo, util.optionOf(htmx.data), util.optionOf(js.data)).then(scripts => {
+            .then(([htmx, js]) => compiler._compilePage(resInfo, options.optionOf(htmx.data), options.optionOf(js.data)).then(scripts => {
 
                 const [htmlStruct, fnController] = eval(scripts.js);
                 const instance = Minimo.builder().withInsertPoint({
@@ -230,7 +230,7 @@ describe('Test compiler', function () {
         const resInfo = new compiler.Resource('/dir1/test1_template_no_js', false, true, realPath.substring(0, realPath.lastIndexOf('.')), false);
         return components.startComponents().then(() =>
             Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
-            .then(([htmx, js]) => compiler._compilePage(resInfo, util.nullableOption(htmx).optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data)).then(compiled => {
+            .then(([htmx, js]) => compiler._compilePage(resInfo, options.nullableOption(htmx).optionMap(v => v.data), options.nullableOption(js).optionMap(v => v.data)).then(compiled => {
 
                 const [htmlStruct, fnController] = eval(compiled.js);
                 const instance = Minimo.builder().withInsertPoint({
@@ -250,10 +250,10 @@ describe('Test compiler', function () {
         return components.startComponents().then(() =>
             Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
             .then(([htmx, js]) => {
-                compiler._compilePage(resInfo, util.nullableOption(htmx)
-                    .optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data)).then(compiled => {
+                compiler._compilePage(resInfo, options.nullableOption(htmx)
+                    .optionMap(v => v.data), options.nullableOption(js).optionMap(v => v.data)).then(compiled => {
                         eval(compiled.js.substring(0, compiled.js.lastIndexOf('(false)')))(true).then(instance => {
-                        
+
                             let controller = instance._controller;
 
                             var param;
@@ -291,7 +291,7 @@ describe('Test compiler', function () {
         const resInfo = new compiler.Resource('/dir1/with_components', true, true, realPath.substring(0, realPath.lastIndexOf('.')), false);
         return components.startComponents().then(() =>
             Promise.all([resInfo.relativeHtmxPath.map(resources.readResource), resInfo.relativeJsPath.map(resources.readResource)])
-            .then(([htmx, js]) => compiler._compilePage(resInfo, util.nullableOption(htmx).optionMap(v => v.data), util.nullableOption(js).optionMap(v => v.data)).then(compiled => {
+            .then(([htmx, js]) => compiler._compilePage(resInfo, options.nullableOption(htmx).optionMap(v => v.data), options.nullableOption(js).optionMap(v => v.data)).then(compiled => {
 
                 const [htmlStruct, fnController] = eval(compiled.js);
                 const instance = Minimo.builder().withInsertPoint({
@@ -313,10 +313,10 @@ describe('Test compiler', function () {
     });
     it('Reload files', () => compiler._restart()
         .then(compiler._reloadFiles)
-        .then(() => [
+        .then(() => Promise.all([
             resources.ls(`${context.destinationPath}/dir1`),
             resources.ls(`${context.destinationPath}/dir2`)
-        ].toPromise())
+        ]))
         .then(([dir1, dir2]) => {
             dir1.should.have.lengthOf(6);
             dir1.should.contain(`${context.destinationPath}/dir1/test1.js`);
@@ -327,9 +327,9 @@ describe('Test compiler', function () {
             dir2.should.contain(`${context.destinationPath}/dir2/js-only.js`);
             dir2.should.contain(`${context.destinationPath}/dir2/test_appcache.js`);
         }));
-    it('Compile Resources', () => components.startComponents()
-        .then(compiler.compileResources)
-        .then(importableResInfo => {
-            _.size(importableResInfo).should.be.eq(6);
-        }));
+    it('Compile Resources', async () => {
+        await components.startComponents();
+        const importableResInfo = await compiler.compileResources();
+        _.size(importableResInfo).should.be.eq(6);
+    });
 });

@@ -1,4 +1,4 @@
-const util = require('./util.js');
+const util = require('minimojs-misc');
 const remote = require('./remote.js');
 const dom = require('./dom.js');
 const importableResources = require('./importable-resources');
@@ -32,7 +32,7 @@ class ScreenEvent {
         this._param = param;
         this.callbacks = callbacks;
     }
-    get type (){
+    get type() {
         return pubsub.SCREEN_EVENT_TYPE;
     }
     get name() {
@@ -413,6 +413,20 @@ const _updateAll = (delay) => {
 global.Minimo = Minimo;
 global.startMainInstance = startMainInstance;
 global._updateAll = _updateAll;
+
+Promise.prototype._minimo_then = Promise.prototype.then
+
+Promise.prototype.then = function (resolve, reject) {
+    const fnResolve = (v) => {
+        (resolve||(()=>{}))(v);
+        global._updateAll(global._updateDelay || 500);
+    };
+    const fnReject = (v) => {
+        (reject||(()=>{}))(v);
+        global._updateAll(global._updateDelay || 500);
+    };
+    return this._minimo_then(fnResolve, fnReject);
+};
 
 const mwrapper = {
     _readyListeners: [],

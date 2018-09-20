@@ -1,13 +1,13 @@
-const util = require('../util.js');
-const clientUtil = require('./util.js');
+const options = require('minimojs-options');
+const util = require('minimojs-misc');
 
-const _attr = (el, name) => util.nullableOption(el && el.getAttribute ? el.getAttribute(name) : null);
+const _attr = (el, name) => options.nullableOption(el && el.getAttribute ? el.getAttribute(name) : null);
 
-const _byId = (id, _doc = document) => util.nullableOption(_doc.getElementById(id));
-const _byClass = (classes, _doc = document) => clientUtil.flatten(classes.split(' ')
-	.map(c => clientUtil.nodeListToArray(_doc.getElementsByClassName(c))));
-const _byName = (name, _doc = document) => clientUtil.nodeListToArray(_doc.getElementsByName(name));
-const _query = (query, _doc = document) => clientUtil.nodeListToArray(_doc.querySelectorAll(query));
+const _byId = (id, _doc = document) => options.nullableOption(_doc.getElementById(id));
+const _byClass = (classes, _doc = document) => util.flatten(classes.split(' ')
+	.map(c => util.nodeListToArray(_doc.getElementsByClassName(c))));
+const _byName = (name, _doc = document) => util.nodeListToArray(_doc.getElementsByName(name));
+const _query = (query, _doc = document) => util.nodeListToArray(_doc.querySelectorAll(query));
 
 const _removeClass = (element, className) => _attr(element, "class").ifPresent(classes =>
 	element.setAttribute("class", classes.split(" ").filter(c => c != className).join(' ')));
@@ -28,7 +28,7 @@ class DOM {
 		this._root._minimoInstance = this;
 
 		const _checkElement = (element) => {
-			const e = util.getValue(element);
+			const e = options.getValue(element);
 			if (e !== _root && !this.isInThisContext(e)) {
 				throw new Error('Invalid context for element');
 			}
@@ -73,9 +73,9 @@ class DOM {
 
 		const _findChildren = (e, filter, firstLevelOnly = false) => _findNodes(e, filter, false, firstLevelOnly, false);
 
-		const _findFirstChildNode = (e, filter, firstLevelOnly = false) => clientUtil.first(_findNodes(e, filter, true, firstLevelOnly, true))[0];
+		const _findFirstChildNode = (e, filter, firstLevelOnly = false) => util.first(_findNodes(e, filter, true, firstLevelOnly, true))[0];
 
-		const _findFirstChild = (e, filter, firstLevelOnly = false) => clientUtil.first(_findNodes(e, filter, false, firstLevelOnly, true))[0];
+		const _findFirstChild = (e, filter, firstLevelOnly = false) => util.first(_findNodes(e, filter, false, firstLevelOnly, true))[0];
 
 		const _findChildNodesByAttribute = (e, attrName, findFirst, filter) =>
 			_findNodes(e, node => {

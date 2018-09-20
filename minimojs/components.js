@@ -6,7 +6,7 @@ const esprimaUtil = require('./esprimaUtil');
 const htmlParser = require('./htmlParser');
 const types = require('./component-types').types;
 const isComponentType = require('./component-types').isComponentType;
-const util = require('./util');
+const options = require('minimojs-options');
 
 let _componentsScript;
 let _componentsInfo;
@@ -186,7 +186,7 @@ const _createHtmxComponent = (compJs = "", varPath, compName) =>
            return r;
           }catch(e){return {}}
         }
-       
+
 
        var generateId = m.generateId;
      }
@@ -283,13 +283,13 @@ const _findDeepestComponent = (doc) => {
   const _findDeepest = (e, currentFoundComponent, comp, compList) => {
     const deepest = e.findDeepestChild(comp.resourceName);
     if (_.isEmpty(compList)) {
-      return deepest ? util.optionOf([deepest, comp]) :
-        currentFoundComponent ? util.optionOf([e, currentFoundComponent]) :
-        util.emptyOption();
+      return deepest ? options.optionOf([deepest, comp]) :
+        currentFoundComponent ? options.optionOf([e, currentFoundComponent]) :
+        options.emptyOption();
     }
     return _findDeepest(deepest || e, deepest ? comp : currentFoundComponent, _.first(compList), _.rest(compList));
   }
-  return _.isEmpty(_componentsInfo) ? util.emptyOption() : _findDeepest(doc, null, _.first(_componentsInfo), _.rest(_componentsInfo));
+  return _.isEmpty(_componentsInfo) ? options.emptyOption() : _findDeepest(doc, null, _.first(_componentsInfo), _.rest(_componentsInfo));
 }
 
 const buildComponentsOnPage = (doc, boundVars, boundModals) =>

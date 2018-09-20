@@ -1,4 +1,4 @@
-const util = require('./util');
+const util = require('minimojs-misc');
 const fs = require('fs');
 const pathLib = require('path');
 const ncp = require('ncp');
@@ -10,7 +10,7 @@ const getResourcePaths = (root, filter) => {
     fs.readdir(rootPath, (err, files) => {
       if (err) reject(err);
       else {
-        resolve(files.map((path) => {
+        resolve(Promise.all(files.map((path) => {
           const completePath = `${rootPath}/${path}`;
           const isDir = fs.lstatSync(completePath).isDirectory();
           if (isDir) {
@@ -18,7 +18,7 @@ const getResourcePaths = (root, filter) => {
           } else {
             return completePath;
           }
-        }).toPromise());
+        })));
       }
     });
   });
@@ -28,7 +28,7 @@ const getResourcePaths = (root, filter) => {
 const writeFile = (path, data) => new Promise((resolve, reject) => {
   const dir = path.substring(0, path.lastIndexOf("/"));
   exists(dir).then(exists => {
-    if(!exists){
+    if (!exists) {
       return mkdirTree(dir);
     }
   }).then(() => fs.writeFile(path, data, function (err) {
@@ -54,9 +54,14 @@ const readResource = path =>
       }
     }));
 
-const getResources = (root, filter) => getResourcePaths(root, filter)
-  .then(paths => paths.map(readResource).toPromise())
-  .catch(e => [].toPromise());
+const getResources = async (root, filter) => {
+  try {
+    const paths = await getResourcePaths(root, filter);
+    return await Promise.all(paths.map(readResource));
+  } catch (e) {
+    return null;
+  }
+}
 
 const copy = (source, dest) =>
   new Promise((resolve, reject) =>
@@ -77,18 +82,19 @@ const exists = (path) => new Promise((resolve) =>
 
 const pathStats = exists;
 
-const ls = (path) => util.toPromise(fs.readdir, path).then(files => files.map((file) => {
+const ls = (path) => util.toPromise(fs.readdir, path).then(files => Promise.all(files.map((file) => {
   const result = `${path}/${file}`;
   return pathStats(result).then(stats => {
     if (stats.isDirectory()) {
-      return [result, ls(result)].toPromise();
+      return Promise.all([result, ls(result)]);
     } else {
       return result;
     }
   })
-}).toPromise().then(files => _.flatten(files))).catch(() => []);
+})).then(files => _.flatten(files))).catch(() => []);
 
-const _rmExistingDirR = (path) => util.toPromise(fs.readdir, path).then(files => files.map((file) => {
+
+const _rmExistingDirR = (path) => util.toPromise(fs.readdir, path).then(files => Promise.all(files.map((file) => {
   const curPath = `${path}/${file}`;
   return pathStats(curPath).then(stats => {
     if (stats.isDirectory()) {
@@ -97,7 +103,7 @@ const _rmExistingDirR = (path) => util.toPromise(fs.readdir, path).then(files =>
       return util.toPromise(fs.unlink, curPath);
     }
   });
-}).toPromise()).then(() => util.toPromise(fs.rmdir, path));
+}))).then(() => util.toPromise(fs.rmdir, path));
 
 const rmDirR = (path) => new Promise((resolve, reject) => {
   exists(path).then(exists => {
@@ -121,16 +127,16 @@ const mkdirTree = (path) => new Promise((resolve, reject) => {
 
 const readModuleFile = (path) => new Promise((resolve, reject) => {
   try {
-      const filename = require.resolve(path);
-      fs.readFile(filename, 'utf8', (err, data) => {
-          if (err) {
-              reject(err);
-          } else {
-              resolve(data);
-          }
-      });
+    const filename = require.resolve(path);
+    fs.readFile(filename, 'utf8', (err, data) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(data);
+      }
+    });
   } catch (e) {
-      reject(e);
+    reject(e);
   }
 });
 

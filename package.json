@@ -18,6 +18,8 @@
     "debug": "^3.1.0",
     "esprima": "^4.0.0",
     "jsdom": "^10.0.0",
+    "minimojs-misc": "^1.0.1",
+    "minimojs-options": "^1.0.1",
     "mkdirp": "^0.5.1",
     "mocha-jsdom": "^1.1.0",
     "ncp": "^2.0.0",

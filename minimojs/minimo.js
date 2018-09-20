@@ -14,8 +14,8 @@ const generateMinimoJs = (parameters) => {
     let importableResources;
 
     return resources.readModuleFile('./defaultLoaderGif.txt').then((loader) => {
-        const _copyResource = (name) => resources.readModuleFile(`./client/${name}`)
-            .then(data => resources.writeFile(`${parameters.destinationPath}/m/scripts/${name}`, data
+        const _copyResource = (path, destName) => resources.readModuleFile(`./client/${path}`)
+            .then(data => resources.writeFile(`${parameters.destinationPath}/m/scripts/${destName || path}`, data
                 .replace('"%importableResources%"', JSON.stringify(importableResources))
                 .replace('"%component-types%"', components.getComponentTypes())
                 .replace('"%components%"', components.getScripts())
@@ -28,9 +28,9 @@ const generateMinimoJs = (parameters) => {
             .then(() => compiler.compileResources())
             .then(importable => importableResources = importable)
             .then(() => Promise.all([
-                resources.readModuleFile(`./util.js`).then(data => resources.writeFile(`${parameters.destinationPath}/m/util.js`, data)),
+                resources.readModuleFile(`../node_modules/minimojs-options/index.js`).then(data => resources.writeFile(`${parameters.destinationPath}/m/minimojs-options.js`, data)),
                 _copyResource('esprima.js'),
-                _copyResource('util.js'),
+                _copyResource('../../node_modules/minimojs-misc/index.js', 'minimojs-misc'),
                 _copyResource('pubsub.js'),
                 _copyResource('remote.js'),
                 _copyResource('objects.js'),
