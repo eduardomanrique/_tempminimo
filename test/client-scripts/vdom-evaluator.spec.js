@@ -2,7 +2,7 @@ const expect = require('chai').expect;
 require('chai').should();
 const _ = require('underscore');
 const assert = require('assert');
-const EvaluatorManager = require('../minimojs/client/vdom/evaluator.js');
+const EvaluatorManager = require('../../minimojs/client/vdom/evaluator.js');
 
 let ctx, ctx1, ctx2, root, l11, l12, l111, l1111;
 const ctxManager = {

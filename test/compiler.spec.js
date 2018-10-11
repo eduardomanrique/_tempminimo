@@ -4,6 +4,7 @@ const resources = require('../minimojs/resources');
 const expect = require('chai').expect;
 const components = require('../minimojs/components');
 const htmlParser = require('../minimojs/htmlParser');
+const Minimo = require('../minimojs/client/minimo-instance').Minimo;
 const options = require('minimojs-options');
 const context = require('../minimojs/context');
 const _ = require('underscore');
@@ -136,9 +137,6 @@ describe('Test compiler', function () {
         const resInfo = new compiler.Resource('/dir1/test1', true, true, realPath.substring(0, realPath.lastIndexOf('.')), false);
         const controllerJs = compiler._instrumentController(docJson, jsData, resInfo, boundVars, boundModals);
 
-        let resourceName;
-        let insertPoint;
-        let modal;
         const rootElement = {
             appendChild: () => {}
         };

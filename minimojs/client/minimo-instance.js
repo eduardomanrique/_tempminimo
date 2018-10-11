@@ -16,7 +16,22 @@ let _mainInsertPointEnd;
 let _lastUrl;
 let _loading;
 
-let _window = util.getWindow();
+let _window = (() => {
+    let _temp;
+    try{
+       _let = window;
+    } catch(e){}
+    if (!_temp) {
+        _temp = global;
+        global.location = {
+            pathname: "",
+            search: ""
+        };
+        global.addEventListener = (()=>{});
+        global.document = {}
+    }
+    return _temp;
+})();
 
 const _setLastUrl = () => _lastUrl = _window.location.pathname + _window.location.search;
 
